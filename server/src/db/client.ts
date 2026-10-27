@@ -2,11 +2,13 @@ import { Pool, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config';
 
 // Constrained connection pool for PostgreSQL 18 Free tier (1 CPU, 1 GB RAM)
+const sanitizedUrl = config.databaseUrl.split('?')[0];
+
 export const pool = new Pool({
-  connectionString: config.databaseUrl,
-  ssl: config.databaseUrl.includes('sslmode=require') || config.databaseUrl.includes('aivencloud')
-    ? { rejectUnauthorized: false }
-    : undefined,
+  connectionString: sanitizedUrl,
+  ssl: {
+    rejectUnauthorized: false,
+  },
   max: 10, // Hard limit to prevent RAM exhaustion on 1 GB DB
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 8000,

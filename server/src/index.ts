@@ -1,12 +1,14 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import path from 'path';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { checkDatabaseConnection, pool } from './db/client';
 import { runMigrations } from './db/migrate';
 import { startPeriodicCleanupCron } from './services/cleanup';
 import { spoolManager } from './services/stream';
+import { botAdminListener } from './services/botListener';
 
 import deviceRoutes from './routes/device.routes';
 import apiRoutes from './routes/api.routes';
@@ -82,6 +84,12 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// --- Admin Portal Endpoint (Dedicated Admin Upload Dashboard) ---
+app.use(express.static(path.join(__dirname, '../public')));
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // --- Register Routes ---
 app.use(deviceRoutes);      // /activate, /devices
 app.use('/api', apiRoutes);  // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history
@@ -113,6 +121,9 @@ export const server = app.listen(config.port, async () => {
   // Start 5-minute orphan cleanup cron
   startPeriodicCleanupCron();
 
+  // Start Telegram Bot Admin direct upload listener
+  botAdminListener.start();
+
   // Run database migrations if DB is accessible
   try {
     const isAlive = await checkDatabaseConnection();
@@ -130,6 +141,7 @@ export const server = app.listen(config.port, async () => {
 // Graceful Shutdown
 const shutdown = async () => {
   console.log('\n[Melody Backend] Gracefully shutting down...');
+  botAdminListener.stop();
   server.close(async () => {
     try {
       await pool.end();

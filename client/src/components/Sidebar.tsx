@@ -31,15 +31,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           alt="Melody Logo" 
           className="w-9 h-9 rounded-xl shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform" 
         />
-        <div className="flex flex-col">
-          <span className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
-            Melody
-            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              Free
-            </span>
-          </span>
-          <span className="text-[11px] text-neutral-400 font-medium">Studio Sound 320k</span>
-        </div>
+        <span className="text-xl font-extrabold tracking-tight text-white">
+          Melody
+        </span>
       </div>
 
       {/* Main Nav Links */}

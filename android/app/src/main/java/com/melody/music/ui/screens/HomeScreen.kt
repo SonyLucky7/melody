@@ -53,7 +53,6 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -62,20 +61,6 @@ fun HomeScreen(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0x333B82F6))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "100% FREE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MelodyPrimary
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
