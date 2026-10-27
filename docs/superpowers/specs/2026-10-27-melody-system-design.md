@@ -157,6 +157,15 @@ CREATE TABLE IF NOT EXISTS favourites (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (licence_id, song_id)
 );
+
+-- Recently Played table (Spotify-style user playback history)
+CREATE TABLE IF NOT EXISTS recent_plays (
+  id SERIAL PRIMARY KEY,
+  licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
+  song_id INT REFERENCES songs(id) ON DELETE CASCADE,
+  played_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_recent_plays_licence ON recent_plays (licence_id, played_at DESC);
 ```
 
 ---
@@ -204,6 +213,8 @@ CREATE TABLE IF NOT EXISTS favourites (
 | `GET` | `/api/favourites` | List favourite songs | Device Token |
 | `POST` | `/api/favourites/:songId` | Add song to favourites | Device Token |
 | `DELETE`| `/api/favourites/:songId` | Remove song from favourites | Device Token |
+| `GET` | `/api/history` | List recently played songs for current licence (Spotify style) | Device Token |
+| `POST` | `/api/songs/:id/played` | Record song play in listening history | Device Token (or Public if FREE_MODE) |
 | `POST` | `/api/admin/upload` | Multipart audio + cover upload -> Telegram -> DB | Admin Secret |
 | `POST` | `/api/admin/licences` | Issues user + Option 1 licence key | Admin Secret |
 | `POST` | `/api/checkout/mock` | Simulates ₹49 payment & issues licence key | Public / Device Token |
