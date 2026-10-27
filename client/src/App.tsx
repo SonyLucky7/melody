@@ -5,7 +5,6 @@ import { SongCard } from './components/SongCard';
 import { SongRow } from './components/SongRow';
 import { ActivationModal } from './components/ActivationModal';
 import { DeviceModal } from './components/DeviceModal';
-import { AdminUploadModal } from './components/AdminUploadModal';
 import { usePlayer } from './context/PlayerContext';
 import { fetchSongs, fetchPlaylists, fetchRecentlyPlayed, fetchFavourites, createPlaylist, fetchPlaylistSongs } from './services/api';
 import { Song, Playlist, ActiveDevice } from './types';
@@ -28,7 +27,6 @@ export const App: React.FC = () => {
   // Modals
   const [isActivationOpen, setIsActivationOpen] = useState(false);
   const [isDevicesOpen, setIsDevicesOpen] = useState(false);
-  const [isAdminUploadOpen, setIsAdminUploadOpen] = useState(false);
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
 
   const { playSong } = usePlayer();
@@ -100,7 +98,6 @@ export const App: React.FC = () => {
           onCreatePlaylist={handleCreatePlaylist}
           onOpenActivation={() => setIsActivationOpen(true)}
           onOpenDevices={() => setIsDevicesOpen(true)}
-          onOpenAdminUpload={() => setIsAdminUploadOpen(true)}
         />
 
         {/* Main Content Area */}
@@ -203,12 +200,7 @@ export const App: React.FC = () => {
                     <div className="py-16 text-center text-neutral-500 flex flex-col items-center gap-2">
                       <Music className="w-10 h-10 opacity-40 text-blue-400" />
                       <p className="text-sm font-semibold">No tracks found.</p>
-                      <button
-                        onClick={() => setIsAdminUploadOpen(true)}
-                        className="mt-2 text-xs font-bold text-blue-400 hover:underline"
-                      >
-                        Upload your first MP3 track in Admin Upload
-                      </button>
+                      <p className="text-xs text-neutral-400">New tracks will appear here once added to the library.</p>
                     </div>
                   )}
                 </div>
@@ -337,14 +329,6 @@ export const App: React.FC = () => {
         devicesList={deviceLimitDevices}
         onSlotFreed={() => {
           setIsActivationOpen(true);
-        }}
-      />
-
-      <AdminUploadModal
-        isOpen={isAdminUploadOpen}
-        onClose={() => setIsAdminUploadOpen(false)}
-        onUploadSuccess={() => {
-          loadCatalog();
         }}
       />
     </div>

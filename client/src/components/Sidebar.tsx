@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, UploadCloud, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop } from 'lucide-react';
 import { Playlist } from '../types';
 
 interface SidebarProps {
@@ -9,7 +9,6 @@ interface SidebarProps {
   onCreatePlaylist: () => void;
   onOpenActivation: () => void;
   onOpenDevices: () => void;
-  onOpenAdminUpload: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -19,7 +18,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreatePlaylist,
   onOpenActivation,
   onOpenDevices,
-  onOpenAdminUpload,
 }) => {
   return (
     <aside className="w-64 bg-[#0f0f13] flex flex-col h-full border-r border-[#1e1e28] text-neutral-300 p-4 select-none">
@@ -158,14 +156,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             Manage Devices
           </span>
           <span className="text-[10px] text-neutral-500">5 Max</span>
-        </button>
-
-        <button
-          onClick={onOpenAdminUpload}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 transition-all border border-blue-500/20"
-        >
-          <UploadCloud className="w-3.5 h-3.5 text-blue-400" />
-          <span>Admin Upload</span>
         </button>
       </div>
     </aside>
