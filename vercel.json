@@ -1,0 +1,43 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://melody-mzsm.onrender.com/api/:path*"
+    },
+    {
+      "source": "/stream/:path*",
+      "destination": "https://melody-mzsm.onrender.com/stream/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://melody-mzsm.onrender.com/health"
+    },
+    {
+      "source": "/((?!api|covers|stream|health|assets|favicon).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}
