@@ -53,8 +53,8 @@ interface MelodyApiService {
 }
 
 object ApiClient {
-    // 10.0.2.2 points to host machine from Android Emulator; replace with domain or local IP on physical devices
-    var baseUrl = "http://10.0.2.2:5000/"
+    // Production Render URL with UptimeRobot 24/7 keep-alive
+    var baseUrl = "https://melody-mzsm.onrender.com/"
     var deviceToken: String? = null
     var deviceId: String = "android-device-" + System.currentTimeMillis().toString().takeLast(6)
 
