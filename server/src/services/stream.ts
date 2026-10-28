@@ -118,9 +118,18 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     } catch {}
   }
 
-  // Direct High-Speed Streaming: Resolve Telegram file URL and stream HTTP Range directly
+  // Determine user priority for dedicated Telegram Bot lane routing
+  const priorityParam = req.query.priority as string;
+  let priority: 'lifetime' | 'annual' | 'free' = 'free';
+  if (priorityParam === 'lifetime') {
+    priority = 'lifetime';
+  } else if (priorityParam === 'annual') {
+    priority = 'annual';
+  }
+
+  // Direct High-Speed Streaming: Resolve Telegram file URL via dedicated priority bot lane
   try {
-    const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id);
+    const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id, priority);
 
     // Stream range immediately from Telegram's file CDN directly to client
     const rangeHeader = req.headers.range;
@@ -133,6 +142,9 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       requestHeaders['Range'] = rangeHeader;
     }
 
+    // Flush socket immediately without TCP buffering delay
+    res.socket?.setNoDelay(true);
+
     const tgReq = protocol.get(downloadUrl, { agent: telegramAgent, headers: requestHeaders }, (tgRes) => {
       const statusCode = tgRes.statusCode || (rangeHeader ? 206 : 200);
 
@@ -140,6 +152,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
         'Content-Type': 'audio/mpeg',
         'Accept-Ranges': 'bytes',
         'Cache-Control': 'public, max-age=604800, immutable',
+        'X-Accel-Buffering': 'no',
       };
 
       if (tgRes.headers['content-range']) {

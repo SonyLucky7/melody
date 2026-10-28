@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.melody.music.ads.MelodyAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
 import com.melody.music.player.MelodyPlaybackService
@@ -55,6 +56,11 @@ class MainActivity : ComponentActivity() {
         ApiClient.init(applicationContext)
         MelodyPlayerManager.refreshFavourites()
 
+        // Initialize Google AdMob & attach activity for listening gate
+        MelodyAdManager.init(applicationContext)
+        MelodyAdManager.attachActivity(this)
+        MelodyAdManager.checkLaunchAd(this)
+
         // Start & bind playback foreground service
         val serviceIntent = Intent(this, MelodyPlaybackService::class.java)
         startService(serviceIntent)
@@ -67,7 +73,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        MelodyAdManager.attachActivity(this)
+        MelodyAdManager.checkLaunchAd(this)
+    }
+
     override fun onDestroy() {
+        MelodyAdManager.detachActivity(this)
         unbindService(serviceConnection)
         super.onDestroy()
     }

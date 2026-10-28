@@ -71,29 +71,69 @@ export class TelegramMultiBotService {
   }
 
   /**
-   * Race multiple bots to fetch the file download URL with minimum latency (cached for 50 mins)
+   * Fetch file download URL with User Priority bot allocation
+   * - Lifetime VIP: Bot 1 primary dedicated lane with instant zero-congestion access
+   * - Annual VIP: Bot 2 primary lane
+   * - Free Guest: Bot 3 lane
    */
-  async getFileDownloadUrl(fileId: string): Promise<{ downloadUrl: string; botIndex: number }> {
+  async getFileDownloadUrl(
+    fileId: string,
+    priority: 'lifetime' | 'annual' | 'free' = 'free'
+  ): Promise<{ downloadUrl: string; botIndex: number }> {
     const cached = this.urlCache.get(fileId);
     if (cached && cached.expiresAt > Date.now()) {
       return { downloadUrl: cached.downloadUrl, botIndex: cached.botIndex };
     }
 
-    const promises = this.botTokens.map(async (token, idx) => {
-      const res = await this.fetchJson(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`);
+    // Determine bot priority order based on user plan
+    let preferredIndices: number[];
+    if (priority === 'lifetime') {
+      // Lifetime VIP: Bot 1 first, then Bot 2, then Bot 3
+      preferredIndices = [0, 1, 2].filter((i) => i < this.botTokens.length);
+    } else if (priority === 'annual') {
+      // Annual VIP: Bot 2 first, then Bot 3, then Bot 1
+      preferredIndices = [1, 2, 0].filter((i) => i < this.botTokens.length);
+    } else {
+      // Free Guest: Bot 3 first, then Bot 2, then Bot 1
+      preferredIndices = [2, 1, 0].filter((i) => i < this.botTokens.length);
+    }
+
+    // Try preferred bot first for dedicated lane routing
+    const primaryIdx = preferredIndices[0];
+    const primaryToken = this.botTokens[primaryIdx];
+    try {
+      const res = await this.fetchJson(
+        `https://api.telegram.org/bot${primaryToken}/getFile?file_id=${encodeURIComponent(fileId)}`
+      );
+      if (res && res.ok && res.result?.file_path) {
+        const downloadUrl = `https://api.telegram.org/file/bot${primaryToken}/${res.result.file_path}`;
+        this.urlCache.set(fileId, {
+          downloadUrl,
+          botIndex: primaryIdx,
+          expiresAt: Date.now() + 50 * 60 * 1000,
+        });
+        return { downloadUrl, botIndex: primaryIdx };
+      }
+    } catch {}
+
+    // Fallback: Race remaining bots in parallel
+    const promises = preferredIndices.map(async (idx) => {
+      const token = this.botTokens[idx];
+      const res = await this.fetchJson(
+        `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
+      );
       if (res && res.ok && res.result?.file_path) {
         return {
           downloadUrl: `https://api.telegram.org/file/bot${token}/${res.result.file_path}`,
           botIndex: idx,
         };
       }
-      throw new Error(`Bot ${idx + 1} getFile failed: ${JSON.stringify(res)}`);
+      throw new Error(`Bot ${idx + 1} getFile failed`);
     });
 
     try {
       // Whichever bot responds fastest with a valid file path wins!
       const result = await Promise.any(promises);
-      // Cache URL for 50 minutes (Telegram URLs are valid for >= 1 hour)
       this.urlCache.set(fileId, {
         downloadUrl: result.downloadUrl,
         botIndex: result.botIndex,
@@ -103,6 +143,23 @@ export class TelegramMultiBotService {
     } catch (err: any) {
       throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message}`);
     }
+  }
+
+  /**
+   * Background pre-warmup: Resolves download URLs ahead of time so playback starts instantly in 0ms!
+   */
+  warmupFiles(fileIds: string[], priority: 'lifetime' | 'annual' | 'free' = 'lifetime'): void {
+    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 10);
+    if (unCached.length === 0) return;
+
+    // Run non-blocking in background
+    setTimeout(async () => {
+      for (const id of unCached) {
+        try {
+          await this.getFileDownloadUrl(id, priority);
+        } catch {}
+      }
+    }, 100);
   }
 
   /**

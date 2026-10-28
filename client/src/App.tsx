@@ -11,6 +11,7 @@ import { NowPlayingView } from './components/NowPlayingView';
 import { HelpModal } from './components/HelpModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
+import { AdModal, AdReason } from './components/AdModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -92,8 +93,109 @@ export const App: React.FC = () => {
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
 
-  const { playSong, offlineTracks, refreshFavourites } = usePlayer();
+  const { playSong, offlineTracks, refreshFavourites, isPlaying, togglePlay, currentSong } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
+
+  // Google Ads Listening Session Engine State
+  const [isAdOpen, setIsAdOpen] = useState(false);
+  const [adReason, setAdReason] = useState<AdReason>('guest_launch');
+  const [guestSecondsRemaining, setGuestSecondsRemaining] = useState<number>(() => {
+    try {
+      const stored = sessionStorage.getItem('melody_guest_free_pass_until');
+      if (stored) {
+        return Math.max(0, Math.floor((Number(stored) - Date.now()) / 1000));
+      }
+    } catch {}
+    return 0;
+  });
+  const [annualListeningSeconds, setAnnualListeningSeconds] = useState<number>(0);
+  const [lifetimeListeningSeconds, setLifetimeListeningSeconds] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('melody_lifetime_listened_seconds');
+      return stored ? parseInt(stored, 10) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  // Guest Launch Ad: Show on opening app if no active session free pass exists
+  useEffect(() => {
+    if (!userProfile) {
+      const stored = sessionStorage.getItem('melody_guest_free_pass_until');
+      if (!stored || Number(stored) <= Date.now()) {
+        setAdReason('guest_launch');
+        setIsAdOpen(true);
+      }
+    }
+  }, [userProfile]);
+
+  // Active Playback Listening Tick (Deducts seconds only while music is playing)
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const interval = setInterval(() => {
+      // 1. Free Guest (Session-based: 30 minutes active listening)
+      if (!userProfile) {
+        setGuestSecondsRemaining((prev) => {
+          if (prev <= 1) {
+            togglePlay();
+            setAdReason('guest_30m');
+            setIsAdOpen(true);
+            return 30 * 60;
+          }
+          return prev - 1;
+        });
+      }
+      // 2. Annual VIP: Every 1 hour (3600 seconds) of active listening
+      else if (userProfile.plan === 'annual') {
+        setAnnualListeningSeconds((prev) => {
+          const next = prev + 1;
+          if (next >= 3600) {
+            togglePlay();
+            setAdReason('annual_60m');
+            setIsAdOpen(true);
+            return 0;
+          }
+          return next;
+        });
+      }
+      // 3. Lifetime VIP: Every 3 hours (10800 seconds) cumulative across days/sessions
+      else if (userProfile.plan === 'lifetime') {
+        setLifetimeListeningSeconds((prev) => {
+          const next = prev + 1;
+          try {
+            localStorage.setItem('melody_lifetime_listened_seconds', String(next));
+          } catch {}
+          if (next >= 10800) {
+            togglePlay();
+            setAdReason('lifetime_180m');
+            setIsAdOpen(true);
+            try {
+              localStorage.setItem('melody_lifetime_listened_seconds', '0');
+            } catch {}
+            return 0;
+          }
+          return next;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, userProfile, togglePlay]);
+
+  const handleAdCompleted = () => {
+    setIsAdOpen(false);
+    if (adReason === 'guest_launch' || adReason === 'guest_30m') {
+      const unlockUntil = Date.now() + 30 * 60 * 1000;
+      try {
+        sessionStorage.setItem('melody_guest_free_pass_until', String(unlockUntil));
+      } catch {}
+      setGuestSecondsRemaining(30 * 60);
+    }
+    if (currentSong && !isPlaying) {
+      togglePlay();
+    }
+  };
 
   useEffect(() => {
     loadCatalog();
@@ -477,6 +579,17 @@ export const App: React.FC = () => {
               ) : (
                 /* Guest / Non-Activated Header Buttons */
                 <div className="flex items-center gap-2">
+                  {guestSecondsRemaining > 0 && (
+                    <div
+                      onClick={openVipModal}
+                      title="Free Pass active. Click to remove sponsor breaks with VIP!"
+                      className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold cursor-pointer hover:bg-emerald-500/20 transition"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Free Pass: {Math.floor(guestSecondsRemaining / 60)}:{(guestSecondsRemaining % 60).toString().padStart(2, '0')}</span>
+                    </div>
+                  )}
+
                   <button
                     onClick={openVipModal}
                     className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95"
@@ -1164,6 +1277,14 @@ export const App: React.FC = () => {
         song={songToAddToPlaylist}
         playlists={playlists}
         onPlaylistUpdated={() => loadCatalog()}
+      />
+
+      {/* Google Ads Interstitial & Listening Gate Modal */}
+      <AdModal
+        isOpen={isAdOpen}
+        reason={adReason}
+        onAdCompleted={handleAdCompleted}
+        onOpenUpgrade={openVipModal}
       />
     </div>
   );

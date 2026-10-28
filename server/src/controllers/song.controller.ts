@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db/client';
 import { config } from '../config';
 import { generateSignedStreamToken, verifySignedStreamToken, handleAudioStream } from '../services/stream';
+import { telegramService } from '../services/telegram';
 
 /**
  * Search & List Songs with pagination
@@ -33,9 +34,9 @@ export async function getSongs(req: AuthenticatedRequest, res: Response): Promis
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
   try {
-    // Note: NEVER select telegram_file_id or telegram_message_id to the client
+    // Note: Fetch telegram_file_id for background server warmup, but strip before returning to client
     const sql = `
-      SELECT id, title, artist, album, language, duration_seconds, file_size_bytes, cover_url, created_at
+      SELECT id, title, artist, album, language, duration_seconds, file_size_bytes, cover_url, created_at, telegram_file_id
       FROM songs
       ${whereSql}
       ORDER BY id DESC
@@ -49,9 +50,18 @@ export async function getSongs(req: AuthenticatedRequest, res: Response): Promis
       query(countSql, params.slice(0, pIdx - 1)),
     ]);
 
+    // Pre-warm download URLs for top tracks in the background so playback starts in < 1 second!
+    const fileIds = dataRes.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
+    if (fileIds.length > 0) {
+      telegramService.warmupFiles(fileIds.slice(0, 10));
+    }
+
+    // Strip telegram_file_id before sending to client
+    const clientData = dataRes.rows.map(({ telegram_file_id, ...rest }: any) => rest);
+
     res.status(200).json({
       success: true,
-      data: dataRes.rows,
+      data: clientData,
       total: parseInt(countRes.rows[0]?.total || '0', 10),
       limit,
       offset,

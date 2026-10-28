@@ -7,6 +7,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import com.melody.music.ads.MelodyAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
@@ -229,12 +230,13 @@ object MelodyPlayerManager {
         playJob = scope.launch {
             try {
                 // Check if song is downloaded locally first!
+                val priority = ApiClient.currentUser?.plan ?: "free"
                 val localFile = MelodyDownloadManager.getLocalFile(song.id)
                 val mediaUri: Uri = if (localFile != null && localFile.exists()) {
                     Uri.fromFile(localFile)
                 } else {
-                    // Instant High-Speed Cloudflare Edge CDN stream with fallback
-                    val cdnUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}"
+                    // Instant High-Speed Cloudflare Edge CDN stream with priority routing
+                    val cdnUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}?priority=$priority"
                     Uri.parse(cdnUrl)
                 }
 
@@ -254,6 +256,31 @@ object MelodyPlayerManager {
                     setMediaItem(mediaItem)
                     prepare()
                     play()
+
+                    // Pre-buffer next track in queue for instant 0ms track transition
+                    val q = _queue.value
+                    val curIdx = q.indexOfFirst { it.id == song.id }
+                    if (curIdx != -1 && curIdx + 1 < q.size) {
+                        val nextSong = q[curIdx + 1]
+                        val nextLocal = MelodyDownloadManager.getLocalFile(nextSong.id)
+                        val nextUri = if (nextLocal != null && nextLocal.exists()) {
+                            Uri.fromFile(nextLocal)
+                        } else {
+                            Uri.parse("https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${nextSong.id}?priority=$priority")
+                        }
+                        val nextItem = MediaItem.Builder()
+                            .setUri(nextUri)
+                            .setMediaMetadata(
+                                MediaMetadata.Builder()
+                                    .setTitle(nextSong.title)
+                                    .setArtist(nextSong.artist)
+                                    .setAlbumTitle(nextSong.album ?: "Melody")
+                                    .setArtworkUri(Uri.parse(nextSong.getFullCoverUrl()))
+                                    .build()
+                            )
+                            .build()
+                        addMediaItem(nextItem)
+                    }
                 }
 
                 // Fire and forget play history increment
@@ -318,12 +345,18 @@ object MelodyPlayerManager {
     private fun startProgressTracker() {
         stopProgressTracker()
         progressJob = scope.launch {
+            var tickAccumulatorMs = 0
             while (isActive) {
                 service?.player?.let {
                     _progressMs.value = it.currentPosition
                     _durationMs.value = it.duration.coerceAtLeast(0L)
                 }
                 delay(300)
+                tickAccumulatorMs += 300
+                if (tickAccumulatorMs >= 1000) {
+                    tickAccumulatorMs -= 1000
+                    MelodyAdManager.onPlaybackSecondTick()
+                }
             }
         }
     }

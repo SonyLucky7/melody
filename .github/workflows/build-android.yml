@@ -34,26 +34,27 @@ jobs:
       - name: Rename APK
         working-directory: android/app/build/outputs/apk/debug
         run: |
-          cp app-debug.apk Melody-v1.0.4.apk
+          cp app-debug.apk Melody-v1.0.5.apk
 
       - name: Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.0.4
-          path: android/app/build/outputs/apk/debug/Melody-v1.0.4.apk
+          name: Melody-Android-v1.0.5
+          path: android/app/build/outputs/apk/debug/Melody-v1.0.5.apk
           retention-days: 30
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.4
-          name: Melody Android App v1.0.4
+          tag_name: v1.0.5
+          name: Melody Android App v1.0.5
           body: |
-            ### 🎵 Melody Android v1.0.4
-            - Spotify UI with Home, Search, Your Library, and Profile
-            - PostgreSQL cloud sync for Liked Songs and Custom Playlists
-            - Direct high-speed edge streaming & cover artwork
-            - Android 7.0 (Nougat) to Android 14+ support
-          files: android/app/build/outputs/apk/debug/Melody-v1.0.4.apk
+            ### 🎵 Melody Android v1.0.5
+            - Instant <1s playback with dedicated Telegram Bot priority lanes
+            - Lifetime VIP Bot 1 priority & Annual VIP Bot 2 priority
+            - Google AdMob listening gate: 30-min guest pass, 60-min annual, and 180-min cumulative lifetime tracking
+            - Full Spotify profile integration with PostgreSQL cloud sync
+            - Android 7.0 (Nougat) to Android 15+ support
+          files: android/app/build/outputs/apk/debug/Melody-v1.0.5.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { Song } from '../types';
-import { API_BASE, STREAM_BASE, requestPlayUrl, recordPlayback, fetchFavourites, addFavourite, removeFavourite } from '../services/api';
+import { API_BASE, STREAM_BASE, requestPlayUrl, recordPlayback, fetchFavourites, addFavourite, removeFavourite, getUserProfile } from '../services/api';
 import {
   OfflineTrack,
   getOfflineSong,
@@ -430,6 +430,10 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audioContextRef.current.resume().catch(() => {});
       }
 
+      // Resolve user VIP priority ('lifetime' | 'annual' | 'free') for dedicated Bot routing
+      const userPlan = getUserProfile()?.plan || 'free';
+      const streamUrl = `${STREAM_BASE}/api/stream/${song.id}?priority=${userPlan}`;
+
       // Check offline IndexedDB ONLY if downloaded on this device (eliminates async lag for 99% of plays)
       let targetSrc: string;
       if (downloadedSongIdsRef.current.has(song.id)) {
@@ -438,19 +442,18 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           targetSrc = URL.createObjectURL(offline.audioBlob);
           console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
         } else {
-          targetSrc = `${STREAM_BASE}/api/stream/${song.id}`;
+          targetSrc = streamUrl;
         }
       } else {
-        targetSrc = `${STREAM_BASE}/api/stream/${song.id}`;
+        targetSrc = streamUrl;
       }
 
-      // Smooth switch: stop old audio cleanly and start buffering immediately
+      // Sub-second instant playback: Pause old audio and immediately assign new src without redundant load() cycle
       if (!audio.paused) {
         audio.pause();
       }
-      audio.currentTime = 0;
+      audio.preload = 'auto';
       audio.src = targetSrc;
-      audio.load();
 
       // Auto-fallback: If Cloudflare Edge CDN ever errors, instantly retry direct Render stream
       audio.onerror = () => {
@@ -458,8 +461,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
         if (audio.src.includes('workers.dev')) {
           console.warn('[Melody CDN Notice] Fallback retry from Render backend...');
-          audio.src = `${API_BASE}/api/stream/${song.id}`;
-          audio.load();
+          audio.src = `${API_BASE}/api/stream/${song.id}?priority=${userPlan}`;
           audio.play().catch(() => {});
         }
       };
@@ -483,7 +485,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       // Async record stats in background
       recordPlayback(song.id).catch(() => {});
 
-      // Prefetch upcoming track using persistent ref so browser does not abort
+      // Prefetch upcoming track using persistent ref so browser has buffer ready for <0.2s transition
       const activeList = isShuffleRef.current && shuffledQueueRef.current.length > 0
         ? shuffledQueueRef.current
         : (queueList || queueRef.current);
@@ -495,7 +497,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           preloadAudioRef.current = new Audio();
           preloadAudioRef.current.preload = 'auto';
         }
-        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
+        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}?priority=${userPlan}`;
       }
     } catch (err) {
       console.error('[Playback Start Error]:', err);
