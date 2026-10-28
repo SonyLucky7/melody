@@ -12,6 +12,7 @@ interface SidebarProps {
   onOpenActivation: () => void;
   onOpenDevices: () => void;
   onOpenHelp?: () => void;
+  onOpenProfile?: () => void;
   userProfile?: UserProfile | null;
 }
 
@@ -24,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenActivation,
   onOpenDevices,
   onOpenHelp,
+  onOpenProfile,
   userProfile,
 }) => {
   return (
@@ -234,9 +236,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Footer Actions */}
       <div className="pt-3 border-t border-[#282828] space-y-2">
         {userProfile ? (
-          <div className="p-2.5 rounded-xl bg-purple-950/20 border border-purple-500/20">
+          <div
+            onClick={onOpenProfile}
+            className="p-2.5 rounded-xl bg-purple-950/20 hover:bg-purple-950/40 border border-purple-500/20 hover:border-purple-500/40 cursor-pointer transition-all group"
+            title="View Full Profile & Devices"
+          >
             <div className="flex items-center justify-between text-[11px] mb-1">
-              <span className="font-bold text-white truncate">{userProfile.firstName} {userProfile.surname}</span>
+              <span className="font-bold text-white group-hover:text-purple-300 truncate transition-colors">
+                {userProfile.firstName} {userProfile.surname}
+              </span>
               <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
                 {userProfile.plan === 'lifetime' ? 'Lifetime' : 'Annual'}
               </span>

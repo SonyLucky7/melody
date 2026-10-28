@@ -250,7 +250,11 @@ fun QuickPickCard(song: Song, onClick: () -> Unit, modifier: Modifier = Modifier
 }
 
 @Composable
-fun SongListItem(song: Song, onClick: () -> Unit) {
+fun SongListItem(
+    song: Song,
+    onClick: () -> Unit,
+    trailingContent: (@Composable () -> Unit)? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -288,8 +292,12 @@ fun SongListItem(song: Song, onClick: () -> Unit) {
             )
         }
 
-        IconButton(onClick = onClick) {
-            Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = MelodyTextSecondary)
+        if (trailingContent != null) {
+            trailingContent()
+        } else {
+            IconButton(onClick = onClick) {
+                Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = MelodyTextSecondary)
+            }
         }
     }
 }

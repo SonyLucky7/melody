@@ -63,10 +63,11 @@ CREATE TABLE IF NOT EXISTS devices (
 
 CREATE INDEX IF NOT EXISTS idx_devices_licence ON devices (licence_id);
 
--- 5. Playlists Table
+-- 5. Playlists Table (Spotify-style cloud synced playlists)
 CREATE TABLE IF NOT EXISTS playlists (
   id SERIAL PRIMARY KEY,
   licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
+  device_id VARCHAR(100),
   name VARCHAR(100) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -79,12 +80,13 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
   PRIMARY KEY (playlist_id, song_id)
 );
 
--- 7. Favourites Table
+-- 7. Favourites Table (User & Device Scoped Liked Songs)
 CREATE TABLE IF NOT EXISTS favourites (
+  id SERIAL PRIMARY KEY,
   licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
+  device_id VARCHAR(100),
   song_id INT REFERENCES songs(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (licence_id, song_id)
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 8. Recently Played Table (Spotify-style playback history)

@@ -216,6 +216,20 @@ export async function activateDevice(
       [deviceName, tokenHash, licence.licence_id, deviceId]
     );
 
+    // Seamlessly link any guest favourites & playlists created on this device to user's licence in PostgreSQL
+    try {
+      await query(
+        `UPDATE favourites SET licence_id = $1 WHERE device_id = $2 AND licence_id IS NULL`,
+        [licence.licence_id, deviceId]
+      );
+      await query(
+        `UPDATE playlists SET licence_id = $1 WHERE device_id = $2 AND licence_id IS NULL`,
+        [licence.licence_id, deviceId]
+      );
+    } catch (migErr) {
+      console.warn('[Activation Data Migration Notice]:', migErr);
+    }
+
     return {
       success: true,
       status: 'RENEWED',
@@ -232,6 +246,20 @@ export async function activateDevice(
        VALUES ($1, $2, $3, $4, NOW())`,
       [licence.licence_id, deviceId, deviceName, tokenHash]
     );
+
+    // Seamlessly link any guest favourites & playlists created on this device to user's licence in PostgreSQL
+    try {
+      await query(
+        `UPDATE favourites SET licence_id = $1 WHERE device_id = $2 AND licence_id IS NULL`,
+        [licence.licence_id, deviceId]
+      );
+      await query(
+        `UPDATE playlists SET licence_id = $1 WHERE device_id = $2 AND licence_id IS NULL`,
+        [licence.licence_id, deviceId]
+      );
+    } catch (migErr) {
+      console.warn('[Activation Data Migration Notice]:', migErr);
+    }
 
     return {
       success: true,

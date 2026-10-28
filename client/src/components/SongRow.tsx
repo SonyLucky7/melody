@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Heart, Download, Check, Loader2 } from 'lucide-react';
+import { Play, Pause, Heart, Download, Check, Loader2, ListPlus, Trash2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl } from '../services/api';
@@ -9,6 +9,8 @@ interface SongRowProps {
   song: Song;
   queueContext?: Song[];
   onSelectArtist?: (artist: string) => void;
+  onAddToPlaylist?: (song: Song) => void;
+  onRemoveFromPlaylist?: (song: Song) => void;
 }
 
 function formatDuration(sec: number): string {
@@ -17,7 +19,14 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onSelectArtist }) => {
+export const SongRow: React.FC<SongRowProps> = ({
+  index,
+  song,
+  queueContext,
+  onSelectArtist,
+  onAddToPlaylist,
+  onRemoveFromPlaylist,
+}) => {
   const {
     currentSong,
     isPlaying,
@@ -164,6 +173,34 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
             }`}
           />
         </button>
+
+        {/* Add to Custom Playlist Button */}
+        {onAddToPlaylist && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToPlaylist(song);
+            }}
+            className="p-1 text-neutral-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+            title="Add to Playlist"
+          >
+            <ListPlus className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Remove from Playlist Button (if inside custom playlist) */}
+        {onRemoveFromPlaylist && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemoveFromPlaylist(song);
+            }}
+            className="p-1 text-neutral-400 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+            title="Remove from this Playlist"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
 
         <span className="text-xs font-mono text-[#b3b3b3] w-10 text-right">
           {formatDuration(song.duration_seconds)}

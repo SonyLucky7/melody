@@ -77,6 +77,7 @@ interface PlayerContextType {
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   toggleFavourite: (song: Song) => Promise<void>;
+  refreshFavourites: () => Promise<void>;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
@@ -786,6 +787,13 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
+  const refreshFavourites = useCallback(async () => {
+    try {
+      const favs = await fetchFavourites();
+      setFavourites(new Set(favs.map((s) => s.id)));
+    } catch {}
+  }, []);
+
   return (
     <PlayerContext.Provider
       value={{
@@ -830,6 +838,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         toggleShuffle,
         toggleRepeat,
         toggleFavourite,
+        refreshFavourites,
       }}
     >
       {children}

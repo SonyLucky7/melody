@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Download, Check, Loader2 } from 'lucide-react';
+import { Play, Pause, Download, Check, Loader2, ListPlus } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl } from '../services/api';
@@ -8,9 +8,10 @@ interface SongCardProps {
   song: Song;
   queueContext?: Song[];
   onSelectArtist?: (artist: string) => void;
+  onAddToPlaylist?: (song: Song) => void;
 }
 
-export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelectArtist }) => {
+export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelectArtist, onAddToPlaylist }) => {
   const {
     currentSong,
     isPlaying,
@@ -75,6 +76,20 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
             <Play className="w-5 h-5 fill-white ml-0.5" />
           )}
         </div>
+
+        {/* Top-Left Add to Playlist Trigger */}
+        {onAddToPlaylist && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToPlaylist(song);
+            }}
+            className="absolute top-2 left-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:scale-110 hover:bg-black/80 backdrop-blur-md transition-all shadow-md"
+            title="Add to Playlist"
+          >
+            <ListPlus className="w-3.5 h-3.5" />
+          </button>
+        )}
 
         {/* Top-Right Downloaded Badge / Download Trigger */}
         <button

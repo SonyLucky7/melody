@@ -13,6 +13,7 @@ import {
   getPlaylistSongs,
   addSongToPlaylist,
   removeSongFromPlaylist,
+  deletePlaylist,
 } from '../controllers/playlist.controller';
 import {
   getFavourites,
@@ -47,6 +48,7 @@ router.post('/playlists', verifyDeviceSession, requireDeviceAuth, createPlaylist
 router.get('/playlists/:id', verifyDeviceSession, requireDeviceAuth, getPlaylistSongs);
 router.post('/playlists/:id/songs', verifyDeviceSession, requireDeviceAuth, addSongToPlaylist);
 router.delete('/playlists/:id/songs/:songId', verifyDeviceSession, requireDeviceAuth, removeSongFromPlaylist);
+router.delete('/playlists/:id', verifyDeviceSession, requireDeviceAuth, deletePlaylist);
 
 // --- Favourites ---
 router.get('/favourites', verifyDeviceSession, requireDeviceAuth, getFavourites);

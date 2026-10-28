@@ -8,11 +8,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.gson.Gson
 import com.melody.music.data.api.ApiClient
+import com.melody.music.data.model.AndroidUserProfile
+import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.MelodyCard
 import com.melody.music.ui.theme.MelodyPrimary
 import kotlinx.coroutines.launch
@@ -34,6 +38,7 @@ fun ActivationDialog(
     var statusMsg by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -117,7 +122,18 @@ fun ActivationDialog(
                                         )
                                     )
                                     if (res.isSuccessful && res.body()?.get("success") == true) {
-                                        ApiClient.deviceToken = res.body()?.get("token") as? String
+                                        val token = res.body()?.get("token") as? String
+                                        val userMap = res.body()?.get("user") as? Map<*, *>
+                                        val userProfile = if (userMap != null) {
+                                            val gson = Gson()
+                                            gson.fromJson(gson.toJson(userMap), AndroidUserProfile::class.java)
+                                        } else null
+
+                                        if (token != null) {
+                                            ApiClient.saveSession(context, token, userProfile)
+                                        }
+
+                                        MelodyPlayerManager.refreshFavourites()
                                         statusMsg = "Activated successfully!"
                                         onActivated()
                                         onDismiss()

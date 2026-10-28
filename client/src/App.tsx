@@ -9,6 +9,8 @@ import { DeviceModal } from './components/DeviceModal';
 import { EqualizerModal } from './components/EqualizerModal';
 import { NowPlayingView } from './components/NowPlayingView';
 import { HelpModal } from './components/HelpModal';
+import { ProfileModal } from './components/ProfileModal';
+import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -16,6 +18,8 @@ import {
   fetchRecentlyPlayed,
   fetchFavourites,
   createPlaylist,
+  deletePlaylist,
+  removeSongFromPlaylist,
   fetchPlaylistSongs,
   getFullCoverUrl,
   getUserProfile,
@@ -76,17 +80,19 @@ export const App: React.FC = () => {
   // User Profile & Authentication State
   const [userProfile, setUserProfileState] = useState<UserProfile | null>(() => getUserProfile());
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [copiedMenuKey, setCopiedMenuKey] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Modals
+  // Modals & Playlists
   const [isActivationOpen, setIsActivationOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [activationInitialTab, setActivationInitialTab] = useState<'vip' | 'login'>('vip');
   const [isDevicesOpen, setIsDevicesOpen] = useState(false);
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
+  const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
 
-  const { playSong, offlineTracks } = usePlayer();
+  const { playSong, offlineTracks, refreshFavourites } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
 
   useEffect(() => {
@@ -146,6 +152,7 @@ export const App: React.FC = () => {
       setUserProfileState(devicesData.user);
       setUserProfile(devicesData.user);
     }
+    refreshFavourites();
     setLoading(false);
   };
 
@@ -224,6 +231,24 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDeletePlaylist = async (playlistId: number) => {
+    if (!confirm('Are you sure you want to delete this playlist?')) return;
+    const ok = await deletePlaylist(playlistId);
+    if (ok) {
+      setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+      handleSelectView('home');
+    }
+  };
+
+  const handleRemoveSongFromCurrentPlaylist = async (songId: number) => {
+    if (!selectedPlaylist) return;
+    const ok = await removeSongFromPlaylist(selectedPlaylist.id, songId);
+    if (ok) {
+      setPlaylistSongs((prev) => prev.filter((s) => s.id !== songId));
+      loadCatalog();
+    }
+  };
+
   const filteredSongs = songs.filter((s) => {
     const matchesSearch =
       !searchQuery ||
@@ -263,6 +288,7 @@ export const App: React.FC = () => {
           onOpenActivation={openVipModal}
           onOpenDevices={() => setIsDevicesOpen(true)}
           onOpenHelp={() => setIsHelpOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
           userProfile={userProfile}
         />
 
@@ -395,6 +421,16 @@ export const App: React.FC = () => {
 
                         {/* Actions */}
                         <div className="pt-2 border-t border-white/5 space-y-1">
+                          <button
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              setIsProfileModalOpen(true);
+                            }}
+                            className="w-full py-1.5 px-2.5 text-left rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 flex items-center gap-2 transition-colors font-semibold"
+                          >
+                            <User className="w-3.5 h-3.5 text-purple-400" />
+                            <span>View Full Profile & Key</span>
+                          </button>
                           <button
                             onClick={() => {
                               setIsProfileMenuOpen(false);
@@ -636,6 +672,7 @@ export const App: React.FC = () => {
                           song={song}
                           queueContext={sidhuSongs}
                           onSelectArtist={(a) => handleSelectView('artist', a)}
+                          onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                         />
                       ))}
                     </div>
@@ -670,6 +707,7 @@ export const App: React.FC = () => {
                           song={song}
                           queueContext={honeySongs}
                           onSelectArtist={(a) => handleSelectView('artist', a)}
+                          onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                         />
                       ))}
                     </div>
@@ -704,6 +742,7 @@ export const App: React.FC = () => {
                           song={song}
                           queueContext={arianaSongs}
                           onSelectArtist={(a) => handleSelectView('artist', a)}
+                          onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                         />
                       ))}
                     </div>
@@ -738,6 +777,7 @@ export const App: React.FC = () => {
                           song={song}
                           queueContext={theWeekndSongs}
                           onSelectArtist={(a) => handleSelectView('artist', a)}
+                          onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                         />
                       ))}
                     </div>
@@ -772,6 +812,7 @@ export const App: React.FC = () => {
                           song={song}
                           queueContext={lanaSongs}
                           onSelectArtist={(a) => handleSelectView('artist', a)}
+                          onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                         />
                       ))}
                     </div>
@@ -792,6 +833,7 @@ export const App: React.FC = () => {
                         song={song}
                         queueContext={filteredSongs}
                         onSelectArtist={(a) => handleSelectView('artist', a)}
+                        onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                       />
                     ))}
                   </div>
@@ -805,6 +847,7 @@ export const App: React.FC = () => {
                 artistName={selectedArtist}
                 songs={songs}
                 onBack={() => handleSelectView('home')}
+                onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
               />
             )}
 
@@ -858,6 +901,7 @@ export const App: React.FC = () => {
                       song={song}
                       queueContext={filteredSongs}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
+                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                     />
                   ))}
                 </div>
@@ -892,6 +936,7 @@ export const App: React.FC = () => {
                       song={song}
                       queueContext={likedSongsList}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
+                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                     />
                   ))}
                   {likedSongsList.length === 0 && (
@@ -927,6 +972,7 @@ export const App: React.FC = () => {
                       song={track as Song}
                       queueContext={offlineTracks as Song[]}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
+                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                     />
                   ))}
                   {offlineTracks.length === 0 && (
@@ -960,6 +1006,7 @@ export const App: React.FC = () => {
                       song={song}
                       queueContext={recentSongs}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
+                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                     />
                   ))}
                   {recentSongs.length === 0 && (
@@ -974,14 +1021,38 @@ export const App: React.FC = () => {
             {/* VIEW: CUSTOM PLAYLIST */}
             {currentView === 'playlist' && selectedPlaylist && (
               <div className="space-y-6">
-                <div className="flex items-end gap-6 p-8 rounded-xl bg-white/5 border border-white/5">
-                  <div className="w-44 h-44 rounded-md bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center shadow-xl">
-                    <Disc className="w-20 h-20 text-blue-400" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 p-8 rounded-2xl bg-gradient-to-r from-purple-900/40 via-neutral-900/40 to-neutral-900/20 border border-white/5 shadow-2xl">
+                  <div className="w-44 h-44 rounded-xl bg-gradient-to-br from-purple-700 via-indigo-800 to-neutral-900 flex items-center justify-center shadow-2xl shadow-purple-950/50 flex-shrink-0 border border-white/10">
+                    <Disc className="w-20 h-20 text-purple-300" />
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-[#b3b3b3]">Playlist</span>
-                    <h1 className="text-5xl font-black text-white">{selectedPlaylist.name}</h1>
-                    <p className="text-xs text-[#b3b3b3]">{playlistSongs.length} tracks</p>
+                  <div className="space-y-3 flex-1 min-w-0">
+                    <span className="text-xs uppercase font-extrabold tracking-widest text-purple-400">Public Playlist</span>
+                    <h1 className="text-4xl sm:text-5xl font-black text-white truncate">{selectedPlaylist.name}</h1>
+                    <p className="text-xs text-neutral-400">
+                      Created by you • {playlistSongs.length} songs • Synced with PostgreSQL Database
+                    </p>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          if (playlistSongs.length > 0) {
+                            playSong(playlistSongs[0], playlistSongs);
+                          }
+                        }}
+                        disabled={playlistSongs.length === 0}
+                        className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-105"
+                      >
+                        <Play className="w-4 h-4 fill-white" />
+                        <span>Play</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleDeletePlaylist(selectedPlaylist.id)}
+                        className="px-4 py-2.5 rounded-full bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-neutral-400 hover:text-red-400 text-xs font-semibold transition-colors"
+                      >
+                        Delete Playlist
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -993,11 +1064,15 @@ export const App: React.FC = () => {
                       song={song}
                       queueContext={playlistSongs}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
+                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
+                      onRemoveFromPlaylist={() => handleRemoveSongFromCurrentPlaylist(song.id)}
                     />
                   ))}
                   {playlistSongs.length === 0 && (
-                    <div className="py-12 text-center text-[#b3b3b3]">
-                      This playlist is empty. Add songs from your library!
+                    <div className="py-16 text-center text-neutral-400 space-y-2">
+                      <Disc className="w-12 h-12 mx-auto text-purple-400/40" />
+                      <p className="text-sm font-medium">This playlist is currently empty.</p>
+                      <p className="text-xs text-neutral-500">Click the '+' button on any track in your library to add it here!</p>
                     </div>
                   )}
                 </div>
@@ -1046,6 +1121,25 @@ export const App: React.FC = () => {
 
       {/* Immersive Now Playing Animated Theme View */}
       <NowPlayingView />
+
+      {/* Spotify User Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        userProfile={userProfile}
+        onLogout={handleLogout}
+        likedCount={likedSongsList.length}
+        playlistsCount={playlists.length}
+      />
+
+      {/* Add To Custom Playlist Modal */}
+      <AddToPlaylistModal
+        isOpen={!!songToAddToPlaylist}
+        onClose={() => setSongToAddToPlaylist(null)}
+        song={songToAddToPlaylist}
+        playlists={playlists}
+        onPlaylistUpdated={() => loadCatalog()}
+      />
     </div>
   );
 };

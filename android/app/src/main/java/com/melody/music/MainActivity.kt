@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +32,7 @@ import com.melody.music.ui.components.MiniPlayerBar
 import com.melody.music.ui.screens.ArtistScreen
 import com.melody.music.ui.screens.HomeScreen
 import com.melody.music.ui.screens.LibraryScreen
+import com.melody.music.ui.screens.ProfileScreen
 import com.melody.music.ui.screens.SearchScreen
 import com.melody.music.ui.theme.MelodyBg
 import com.melody.music.ui.theme.MelodyColorScheme
@@ -48,6 +50,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Initialize persistent API & Device ID session
+        ApiClient.init(applicationContext)
+        MelodyPlayerManager.refreshFavourites()
 
         // Start & bind playback foreground service
         val serviceIntent = Intent(this, MelodyPlaybackService::class.java)
@@ -198,13 +204,24 @@ fun MelodyApp() {
                         )
                     )
                     NavigationBarItem(
-                        selected = false,
-                        onClick = { isActivationDialogOpen = true },
-                        icon = { Icon(Icons.Default.Key, contentDescription = "Licence") },
-                        label = { Text("Licence") },
+                        selected = selectedTab == 3 && selectedArtist == null,
+                        onClick = {
+                            selectedTab = 3
+                            selectedArtist = null
+                        },
+                        icon = {
+                            Icon(
+                                if (ApiClient.isActivated) Icons.Default.Person else Icons.Default.Key,
+                                contentDescription = "Profile"
+                            )
+                        },
+                        label = { Text(if (ApiClient.isActivated) "Profile" else "VIP") },
                         colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MelodyPrimary,
+                            selectedTextColor = MelodyPrimary,
                             unselectedIconColor = MelodyTextSecondary,
-                            unselectedTextColor = MelodyTextSecondary
+                            unselectedTextColor = MelodyTextSecondary,
+                            indicatorColor = Color(0x22A855F7)
                         )
                     )
                 }
@@ -251,6 +268,9 @@ fun MelodyApp() {
                         onArtistClick = { artistName ->
                             selectedArtist = artistName
                         }
+                    )
+                    3 -> ProfileScreen(
+                        onOpenActivation = { isActivationDialogOpen = true }
                     )
                 }
             }

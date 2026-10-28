@@ -4,16 +4,20 @@ import { query } from '../db/client';
 
 export async function getPlaylists(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
 
   try {
     const playlistsRes = await query(
       `SELECT p.id, p.name, p.created_at, COUNT(ps.song_id)::int as total_songs
        FROM playlists p
        LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
-       WHERE p.licence_id = $1
+       WHERE (
+         ($1 > 0 AND p.licence_id = $1)
+         OR ($1 = 0 AND $2 != '' AND p.device_id = $2)
+       )
        GROUP BY p.id
        ORDER BY p.id DESC`,
-      [licenceId]
+      [licenceId, deviceId]
     );
 
     res.status(200).json({
@@ -28,6 +32,7 @@ export async function getPlaylists(req: AuthenticatedRequest, res: Response): Pr
 
 export async function createPlaylist(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || 'guest-device';
   const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
 
   if (!name) {
@@ -37,15 +42,18 @@ export async function createPlaylist(req: AuthenticatedRequest, res: Response): 
 
   try {
     const createRes = await query(
-      `INSERT INTO playlists (licence_id, name)
-       VALUES ($1, $2)
+      `INSERT INTO playlists (licence_id, device_id, name)
+       VALUES ($1, $2, $3)
        RETURNING id, name, created_at`,
-      [licenceId, name]
+      [licenceId > 0 ? licenceId : null, deviceId, name]
     );
 
     res.status(201).json({
       success: true,
-      data: createRes.rows[0],
+      data: {
+        ...createRes.rows[0],
+        total_songs: 0,
+      },
     });
   } catch (err: any) {
     console.error('[Create Playlist Error]:', err);
@@ -55,6 +63,7 @@ export async function createPlaylist(req: AuthenticatedRequest, res: Response): 
 
 export async function getPlaylistSongs(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
   const playlistId = parseInt(req.params.id, 10);
 
   if (isNaN(playlistId)) {
@@ -63,10 +72,14 @@ export async function getPlaylistSongs(req: AuthenticatedRequest, res: Response)
   }
 
   try {
-    // Verify playlist belongs to licence
+    // Verify playlist belongs to licence or device
     const pCheck = await query(
-      `SELECT id, name FROM playlists WHERE id = $1 AND licence_id = $2`,
-      [playlistId, licenceId]
+      `SELECT id, name FROM playlists 
+       WHERE id = $1 AND (
+         ($2 > 0 AND licence_id = $2)
+         OR ($2 = 0 AND $3 != '' AND device_id = $3)
+       )`,
+      [playlistId, licenceId, deviceId]
     );
 
     if (pCheck.rows.length === 0) {
@@ -96,6 +109,7 @@ export async function getPlaylistSongs(req: AuthenticatedRequest, res: Response)
 
 export async function addSongToPlaylist(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
   const playlistId = parseInt(req.params.id, 10);
   const songId = parseInt(req.body.song_id, 10);
 
@@ -106,8 +120,12 @@ export async function addSongToPlaylist(req: AuthenticatedRequest, res: Response
 
   try {
     const pCheck = await query(
-      `SELECT id FROM playlists WHERE id = $1 AND licence_id = $2`,
-      [playlistId, licenceId]
+      `SELECT id FROM playlists 
+       WHERE id = $1 AND (
+         ($2 > 0 AND licence_id = $2)
+         OR ($2 = 0 AND $3 != '' AND device_id = $3)
+       )`,
+      [playlistId, licenceId, deviceId]
     );
 
     if (pCheck.rows.length === 0) {
@@ -138,6 +156,7 @@ export async function addSongToPlaylist(req: AuthenticatedRequest, res: Response
 
 export async function removeSongFromPlaylist(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
   const playlistId = parseInt(req.params.id, 10);
   const songId = parseInt(req.params.songId, 10);
 
@@ -148,8 +167,12 @@ export async function removeSongFromPlaylist(req: AuthenticatedRequest, res: Res
 
   try {
     const pCheck = await query(
-      `SELECT id FROM playlists WHERE id = $1 AND licence_id = $2`,
-      [playlistId, licenceId]
+      `SELECT id FROM playlists 
+       WHERE id = $1 AND (
+         ($2 > 0 AND licence_id = $2)
+         OR ($2 = 0 AND $3 != '' AND device_id = $3)
+       )`,
+      [playlistId, licenceId, deviceId]
     );
 
     if (pCheck.rows.length === 0) {
@@ -166,5 +189,37 @@ export async function removeSongFromPlaylist(req: AuthenticatedRequest, res: Res
   } catch (err: any) {
     console.error('[Remove Song Error]:', err);
     res.status(500).json({ error: 'DATABASE_ERROR', message: 'Failed to remove song.' });
+  }
+}
+
+export async function deletePlaylist(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
+  const playlistId = parseInt(req.params.id, 10);
+
+  if (isNaN(playlistId)) {
+    res.status(400).json({ error: 'BAD_REQUEST', message: 'Valid playlist ID required.' });
+    return;
+  }
+
+  try {
+    const delRes = await query(
+      `DELETE FROM playlists 
+       WHERE id = $1 AND (
+         ($2 > 0 AND licence_id = $2)
+         OR ($2 = 0 AND $3 != '' AND device_id = $3)
+       ) RETURNING id`,
+      [playlistId, licenceId, deviceId]
+    );
+
+    if (delRes.rows.length === 0) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Playlist not found.' });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: 'Playlist deleted successfully.' });
+  } catch (err: any) {
+    console.error('[Delete Playlist Error]:', err);
+    res.status(500).json({ error: 'DATABASE_ERROR', message: 'Failed to delete playlist.' });
   }
 }

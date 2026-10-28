@@ -85,6 +85,10 @@ app.use('/api', adminRoutes);// /api/admin/upload, /api/admin/licences, /api/che
 
 // --- Static Audio Cover Artwork & Public Assets ---
 app.use('/covers', express.static(path.join(__dirname, '../public/covers')));
+// If cover not found locally on Render, seamlessly redirect to high-speed Vercel edge CDN
+app.get('/covers/:file', (req, res) => {
+  res.redirect(302, `https://melody-chi-nine.vercel.app/covers/${encodeURIComponent(req.params.file)}`);
+});
 app.use(express.static(path.join(__dirname, '../public')));
 
 // --- Admin Portal Endpoint (Dedicated Admin Upload Dashboard) ---
@@ -109,8 +113,10 @@ if (clientDistPath) {
       req.path.startsWith('/api') ||
       req.path.startsWith('/activate') ||
       req.path.startsWith('/devices') ||
+      req.path.startsWith('/covers') ||
       req.path === '/health' ||
-      req.path.startsWith('/admin')
+      req.path.startsWith('/admin') ||
+      /\.(jpg|jpeg|png|webp|svg|ico|mp3|m4a|wav|css|js|map)$/i.test(req.path)
     ) {
       return next();
     }

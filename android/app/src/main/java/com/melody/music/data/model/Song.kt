@@ -1,7 +1,6 @@
 package com.melody.music.data.model
 
 import com.google.gson.annotations.SerializedName
-import com.melody.music.data.api.ApiClient
 
 data class Song(
     @SerializedName("id") val id: Long,
@@ -15,13 +14,14 @@ data class Song(
 ) {
     fun getFullCoverUrl(): String {
         if (coverUrl.isNullOrBlank()) {
-            return "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80"
+            return "https://melody-chi-nine.vercel.app/Melody-Logo-512.png"
         }
         if (coverUrl.startsWith("http://") || coverUrl.startsWith("https://")) {
             return coverUrl
         }
-        // Resolves relative cover paths like /covers/lana-collection.jpg to production backend
-        return ApiClient.baseUrl.removeSuffix("/") + "/" + coverUrl.removePrefix("/")
+        // Resolves relative cover paths to high-speed global Vercel CDN
+        val clean = coverUrl.removePrefix("/")
+        return "https://melody-chi-nine.vercel.app/$clean"
     }
 
     fun getFormattedDuration(): String {
@@ -47,11 +47,33 @@ data class PlayUrlResponse(
 data class Playlist(
     @SerializedName("id") val id: Long,
     @SerializedName("name") val name: String,
-    @SerializedName("total_songs") val totalSongs: Int?
+    @SerializedName("total_songs") val totalSongs: Int? = 0
+)
+
+data class PlaylistsResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: List<Playlist>
+)
+
+data class PlaylistSongsResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("playlist") val playlist: Playlist,
+    @SerializedName("songs") val songs: List<Song>
 )
 
 data class ActiveDevice(
     @SerializedName("device_id") val deviceId: String,
     @SerializedName("device_name") val deviceName: String,
     @SerializedName("last_active_at") val lastActiveAt: String
+)
+
+data class AndroidUserProfile(
+    @SerializedName("firstName") val firstName: String,
+    @SerializedName("surname") val surname: String,
+    @SerializedName("mobile") val mobile: String,
+    @SerializedName("email") val email: String?,
+    @SerializedName("plan") val plan: String,
+    @SerializedName("expiresAt") val expiresAt: String?,
+    @SerializedName("licenceKey") val licenceKey: String,
+    @SerializedName("formattedKey") val formattedKey: String
 )

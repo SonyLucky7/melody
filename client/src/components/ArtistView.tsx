@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2, ListPlus } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl, fetchSongs } from '../services/api';
@@ -8,6 +8,7 @@ interface ArtistViewProps {
   artistName: string;
   songs: Song[];
   onBack?: () => void;
+  onAddToPlaylist?: (song: Song) => void;
 }
 
 const ARTIST_METADATA: Record<string, { banner: string; avatar: string; listeners: string; bio: string; rank: string }> = {
@@ -54,7 +55,7 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => {
+export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAddToPlaylist }) => {
   const {
     currentSong,
     isPlaying,
@@ -351,6 +352,20 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
                       }`}
                     />
                   </button>
+
+                  {/* Add to Playlist Button */}
+                  {onAddToPlaylist && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToPlaylist(song);
+                      }}
+                      className="p-1 text-neutral-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                      title="Add to Playlist"
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
+                  )}
                   <span className="text-xs font-mono text-[#b3b3b3]">
                     {formatDuration(song.duration_seconds)}
                   </span>

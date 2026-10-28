@@ -23,11 +23,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.DownloadedSong
 import com.melody.music.data.download.MelodyDownloadManager
+import com.melody.music.data.model.Playlist
 import com.melody.music.data.model.Song
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
@@ -47,6 +50,28 @@ fun LibraryScreen(
     }
 
     var activeSubView by remember { mutableStateOf<String?>(null) } // "LIKED" or "DOWNLOADED"
+    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
+    var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun refreshPlaylists() {
+        coroutineScope.launch {
+            try {
+                val res = ApiClient.apiService.getPlaylists()
+                if (res.success) {
+                    playlists = res.data
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshPlaylists()
+    }
 
     if (activeSubView == "LIKED") {
         LikedSongsScreen(
@@ -64,6 +89,95 @@ fun LibraryScreen(
             onSongClick = { song -> onSongClick(song, downloadedSongs.map { it.toSong() }) }
         )
         return
+    }
+
+    if (selectedPlaylist != null) {
+        CustomPlaylistScreen(
+            playlist = selectedPlaylist!!,
+            onBack = {
+                selectedPlaylist = null
+                refreshPlaylists()
+            },
+            onSongClick = { song, playlistSongs -> onSongClick(song, playlistSongs) },
+            onPlaylistDeleted = {
+                selectedPlaylist = null
+                refreshPlaylists()
+            }
+        )
+        return
+    }
+
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showCreateDialog = false
+                newPlaylistName = ""
+            },
+            title = {
+                Text(
+                    text = "New Playlist",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Give your playlist a name to sync to your cloud library.",
+                        fontSize = 13.sp,
+                        color = MelodyTextSecondary,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        placeholder = { Text("My Playlist #1", color = MelodyTextMuted) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MelodyPrimary,
+                            unfocusedBorderColor = MelodyBorder,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            containerColor = MelodyCard,
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val name = newPlaylistName.trim()
+                        if (name.isNotEmpty()) {
+                            coroutineScope.launch {
+                                try {
+                                    val res = ApiClient.apiService.createPlaylist(mapOf("name" to name))
+                                    if (res.isSuccessful) {
+                                        refreshPlaylists()
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            showCreateDialog = false
+                            newPlaylistName = ""
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MelodyPrimary),
+                    enabled = newPlaylistName.trim().isNotEmpty()
+                ) {
+                    Text("Create", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCreateDialog = false
+                    newPlaylistName = ""
+                }) {
+                    Text("Cancel", color = MelodyTextSecondary)
+                }
+            }
+        )
     }
 
     LazyColumn(
@@ -108,10 +222,7 @@ fun LibraryScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Search, "Search in library", tint = Color.White)
-                    }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = { showCreateDialog = true }) {
                         Icon(Icons.Default.Add, "New playlist", tint = Color.White)
                     }
                 }
@@ -196,6 +307,55 @@ fun LibraryScreen(
                                 color = MelodyTextSecondary
                             )
                         }
+                    }
+                }
+            }
+
+            // User's Cloud Playlists
+            items(playlists) { pl ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { selectedPlaylist = pl }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(Color(0xFF0D9488), Color(0xFF14B8A6))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.QueueMusic,
+                            contentDescription = "Playlist",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = pl.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Playlist • ${pl.totalSongs ?: 0} songs",
+                            fontSize = 13.sp,
+                            color = MelodyTextSecondary
+                        )
                     }
                 }
             }
@@ -295,6 +455,210 @@ fun LibraryScreen(
                         )
                     }
                 }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+    }
+}
+
+@Composable
+fun CustomPlaylistScreen(
+    playlist: Playlist,
+    onBack: () -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
+    onPlaylistDeleted: () -> Unit
+) {
+    var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun loadSongs() {
+        coroutineScope.launch {
+            isLoading = true
+            try {
+                val res = ApiClient.apiService.getPlaylistSongs(playlist.id)
+                if (res.success) {
+                    songs = res.songs
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(playlist.id) {
+        loadSongs()
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Playlist", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete '${playlist.name}'? This cannot be undone.", color = MelodyTextSecondary) },
+            containerColor = MelodyCard,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        coroutineScope.launch {
+                            try {
+                                ApiClient.apiService.deletePlaylist(playlist.id)
+                                onPlaylistDeleted()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                ) {
+                    Text("Delete", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel", color = MelodyTextSecondary)
+                }
+            }
+        )
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MelodyBg)
+    ) {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF0D9488), Color(0xFF0F766E), MelodyBg)
+                        )
+                    )
+                    .statusBarsPadding()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0x66000000), CircleShape)
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+
+                    IconButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0x66000000), CircleShape)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete Playlist", tint = Color.White)
+                    }
+                }
+
+                Column(modifier = Modifier.align(Alignment.BottomStart)) {
+                    Text(
+                        text = playlist.name,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "${songs.size} songs • Synced to Cloud",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                if (songs.isNotEmpty()) {
+                    FloatingActionButton(
+                        onClick = { onSongClick(songs.first(), songs) },
+                        containerColor = MelodyPrimary,
+                        contentColor = Color.White,
+                        shape = CircleShape,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Play All", modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
+        }
+
+        if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MelodyPrimary)
+                }
+            }
+        } else if (songs.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = "Empty",
+                            tint = MelodyTextMuted,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Playlist is empty", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Add songs from anywhere in Melody", color = MelodyTextSecondary, fontSize = 13.sp)
+                    }
+                }
+            }
+        } else {
+            items(songs) { song ->
+                SongListItem(
+                    song = song,
+                    onClick = { onSongClick(song, songs) },
+                    trailingContent = {
+                        IconButton(onClick = {
+                            coroutineScope.launch {
+                                try {
+                                    ApiClient.apiService.removeSongFromPlaylist(playlist.id, song.id)
+                                    loadSongs()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Remove", tint = MelodyTextSecondary)
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(6.dp))
             }
         }
 

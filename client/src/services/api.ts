@@ -230,6 +230,43 @@ export async function fetchPlaylistSongs(playlistId: number): Promise<Song[]> {
   }
 }
 
+export async function addSongToPlaylist(playlistId: number, songId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/playlists/${playlistId}/songs`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ song_id: songId }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/playlists/${playlistId}/songs/${songId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deletePlaylist(playlistId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/playlists/${playlistId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // --- Auth, User Profile & Device Management API ---
 
 export interface UserProfile {
