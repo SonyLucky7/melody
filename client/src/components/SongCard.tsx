@@ -14,6 +14,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
   const {
     currentSong,
     isPlaying,
+    isLoadingTrack,
     playSong,
     togglePlay,
     downloadedSongIds,
@@ -66,7 +67,9 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
               : 'opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0'
           }`}
         >
-          {isCurrent && isPlaying ? (
+          {isCurrent && isLoadingTrack ? (
+            <Loader2 className="w-5 h-5 text-white animate-spin" />
+          ) : isCurrent && isPlaying ? (
             <Pause className="w-5 h-5 fill-white ml-0" />
           ) : (
             <Play className="w-5 h-5 fill-white ml-0.5" />

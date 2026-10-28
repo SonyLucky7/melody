@@ -34,6 +34,7 @@ export const EQ_PRESETS: Record<string, number[]> = {
 interface PlayerContextType {
   currentSong: Song | null;
   isPlaying: boolean;
+  isLoadingTrack: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -106,6 +107,7 @@ function createShuffledOrder<T>(list: T[], currentItem?: T): T[] {
 export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isLoadingTrack, setIsLoadingTrack] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolumeState] = useState<number>(0.8);
@@ -174,6 +176,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Persistent Refs to prevent stale closures in audio event handlers
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
@@ -403,6 +406,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     setCurrentSong(song);
     currentSongRef.current = song;
+    setIsLoadingTrack(true);
     setCurrentTime(0);
 
     // Track playback history
@@ -434,14 +438,20 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        await playPromise;
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setIsLoadingTrack(false);
+          })
+          .catch((err) => {
+            console.warn('[Audio Play Promise Notice]:', err);
+          });
       }
-      setIsPlaying(true);
 
       // Async record stats in background
       recordPlayback(song.id).catch(() => {});
 
-      // Prefetch upcoming track for 0-ms transition on next
+      // Prefetch upcoming track using persistent ref so browser does not abort
       const activeList = isShuffleRef.current && shuffledQueueRef.current.length > 0
         ? shuffledQueueRef.current
         : (queueList || queueRef.current);
@@ -449,9 +459,11 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const nextIdx = (currentIdx + 1) % activeList.length;
       if (nextIdx < activeList.length && activeList[nextIdx].id !== song.id) {
         const nextSong = activeList[nextIdx];
-        const preloader = new Audio();
-        preloader.preload = 'auto';
-        preloader.src = `${API_BASE}/api/stream/${nextSong.id}`;
+        if (!preloadAudioRef.current) {
+          preloadAudioRef.current = new Audio();
+          preloadAudioRef.current.preload = 'auto';
+        }
+        preloadAudioRef.current.src = `${API_BASE}/api/stream/${nextSong.id}`;
       }
     } catch (err) {
       console.error('[Playback Start Error]:', err);
@@ -547,6 +559,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   useEffect(() => {
     const audio = new Audio();
     audio.crossOrigin = 'anonymous'; // Crucial for Web Audio API Equalizer
+    audio.preload = 'auto'; // Immediate aggressive buffering
     audioRef.current = audio;
     audio.volume = volume;
 
@@ -562,6 +575,19 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setIsPlaying(true);
     };
 
+    const handlePlaying = () => {
+      setIsPlaying(true);
+      setIsLoadingTrack(false);
+    };
+
+    const handleWaiting = () => {
+      setIsLoadingTrack(true);
+    };
+
+    const handleCanPlay = () => {
+      setIsLoadingTrack(false);
+    };
+
     const handlePause = () => {
       setIsPlaying(false);
     };
@@ -574,11 +600,15 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const handleError = (e: any) => {
       console.warn('[Audio Player Notice]:', e);
       setIsPlaying(false);
+      setIsLoadingTrack(false);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('play', handlePlay);
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
@@ -593,6 +623,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
@@ -713,6 +746,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       value={{
         currentSong,
         isPlaying,
+        isLoadingTrack,
         currentTime,
         duration,
         volume,

@@ -5,6 +5,15 @@ import path from 'path';
 import { Readable } from 'stream';
 import { config } from '../config';
 
+// High-performance persistent keep-alive agent to eliminate TLS handshake latency
+export const telegramAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  maxFreeSockets: 20,
+  keepAliveMsecs: 60000,
+  timeout: 60000,
+});
+
 export interface TelegramUploadResult {
   telegram_file_id: string;
   telegram_message_id: number;
@@ -111,7 +120,7 @@ export class TelegramMultiBotService {
       const fileStream = fs.createWriteStream(tmpPath);
       const protocol = downloadUrl.startsWith('https') ? https : http;
 
-      const req = protocol.get(downloadUrl, (res) => {
+      const req = protocol.get(downloadUrl, { agent: telegramAgent, timeout: 45000 }, (res) => {
         if (res.statusCode !== 200) {
           fileStream.close();
           fs.unlink(tmpPath, () => {});
@@ -240,7 +249,7 @@ export class TelegramMultiBotService {
   private fetchJson(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       https
-        .get(url, { timeout: 4000 }, (res) => {
+        .get(url, { agent: telegramAgent, timeout: 5000 }, (res) => {
           let data = '';
           res.on('data', (c) => (data += c));
           res.on('end', () => {

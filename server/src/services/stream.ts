@@ -6,7 +6,7 @@ import http from 'http';
 import { Request, Response } from 'express';
 import { config } from '../config';
 import { query } from '../db/client';
-import { telegramService } from './telegram';
+import { telegramService, telegramAgent } from './telegram';
 
 export interface StreamTokenPayload {
   songId: number;
@@ -153,7 +153,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       requestHeaders['Range'] = rangeHeader;
     }
 
-    const tgReq = protocol.get(downloadUrl, { headers: requestHeaders }, (tgRes) => {
+    const tgReq = protocol.get(downloadUrl, { agent: telegramAgent, headers: requestHeaders }, (tgRes) => {
       const statusCode = tgRes.statusCode || (rangeHeader ? 206 : 200);
 
       const responseHeaders: Record<string, any> = {

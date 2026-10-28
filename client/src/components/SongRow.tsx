@@ -21,6 +21,7 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
   const {
     currentSong,
     isPlaying,
+    isLoadingTrack,
     playSong,
     togglePlay,
     favourites,
@@ -61,9 +62,11 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
       }`}
     >
       <div className="flex items-center gap-3.5 flex-1 min-w-0">
-        {/* Track # or Play Button or Animated Purple Equalizer */}
+        {/* Track # or Play Button or Loading Spinner or Animated Purple Equalizer */}
         <div className="w-6 flex items-center justify-center text-xs font-mono text-[#b3b3b3]">
-          {isCurrent && isPlaying ? (
+          {isCurrent && isLoadingTrack ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#a855f7]" />
+          ) : isCurrent && isPlaying ? (
             <span className="flex items-end gap-0.5 h-3">
               <span className="w-0.5 h-full bg-[#a855f7] animate-pulse"></span>
               <span className="w-0.5 h-2/3 bg-[#a855f7] animate-pulse delay-75"></span>
@@ -75,7 +78,9 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
             </span>
           )}
           <span className="hidden group-hover:block text-white">
-            {isCurrent && isPlaying ? (
+            {isCurrent && isLoadingTrack ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+            ) : isCurrent && isPlaying ? (
               <Pause className="w-3.5 h-3.5 fill-current" />
             ) : (
               <Play className="w-3.5 h-3.5 fill-current" />

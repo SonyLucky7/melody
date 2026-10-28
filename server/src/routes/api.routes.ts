@@ -19,7 +19,7 @@ import {
   addFavourite,
   removeFavourite,
 } from '../controllers/favourite.controller';
-import { getPaymentConfig, handleUpiPaymentSubmit } from '../controllers/payment.controller';
+import { getPaymentConfig, handleUpiPaymentSubmit, handleExternalCheckout } from '../controllers/payment.controller';
 import { verifyDeviceSession, requireDeviceAuth } from '../middleware/auth';
 
 const router = Router();
@@ -27,6 +27,8 @@ const router = Router();
 // --- Payment & VIP Subscriptions ---
 router.get('/payment/config', getPaymentConfig);
 router.post('/payment/upi-submit', handleUpiPaymentSubmit);
+router.post('/external/checkout', handleExternalCheckout);
+router.post('/external/webhook', handleExternalCheckout);
 
 // --- Songs Catalog & Streaming ---
 router.get('/songs', verifyDeviceSession, getSongs);

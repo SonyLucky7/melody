@@ -132,3 +132,71 @@ export async function handleUpiPaymentSubmit(req: Request, res: Response): Promi
     res.status(500).json({ error: 'PAYMENT_PROCESSING_FAILED', message: err.message || 'Failed to process payment.' });
   }
 }
+
+/**
+ * External Web Store / E-Commerce Product Purchase Endpoint
+ * Called by user's external website (WooCommerce, Shopify, custom site, Razorpay)
+ * when a user purchases Melody VIP as a product.
+ */
+export async function handleExternalCheckout(req: Request, res: Response): Promise<void> {
+  const {
+    first_name,
+    firstName,
+    surname,
+    last_name,
+    lastName,
+    mobile,
+    phone,
+    email,
+    plan,
+    orderId,
+    order_id,
+  } = req.body;
+
+  const fName = (firstName || first_name || '').toString().trim();
+  const lName = (surname || lastName || last_name || '').toString().trim();
+  const rawMobile = (mobile || phone || '').toString().trim().replace(/\D/g, '');
+
+  if (!fName || !lName || rawMobile.length < 10) {
+    res.status(400).json({
+      error: 'MISSING_FIELDS',
+      message: 'first_name, surname (or last_name), and 10-digit mobile number are required.',
+    });
+    return;
+  }
+
+  const selectedPlan: 'annual' | 'lifetime' = plan === 'lifetime' ? 'lifetime' : 'annual';
+  const amount = selectedPlan === 'lifetime' ? 99 : 49;
+  const externalRef = (orderId || order_id || `ext-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`).toString();
+
+  try {
+    // 1. Issue Option 1 key
+    const licence = await issueLicence(fName, lName, rawMobile, email, selectedPlan);
+
+    // 2. Record payment in database
+    await query(
+      `INSERT INTO payments (user_id, licence_id, plan, amount_inr, upi_utr_ref, status)
+       VALUES ($1, $2, $3, $4, $5, 'verified')
+       ON CONFLICT (upi_utr_ref) DO NOTHING`,
+      [licence.userId, licence.licenceId, selectedPlan, amount, externalRef]
+    );
+
+    const autoLoginUrl = `https://melody-chi-nine.vercel.app/?activate_key=${licence.formattedKey}`;
+
+    res.status(201).json({
+      success: true,
+      message: 'VIP Licence issued successfully for external order.',
+      data: {
+        licenceKey: licence.licenceKey,
+        formattedKey: licence.formattedKey,
+        plan: selectedPlan,
+        expiresAt: licence.expiresAt,
+        autoLoginUrl,
+        redirectUrl: autoLoginUrl,
+      },
+    });
+  } catch (err: any) {
+    console.error('[External Checkout Error]:', err);
+    res.status(500).json({ error: 'EXTERNAL_CHECKOUT_FAILED', message: err.message || 'Failed to process checkout.' });
+  }
+}

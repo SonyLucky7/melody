@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
-import { getFullCoverUrl } from '../services/api';
+import { getFullCoverUrl, fetchSongs } from '../services/api';
 
 interface ArtistViewProps {
   artistName: string;
@@ -72,10 +72,25 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
   const [isFollowing, setIsFollowing] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+  const [fetchedArtistSongs, setFetchedArtistSongs] = useState<Song[]>([]);
 
-  const artistSongs = songs.filter(
+  // Automatically fetch complete artist discography directly from PostgreSQL
+  useEffect(() => {
+    let isMounted = true;
+    fetchSongs(artistName, '', 200).then((res) => {
+      if (isMounted && res && res.length > 0) {
+        setFetchedArtistSongs(res);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [artistName]);
+
+  const localMatches = songs.filter(
     (s) => s.artist.toLowerCase().includes(artistName.toLowerCase()) || artistName.toLowerCase().includes(s.artist.toLowerCase())
   );
+  const artistSongs = fetchedArtistSongs.length > 0 ? fetchedArtistSongs : localMatches;
 
   const meta = ARTIST_METADATA[artistName] || {
     banner: 'linear-gradient(180deg, rgba(88, 28, 135, 0.7) 0%, rgba(18, 18, 18, 1) 100%)',

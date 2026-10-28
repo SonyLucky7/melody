@@ -22,6 +22,7 @@ import {
   setUserProfile,
   clearUserProfile,
   fetchDevices,
+  activateLicence,
   UserProfile,
 } from './services/api';
 import { Song, Playlist, ActiveDevice } from './types';
@@ -90,7 +91,30 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadCatalog();
+    checkUrlActivation();
   }, []);
+
+  const checkUrlActivation = async () => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const keyToActivate = urlParams.get('activate_key') || urlParams.get('key');
+    if (!keyToActivate) return;
+
+    try {
+      const res = await activateLicence(keyToActivate.trim(), 'Web Player');
+      if (res.status === 200 && res.data?.token) {
+        if (res.data.user) {
+          setUserProfileState(res.data.user);
+          setUserProfile(res.data.user);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+        loadCatalog();
+        alert(`🎉 VIP Membership Activated Successfully! Welcome to Melody VIP, ${res.data.user?.firstName || 'VIP Member'}!`);
+      }
+    } catch (e) {
+      console.warn('[Auto Activation Notice]:', e);
+    }
+  };
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -106,7 +130,7 @@ export const App: React.FC = () => {
   const loadCatalog = async () => {
     setLoading(true);
     const [fetchedSongs, fetchedPlaylists, fetchedRecent, fetchedFavs, devicesData] = await Promise.all([
-      fetchSongs('', '', 350),
+      fetchSongs('', '', 500),
       fetchPlaylists(),
       fetchRecentlyPlayed(),
       fetchFavourites(),

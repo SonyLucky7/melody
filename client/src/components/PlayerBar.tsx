@@ -13,6 +13,7 @@ import {
   Laptop,
   Sliders,
   Maximize2,
+  Loader2,
 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl } from '../services/api';
@@ -32,6 +33,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
   const {
     currentSong,
     isPlaying,
+    isLoadingTrack,
     currentTime,
     duration,
     volume,
@@ -155,9 +157,11 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
             onClick={togglePlay}
             disabled={!currentSong}
             className="w-9 h-9 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-md transition-transform disabled:opacity-40 disabled:hover:scale-100"
-            title={isPlaying ? 'Pause' : 'Play'}
+            title={isLoadingTrack ? 'Buffering track...' : isPlaying ? 'Pause' : 'Play'}
           >
-            {isPlaying ? (
+            {isLoadingTrack ? (
+              <Loader2 className="w-4 h-4 text-black animate-spin" />
+            ) : isPlaying ? (
               <Pause className="w-4 h-4 fill-black text-black" />
             ) : (
               <Play className="w-4 h-4 fill-black text-black ml-0.5" />

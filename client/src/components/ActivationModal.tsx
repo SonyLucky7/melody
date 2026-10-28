@@ -3,17 +3,19 @@ import {
   X,
   Key,
   Crown,
-  Sparkles,
   CheckCircle,
   AlertCircle,
   Copy,
   Check,
-  QrCode,
   Smartphone,
   ShieldCheck,
   ArrowRight,
   ExternalLink,
   HelpCircle,
+  MessageCircle,
+  Send,
+  Mail,
+  ShoppingBag,
 } from 'lucide-react';
 import {
   activateLicence,
@@ -190,8 +192,8 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-[#14141c] border border-purple-500/20 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative my-auto">
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in">
+      <div className="bg-[#14141c] border border-purple-500/20 rounded-2xl w-full max-w-md p-5 shadow-2xl relative my-auto max-h-[94vh] flex flex-col">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -200,43 +202,38 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Modal Top Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-600/30">
-            {tab === 'vip' ? <Crown className="w-6 h-6 fill-white/20" /> : <Key className="w-6 h-6" />}
+        {/* Modal Top Header (Clean, No Clutter) */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-600/30 flex-shrink-0">
+            {tab === 'vip' ? <Crown className="w-5 h-5 fill-white/20" /> : <Key className="w-5 h-5" />}
           </div>
           <div>
-            <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <h3 className="text-lg font-black text-white tracking-tight">
               {tab === 'vip' ? 'Melody VIP Membership' : 'Log In with Licence Key'}
-              {tab === 'vip' && (
-                <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 border border-purple-500/40 text-purple-300 px-2 py-0.5 rounded-full">
-                  Zero Fees UPI
-                </span>
-              )}
             </h3>
             <p className="text-xs text-neutral-400">
               {tab === 'vip'
-                ? 'High-res 320kbps audio, 5 concurrent devices & zero ads'
-                : 'Enter your 12-character Option 1 Licence Key'}
+                ? 'High-res 320kbps audio & 5 device playback'
+                : 'Enter your 12-character Licence Key'}
             </p>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-[#0a0a0f] p-1 rounded-xl mb-5 border border-white/5">
+        <div className="flex bg-[#0a0a0f] p-1 rounded-xl mb-4 border border-white/5">
           <button
             onClick={() => {
               setTab('vip');
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               tab === 'vip'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/20'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/20'
                 : 'text-neutral-400 hover:text-white'
             }`}
           >
-            <Crown className="w-4 h-4 text-yellow-400" />
+            <Crown className="w-3.5 h-3.5 text-yellow-400" />
             <span>Get VIP Access</span>
           </button>
           <button
@@ -245,388 +242,434 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
               setErrorMsg('');
               setSuccessMsg('');
             }}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
               tab === 'login'
                 ? 'bg-[#282836] text-white shadow'
                 : 'text-neutral-400 hover:text-white'
             }`}
           >
-            <Key className="w-4 h-4 text-purple-400" />
+            <Key className="w-3.5 h-3.5 text-purple-400" />
             <span>Already Have a Key?</span>
           </button>
         </div>
 
         {/* Global Feedback Banners */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2.5 animate-shake">
+          <div className="mb-3 p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2.5">
+          <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
             <CheckCircle className="w-4 h-4 flex-shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
         {/* TAB 1: VIP PAYMENT FLOW */}
-        {tab === 'vip' && (
-          <div>
-            {step === 'details' && (
-              <form onSubmit={handleProceedToPayment} className="space-y-4">
-                {/* Plan Selection Cards */}
-                <div className="grid grid-cols-2 gap-3 mb-2">
-                  {/* Annual Plan (₹49) */}
-                  <div
-                    onClick={() => setSelectedPlanId('annual')}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
-                      selectedPlanId === 'annual'
-                        ? 'bg-purple-950/40 border-purple-500 ring-2 ring-purple-500/30'
-                        : 'bg-[#0f0f15] border-white/5 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-neutral-300">Annual VIP</span>
-                      <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">
-                        ₹4/mo
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1.5 mb-1">
-                      <span className="text-2xl font-black text-white">₹49</span>
-                      <span className="text-xs text-neutral-500 line-through">₹199</span>
-                      <span className="text-[11px] text-neutral-400 font-medium">/ 1 Year</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-400">Full year 320kbps access</p>
-                  </div>
-
-                  {/* Lifetime Plan (₹99) */}
-                  <div
-                    onClick={() => setSelectedPlanId('lifetime')}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
-                      selectedPlanId === 'lifetime'
-                        ? 'bg-purple-950/40 border-purple-500 ring-2 ring-purple-500/30'
-                        : 'bg-[#0f0f15] border-white/5 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-neutral-300">Lifetime VIP</span>
-                      <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">
-                        BEST VALUE
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1.5 mb-1">
-                      <span className="text-2xl font-black text-white">₹99</span>
-                      <span className="text-xs text-neutral-500 line-through">₹499</span>
-                      <span className="text-[11px] text-amber-400 font-medium">Forever</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-400">Pay once, listen for life</p>
-                  </div>
-                </div>
-
-                {/* User Information */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        First Name *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Rahul"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                        Surname *
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Sharma"
-                        value={surname}
-                        onChange={(e) => setSurname(e.target.value)}
-                        className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                      10-Digit Mobile Number *
-                    </label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-white/10 bg-white/5 text-xs text-neutral-400 font-mono">
-                        +91
-                      </span>
-                      <input
-                        type="tel"
-                        maxLength={10}
-                        placeholder="9876543210"
-                        value={mobile}
-                        onChange={(e) => setMobile(e.target.value)}
-                        className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-r-xl px-3.5 py-2 text-sm text-white font-mono placeholder:text-neutral-600 outline-none transition-colors"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
-                      Email Address (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="rahul@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                {/* Option 1 Key Preview Badge */}
-                {(firstName || surname || mobile) && (
-                  <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-xl flex items-center justify-between">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">
-                        Your Custom Licence Key
+        <div className="overflow-y-auto pr-0.5 flex-1">
+          {tab === 'vip' && (
+            <div>
+              {step === 'details' && (
+                <form onSubmit={handleProceedToPayment} className="space-y-3.5">
+                  {/* Plan Selection Cards */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* Annual Plan (₹49) */}
+                    <div
+                      onClick={() => setSelectedPlanId('annual')}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        selectedPlanId === 'annual'
+                          ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-500/40'
+                          : 'bg-[#0f0f15] border-white/5 hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-bold text-neutral-300">Annual VIP</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-1 py-0.5 rounded">
+                          POPULAR
+                        </span>
                       </div>
-                      <div className="font-mono text-xs font-black text-white tracking-widest mt-0.5">
-                        {previewKey()}
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-white">₹49</span>
+                        <span className="text-xs text-neutral-500 line-through">₹199</span>
+                        <span className="text-[11px] text-neutral-400 font-medium">/ 1 Year</span>
                       </div>
                     </div>
-                    <span className="text-[10px] text-neutral-400 font-medium">Valid on 5 devices</span>
-                  </div>
-                )}
 
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 group"
-                >
-                  <span>Continue to Direct UPI Payment</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </form>
-            )}
-
-            {/* STEP 2: DIRECT ZERO-FEES UPI QR SCAN */}
-            {step === 'pay' && currentPlan && (
-              <div className="space-y-4">
-                <div className="text-center">
-                  <div className="text-xs text-neutral-400">
-                    Pay exactly <span className="font-black text-white text-sm">₹{currentPlan.price}</span> for{' '}
-                    <span className="font-bold text-purple-400">{currentPlan.name}</span>
+                    {/* Lifetime Plan (₹99) */}
+                    <div
+                      onClick={() => setSelectedPlanId('lifetime')}
+                      className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                        selectedPlanId === 'lifetime'
+                          ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-500/40'
+                          : 'bg-[#0f0f15] border-white/5 hover:border-white/10'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-bold text-neutral-300">Lifetime VIP</span>
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded">
+                          BEST
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-white">₹99</span>
+                        <span className="text-xs text-neutral-500 line-through">₹499</span>
+                        <span className="text-[11px] text-amber-400 font-medium">Forever</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-neutral-500 mt-0.5">
-                    Scan with any UPI app (Google Pay, PhonePe, Paytm, BHIM, Cred)
-                  </div>
-                </div>
 
-                {/* Dynamic QR Code Display */}
-                <div className="p-3 bg-white rounded-2xl w-fit mx-auto shadow-2xl shadow-purple-900/30 border-2 border-purple-400/40">
-                  <img
-                    src={currentPlan.qrCodeUrl}
-                    alt="Scan UPI QR Code"
-                    className="w-52 h-52 object-contain block mx-auto"
-                  />
-                  <div className="text-center text-[11px] font-bold text-neutral-900 mt-2 flex items-center justify-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Verified Zero-Fee Direct UPI</span>
-                  </div>
-                </div>
-
-                {/* Mobile Direct UPI Pay Button */}
-                <div className="flex gap-2">
-                  <a
-                    href={currentPlan.upiPayUri}
-                    className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-purple-600/25"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>Pay with UPI App</span>
-                    <ExternalLink className="w-3 h-3 opacity-70" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => setStep('details')}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-bold rounded-xl transition-colors"
-                  >
-                    Back
-                  </button>
-                </div>
-
-                {/* UPI ID Details */}
-                <div className="p-3 bg-[#0a0a0f] border border-white/5 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-neutral-500 text-[10px] uppercase font-bold block">UPI ID</span>
-                    <span className="font-mono font-bold text-white tracking-wider">
-                      {paymentConfig?.upiIdMasked || 'an****7@axl'}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-neutral-500 text-[10px] uppercase font-bold block">Payee</span>
-                    <span className="text-white font-medium">{paymentConfig?.upiName || 'Melody Music VIP'}</span>
-                  </div>
-                </div>
-
-                {/* 12-Digit UTR Form */}
-                <form onSubmit={handleVerifyUpiPayment} className="space-y-3 pt-2 border-t border-white/5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-neutral-300 uppercase tracking-wider mb-1">
-                      Enter 12-Digit UPI Reference / UTR Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 429812345678"
-                      value={upiUtrRef}
-                      onChange={(e) => setUpiUtrRef(e.target.value)}
-                      className="w-full bg-[#0a0a0f] border border-purple-500/40 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm font-mono tracking-widest text-white placeholder:text-neutral-600 outline-none transition-colors"
-                      maxLength={20}
-                      required
-                    />
-                    <p className="text-[10px] text-neutral-500 mt-1">
-                      Found in your payment app under "UPI Ref No." or "UTR" immediately after payment.
+                  {/* Contact for Key Option (Clean, Direct, 100% Privacy) */}
+                  <div className="p-3 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/25 rounded-xl">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-purple-400" />
+                        <span className="text-xs font-bold text-white">Contact for VIP Key</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                        Instant Delivery
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mb-2.5">
+                      Get your Option 1 Key directly without exposing personal bank details or UPI apps:
                     </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href="https://t.me/melody_support"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-1.5 px-2 bg-[#0088cc]/20 hover:bg-[#0088cc]/30 border border-[#0088cc]/30 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Send className="w-3.5 h-3.5 text-[#0088cc]" />
+                        <span>Telegram Support</span>
+                      </a>
+                      <a
+                        href="https://discord.gg/melody"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-1.5 px-2 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/30 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-[#5865F2]" />
+                        <span>Discord Community</span>
+                      </a>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                      <a
+                        href="mailto:sonylucky46hac@gmail.com?subject=Melody%20VIP%20Licence%20Key%20Request"
+                        className="text-neutral-400 hover:text-white flex items-center gap-1 transition-colors"
+                      >
+                        <Mail className="w-3 h-3 text-purple-400" />
+                        <span>sonylucky46hac@gmail.com</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTab('login');
+                        }}
+                        className="text-purple-400 hover:underline font-bold text-[11px]"
+                      >
+                        Enter Key &rarr;
+                      </button>
+                    </div>
                   </div>
+
+                  <div className="relative flex py-0.5 items-center">
+                    <div className="flex-grow border-t border-white/10"></div>
+                    <span className="flex-shrink mx-2 text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                      Or Generate via Automated UPI
+                    </span>
+                    <div className="flex-grow border-t border-white/10"></div>
+                  </div>
+
+                  {/* User Information */}
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                          First Name *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Rahul"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                          Surname *
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Sharma"
+                          value={surname}
+                          onChange={(e) => setSurname(e.target.value)}
+                          className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        10-Digit Mobile Number *
+                      </label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-white/10 bg-white/5 text-xs text-neutral-400 font-mono">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          placeholder="9876543210"
+                          value={mobile}
+                          onChange={(e) => setMobile(e.target.value)}
+                          className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-r-xl px-3 py-2 text-sm text-white font-mono placeholder:text-neutral-600 outline-none transition-colors"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="rahul@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Option 1 Key Preview Badge */}
+                  {(firstName || surname || mobile) && (
+                    <div className="p-2.5 bg-purple-950/20 border border-purple-500/20 rounded-xl flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider">
+                          Your Licence Key Preview
+                        </div>
+                        <div className="font-mono text-xs font-black text-white tracking-widest mt-0.5">
+                          {previewKey()}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-neutral-400 font-medium">Valid on 5 devices</span>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 group"
                   >
-                    {loading ? (
-                      <span>Verifying Payment...</span>
-                    ) : (
-                      <>
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Verify & Activate VIP</span>
-                      </>
-                    )}
+                    <span>Proceed to Scan & Pay</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </form>
-              </div>
-            )}
+              )}
 
-            {/* STEP 3: PAYMENT SUCCESS & OPTION 1 KEY DISPLAY */}
-            {step === 'success' && issuedKey && (
-              <div className="text-center space-y-4 py-2">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20">
-                  <CheckCircle className="w-8 h-8" />
-                </div>
-
-                <div>
-                  <h4 className="text-xl font-black text-white">Payment Verified!</h4>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    Welcome to Melody VIP. Your account is now active on this device.
-                  </p>
-                </div>
-
-                {/* Key Card with Copy */}
-                <div className="p-4 bg-[#0a0a0f] border border-purple-500/30 rounded-2xl relative group">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">
-                    Your Permanent Option 1 Licence Key
+              {/* STEP 2: CLEAN SCAN & PAY (All visible, no hidden elements, no unnecessary text) */}
+              {step === 'pay' && currentPlan && (
+                <div className="space-y-3">
+                  {/* Clean Amount Banner */}
+                  <div className="text-center pb-1">
+                    <div className="text-sm font-semibold text-neutral-300">
+                      Scan & Pay <span className="text-base font-black text-white">₹{currentPlan.price}</span> for{' '}
+                      <span className="font-bold text-purple-400">{currentPlan.name}</span>
+                    </div>
+                    <div className="text-[11px] text-neutral-500 mt-0.5">
+                      Use Google Pay, PhonePe, Paytm, or any UPI app
+                    </div>
                   </div>
-                  <div className="font-mono text-xl font-black text-white tracking-widest py-1">
-                    {issuedKey.formatted}
+
+                  {/* Compact, Crisp QR Code (No unnecessary text) */}
+                  <div className="p-2.5 bg-white rounded-xl w-fit mx-auto shadow-xl border border-purple-500/30">
+                    <img
+                      src={currentPlan.qrCodeUrl}
+                      alt="Scan UPI QR Code"
+                      className="w-36 h-36 object-contain block mx-auto"
+                    />
                   </div>
-                  <p className="text-[11px] text-neutral-400 mt-1">
-                    Keep this key safe! You can use it to log in on up to 5 devices (Phone, PC, Web, Tablet).
-                  </p>
+
+                  {/* Direct Mobile Pay + Back Buttons */}
+                  <div className="flex gap-2">
+                    <a
+                      href={currentPlan.upiPayUri}
+                      className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/25"
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>Pay with UPI App</span>
+                      <ExternalLink className="w-3 h-3 opacity-70" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setStep('details')}
+                      className="px-3 py-2 bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-bold rounded-xl transition-colors"
+                    >
+                      Change Plan
+                    </button>
+                  </div>
+
+                  {/* 12-Digit UTR Form */}
+                  <form onSubmit={handleVerifyUpiPayment} className="space-y-2.5 pt-2 border-t border-white/5">
+                    <div>
+                      <label className="block text-[11px] font-bold text-neutral-300 uppercase tracking-wider mb-1">
+                        12-Digit UPI Reference / UTR Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 429812345678"
+                        value={upiUtrRef}
+                        onChange={(e) => setUpiUtrRef(e.target.value)}
+                        className="w-full bg-[#0a0a0f] border border-purple-500/40 focus:border-purple-500 rounded-xl px-3 py-2 text-sm font-mono tracking-widest text-white placeholder:text-neutral-600 outline-none transition-colors"
+                        maxLength={20}
+                        required
+                        autoFocus
+                      />
+                      <p className="text-[10px] text-neutral-500 mt-1">
+                        Shown in your payment app under "UTR" or "UPI Ref No." after sending payment.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <span>Verifying Reference...</span>
+                      ) : (
+                        <>
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Verify & Activate VIP</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* STEP 3: PAYMENT SUCCESS */}
+              {step === 'success' && issuedKey && (
+                <div className="text-center space-y-3 py-2">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+                    <CheckCircle className="w-7 h-7" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-lg font-black text-white">Payment Verified!</h4>
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      Your VIP membership is now active on this device.
+                    </p>
+                  </div>
+
+                  {/* Key Card with Copy */}
+                  <div className="p-3.5 bg-[#0a0a0f] border border-purple-500/30 rounded-xl relative group">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-0.5">
+                      Your 12-Character Licence Key
+                    </div>
+                    <div className="font-mono text-lg font-black text-white tracking-widest py-1">
+                      {issuedKey.formatted}
+                    </div>
+                    <p className="text-[10px] text-neutral-400">
+                      Save this key to log in on up to 5 devices (Phone, PC, Web, Tablet).
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyKey}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-purple-600/30"
+                    >
+                      {copiedKey ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Key</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
 
                   <button
                     type="button"
-                    onClick={handleCopyKey}
-                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-purple-600/30"
+                    onClick={() => {
+                      onActivated();
+                      onClose();
+                    }}
+                    className="w-full py-2.5 bg-white text-neutral-900 hover:bg-neutral-200 font-bold text-sm rounded-xl transition-all shadow-lg"
                   >
-                    {copiedKey ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Copied to Clipboard!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy Licence Key</span>
-                      </>
-                    )}
+                    Start Listening
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onActivated();
-                    onClose();
-                  }}
-                  className="w-full py-3 bg-white text-neutral-900 hover:bg-neutral-200 font-bold text-sm rounded-xl transition-all shadow-lg"
-                >
-                  Start Listening Now
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 2: LOGIN WITH EXISTING LICENCE KEY */}
-        {tab === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
-                Licence Key (Format: RAHS-HA98-7654)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. RAHS-HA98-7654"
-                value={loginKey}
-                onChange={(e) => setLoginKey(e.target.value.toUpperCase())}
-                className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm font-mono text-white tracking-widest placeholder:text-neutral-600 outline-none transition-colors"
-                maxLength={16}
-                required
-              />
-              <p className="text-[10px] text-neutral-500 mt-1">
-                Option 1 Key: First 3 letters of your first name + first 3 letters of surname + last 6 digits of mobile.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1.5">
-                Device Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Windows Chrome, Pixel 9"
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
-                className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <span>Logging In...</span>
-              ) : (
-                <>
-                  <Key className="w-4 h-4" />
-                  <span>Log In & Activate Device</span>
-                </>
               )}
-            </button>
-          </form>
-        )}
+            </div>
+          )}
+
+          {/* TAB 2: LOGIN WITH EXISTING LICENCE KEY */}
+          {tab === 'login' && (
+            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1">
+                  Licence Key (Format: RAHS-HA54-3210)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. RAHS-HA54-3210"
+                  value={loginKey}
+                  onChange={(e) => setLoginKey(e.target.value.toUpperCase())}
+                  className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3 py-2 text-sm font-mono text-white tracking-widest placeholder:text-neutral-600 outline-none transition-colors"
+                  maxLength={16}
+                  required
+                />
+                <p className="text-[10px] text-neutral-500 mt-1">
+                  First 3 letters of First Name + First 3 of Surname + Last 6 digits of Mobile.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1">
+                  Device Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Windows Chrome, Pixel 9"
+                  value={deviceName}
+                  onChange={(e) => setDeviceName(e.target.value)}
+                  className="w-full bg-[#0a0a0f] border border-white/10 focus:border-purple-500 rounded-xl px-3 py-2 text-sm text-white placeholder:text-neutral-600 outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-purple-600/30 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <span>Logging In...</span>
+                ) : (
+                  <>
+                    <Key className="w-4 h-4" />
+                    <span>Log In & Activate Device</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
 
         {/* Footer Support Link */}
-        <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
-          <span>Need assistance or having payment issues?</span>
+        <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+          <span>Need assistance?</span>
           {onOpenHelp ? (
             <button
               onClick={() => {

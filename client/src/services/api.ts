@@ -54,19 +54,49 @@ function authHeaders(): HeadersInit {
 
 // --- Music Catalog API ---
 
-export async function fetchSongs(search = '', language = '', limit = 40): Promise<Song[]> {
+export async function fetchSongs(search = '', language = '', limit = 500, offset = 0): Promise<Song[]> {
   try {
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (language) params.set('language', language);
-    params.set('limit', limit.toString());
+    // If specific search, fetch single page directly
+    if (search || limit <= 100) {
+      const params = new URLSearchParams();
+      if (search) params.set('search', search);
+      if (language) params.set('language', language);
+      params.set('limit', limit.toString());
+      if (offset) params.set('offset', offset.toString());
 
-    const res = await fetch(`${API_BASE}/api/songs?${params.toString()}`, {
-      headers: authHeaders(),
-    });
-    if (!res.ok) throw new Error('Failed to fetch songs');
-    const data = await res.json();
-    return data.data || [];
+      const res = await fetch(`${API_BASE}/api/songs?${params.toString()}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed to fetch songs');
+      const data = await res.json();
+      return data.data || [];
+    }
+
+    // Auto-paginating catalog fetcher: fetches full catalog in chunks of 100
+    const allSongs: Song[] = [];
+    let currentOffset = offset;
+    const pageSize = 100;
+
+    while (allSongs.length < limit) {
+      const params = new URLSearchParams();
+      if (language) params.set('language', language);
+      params.set('limit', pageSize.toString());
+      params.set('offset', currentOffset.toString());
+
+      const res = await fetch(`${API_BASE}/api/songs?${params.toString()}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      const pageSongs: Song[] = data.data || [];
+      if (pageSongs.length === 0) break;
+
+      allSongs.push(...pageSongs);
+      if (pageSongs.length < pageSize) break; // Reached end of catalog
+      currentOffset += pageSize;
+    }
+
+    return allSongs;
   } catch (err) {
     console.warn('[API fetchSongs Error]:', err);
     return [];
