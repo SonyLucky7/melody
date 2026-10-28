@@ -7,7 +7,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import com.melody.music.ads.MelodyAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
@@ -235,9 +234,9 @@ object MelodyPlayerManager {
                 val mediaUri: Uri = if (localFile != null && localFile.exists()) {
                     Uri.fromFile(localFile)
                 } else {
-                    // Instant High-Speed Cloudflare Edge CDN stream with priority routing
-                    val cdnUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}?priority=$priority"
-                    Uri.parse(cdnUrl)
+                    // Fast direct streaming from Render backend with priority routing
+                    val streamUrl = "https://melody-mzsm.onrender.com/api/stream/${song.id}?priority=$priority"
+                    Uri.parse(streamUrl)
                 }
 
                 val mediaMetadata = MediaMetadata.Builder()
@@ -266,7 +265,7 @@ object MelodyPlayerManager {
                         val nextUri = if (nextLocal != null && nextLocal.exists()) {
                             Uri.fromFile(nextLocal)
                         } else {
-                            Uri.parse("https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${nextSong.id}?priority=$priority")
+                            Uri.parse("https://melody-mzsm.onrender.com/api/stream/${nextSong.id}?priority=$priority")
                         }
                         val nextItem = MediaItem.Builder()
                             .setUri(nextUri)
@@ -345,18 +344,12 @@ object MelodyPlayerManager {
     private fun startProgressTracker() {
         stopProgressTracker()
         progressJob = scope.launch {
-            var tickAccumulatorMs = 0
             while (isActive) {
                 service?.player?.let {
                     _progressMs.value = it.currentPosition
                     _durationMs.value = it.duration.coerceAtLeast(0L)
                 }
                 delay(300)
-                tickAccumulatorMs += 300
-                if (tickAccumulatorMs >= 1000) {
-                    tickAccumulatorMs -= 1000
-                    MelodyAdManager.onPlaybackSecondTick()
-                }
             }
         }
     }

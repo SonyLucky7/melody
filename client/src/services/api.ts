@@ -7,10 +7,12 @@ export const API_BASE =
     ? (window.location.port === '3000' ? `http://${window.location.hostname}:5000` : '')
     : 'https://melody-mzsm.onrender.com');
 
-// High-speed global edge audio streaming CDN (Cloudflare Worker with 7-day edge cache)
+// High-speed direct streaming via Vercel Edge / Render Backend (sub-second instant start)
 export const STREAM_BASE =
   import.meta.env.VITE_STREAM_URL ||
-  'https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev';
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? window.location.origin
+    : 'https://melody-mzsm.onrender.com');
 
 export function getFullCoverUrl(coverUrl?: string | null): string {
   if (!coverUrl) return '/Melody-Logo-512.png';

@@ -455,13 +455,13 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       audio.preload = 'auto';
       audio.src = targetSrc;
 
-      // Auto-fallback: If Cloudflare Edge CDN ever errors, instantly retry direct Render stream
+      // Auto-fallback: If primary stream ever errors, fallback directly to Render backend
       audio.onerror = () => {
         const err = audio.error;
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
-        if (audio.src.includes('workers.dev')) {
-          console.warn('[Melody CDN Notice] Fallback retry from Render backend...');
-          audio.src = `${API_BASE}/api/stream/${song.id}?priority=${userPlan}`;
+        if (!audio.src.includes('onrender.com')) {
+          console.warn('[Melody Stream Notice] Retrying directly from Render backend...');
+          audio.src = `https://melody-mzsm.onrender.com/api/stream/${song.id}?priority=${userPlan}`;
           audio.play().catch(() => {});
         }
       };
