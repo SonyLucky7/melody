@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { Song } from '../types';
-import { API_BASE, requestPlayUrl, recordPlayback, fetchFavourites, addFavourite, removeFavourite } from '../services/api';
+import { API_BASE, STREAM_BASE, requestPlayUrl, recordPlayback, fetchFavourites, addFavourite, removeFavourite } from '../services/api';
 import {
   OfflineTrack,
   getOfflineSong,
@@ -431,8 +431,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audio.src = localBlobUrl;
         console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
       } else {
-        // Stream sub-40ms instant audio
-        const streamUrl = `${API_BASE}/api/stream/${song.id}`;
+        // Stream sub-40ms instant audio via Cloudflare Edge CDN
+        const streamUrl = `${STREAM_BASE}/api/stream/${song.id}`;
         audio.src = streamUrl;
       }
 
@@ -463,7 +463,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           preloadAudioRef.current = new Audio();
           preloadAudioRef.current.preload = 'auto';
         }
-        preloadAudioRef.current.src = `${API_BASE}/api/stream/${nextSong.id}`;
+        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
       }
     } catch (err) {
       console.error('[Playback Start Error]:', err);

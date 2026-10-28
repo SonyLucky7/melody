@@ -1,5 +1,5 @@
 import { Song } from '../types';
-import { API_BASE } from './api';
+import { API_BASE, STREAM_BASE } from './api';
 
 export interface OfflineTrack {
   id: number;
@@ -130,7 +130,7 @@ export async function downloadSongForOffline(
   song: Song,
   onProgress?: (progressPercent: number) => void
 ): Promise<OfflineTrack> {
-  const url = `${API_BASE}/api/stream/${song.id}`;
+  const url = `${STREAM_BASE}/api/stream/${song.id}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download audio for song "${song.title}" (HTTP ${response.status})`);

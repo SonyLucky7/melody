@@ -7,6 +7,11 @@ export const API_BASE =
     ? (window.location.port === '3000' ? `http://${window.location.hostname}:5000` : '')
     : 'https://melody-mzsm.onrender.com');
 
+// High-speed global edge audio streaming CDN (Cloudflare Worker with 7-day edge cache)
+export const STREAM_BASE =
+  import.meta.env.VITE_STREAM_URL ||
+  'https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev';
+
 export function getFullCoverUrl(coverUrl?: string | null): string {
   if (!coverUrl) return '/Melody-Logo-512.png';
   if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://') || coverUrl.startsWith('data:')) {
