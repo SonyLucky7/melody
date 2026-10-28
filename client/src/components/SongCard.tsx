@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, Pause, Download, Check, Loader2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
+import { getFullCoverUrl } from '../services/api';
 
 interface SongCardProps {
   song: Song;
@@ -49,7 +50,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
     >
       <div className="relative aspect-square w-full rounded-md overflow-hidden bg-[#242424] mb-3 shadow-lg">
         <img
-          src={song.cover_url || '/Melody-Logo-512.png'}
+          src={getFullCoverUrl(song.cover_url)}
           alt={song.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />

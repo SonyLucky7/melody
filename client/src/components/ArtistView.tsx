@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
+import { getFullCoverUrl } from '../services/api';
 
 interface ArtistViewProps {
   artistName: string;
@@ -23,6 +24,27 @@ const ARTIST_METADATA: Record<string, { banner: string; avatar: string; listener
     listeners: '62,941,200',
     bio: 'Elizabeth Woolridge Grant, known professionally as Lana Del Rey, is an American singer-songwriter recognized for her cinematic glamour and melancholic romance.',
     rank: '#18 in the world',
+  },
+  'Ariana Grande': {
+    banner: 'linear-gradient(180deg, rgba(160, 80, 180, 0.7) 0%, rgba(18, 18, 18, 1) 100%)',
+    avatar: '/Melody-Logo-512.png',
+    listeners: '94,182,310',
+    bio: 'Ariana Grande-Butera is an American singer, songwriter, and actress celebrated for her four-octave vocal range and iconic pop and R&B hits.',
+    rank: '#3 in the world',
+  },
+  'Sidhu Moose Wala': {
+    banner: 'linear-gradient(180deg, rgba(180, 70, 70, 0.7) 0%, rgba(18, 18, 18, 1) 100%)',
+    avatar: '/Melody-Logo-512.png',
+    listeners: '21,500,400',
+    bio: 'Shubhdeep Singh Sidhu, known as Sidhu Moose Wala, was an iconic Punjabi singer, rapper, and songwriter whose fearless style revolutionized Punjabi music globally.',
+    rank: '#1 in Punjabi Music',
+  },
+  'Yo Yo Honey Singh': {
+    banner: 'linear-gradient(180deg, rgba(190, 120, 40, 0.7) 0%, rgba(18, 18, 18, 1) 100%)',
+    avatar: '/Melody-Logo-512.png',
+    listeners: '18,920,000',
+    bio: 'Hirdesh Singh, known as Yo Yo Honey Singh, is an Indian music producer, rapper, and pop singer who pioneered the modern Indian hip-hop and pop era.',
+    rank: '#1 in Desi Pop',
   },
 };
 
@@ -234,7 +256,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
                 {/* Title & Cover */}
                 <div className="flex items-center gap-3.5 min-w-0 pr-4">
                   <img
-                    src={song.cover_url || '/Melody-Logo-192.png'}
+                    src={getFullCoverUrl(song.cover_url)}
                     alt={song.title}
                     className="w-10 h-10 rounded object-cover shadow-md flex-shrink-0"
                   />
@@ -340,7 +362,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
             >
               <div className="relative aspect-square w-full rounded-md overflow-hidden bg-neutral-900 mb-3 shadow-lg">
                 <img
-                  src={song.cover_url || '/Melody-Logo-512.png'}
+                  src={getFullCoverUrl(song.cover_url)}
                   alt={song.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />

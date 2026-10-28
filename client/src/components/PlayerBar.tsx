@@ -15,6 +15,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
+import { getFullCoverUrl } from '../services/api';
 
 interface PlayerBarProps {
   onSelectArtist?: (artist: string) => void;
@@ -68,7 +69,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
               title="Open Now Playing Theme"
             >
               <img
-                src={currentSong.cover_url || '/Melody-Logo-512.png'}
+                src={getFullCoverUrl(currentSong.cover_url)}
                 alt={currentSong.title}
                 className="w-14 h-14 rounded-md object-cover shadow-lg shadow-black/50 group-hover/cover:brightness-75 transition-all"
               />

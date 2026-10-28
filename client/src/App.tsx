@@ -16,6 +16,7 @@ import {
   fetchFavourites,
   createPlaylist,
   fetchPlaylistSongs,
+  getFullCoverUrl,
 } from './services/api';
 import { Song, Playlist, ActiveDevice } from './types';
 import { Search, Heart, Clock, Music, Disc, Play, ChevronLeft, ChevronRight, CheckCircle2, ArrowDownCircle } from 'lucide-react';
@@ -225,7 +226,7 @@ export const App: React.FC = () => {
                         className="group flex items-center gap-3 bg-white/5 hover:bg-white/15 rounded-md overflow-hidden cursor-pointer transition-all border border-white/5 shadow-sm pr-3"
                       >
                         <img
-                          src={song.cover_url || '/Melody-Logo-192.png'}
+                          src={getFullCoverUrl(song.cover_url)}
                           alt={song.title}
                           className="w-16 h-16 object-cover flex-shrink-0"
                         />

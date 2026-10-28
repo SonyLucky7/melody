@@ -5,7 +5,23 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
+      "destination": "https://melody-mzsm.onrender.com/api/:path*"
+    },
+    {
+      "source": "/covers/:path*",
+      "destination": "https://melody-mzsm.onrender.com/covers/:path*"
+    },
+    {
+      "source": "/stream/:path*",
+      "destination": "https://melody-mzsm.onrender.com/stream/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://melody-mzsm.onrender.com/health"
+    },
+    {
+      "source": "/((?!api|covers|stream|health|assets|favicon).*)",
       "destination": "/index.html"
     }
   ],
@@ -19,7 +35,7 @@
         },
         {
           "key": "X-Frame-Options",
-          "value": "DENY"
+          "value": "SAMEORIGIN"
         },
         {
           "key": "X-XSS-Protection",

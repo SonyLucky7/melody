@@ -2,9 +2,19 @@ import { Song, Playlist, ActiveDevice } from '../types';
 
 export const API_BASE =
   import.meta.env.VITE_API_URL ||
-  (typeof window !== 'undefined' && window.location.port === '3000'
-    ? `http://${window.location.hostname}:5000`
-    : '');
+  (typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? (window.location.port === '3000' ? `http://${window.location.hostname}:5000` : '')
+    : 'https://melody-mzsm.onrender.com');
+
+export function getFullCoverUrl(coverUrl?: string | null): string {
+  if (!coverUrl) return '/Melody-Logo-512.png';
+  if (coverUrl.startsWith('http://') || coverUrl.startsWith('https://') || coverUrl.startsWith('data:')) {
+    return coverUrl;
+  }
+  const cleanCover = coverUrl.startsWith('/') ? coverUrl : `/${coverUrl}`;
+  return `${API_BASE}${cleanCover}`;
+}
 
 export function getDeviceId(): string {
   let id = localStorage.getItem('melody_device_id');

@@ -2,6 +2,7 @@ import React from 'react';
 import { Play, Pause, Heart, Download, Check, Loader2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
+import { getFullCoverUrl } from '../services/api';
 
 interface SongRowProps {
   index: number;
@@ -84,7 +85,7 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
 
         {/* Thumbnail & Track Info */}
         <img
-          src={song.cover_url || '/Melody-Logo-192.png'}
+          src={getFullCoverUrl(song.cover_url)}
           alt={song.title}
           className="w-10 h-10 rounded object-cover shadow-sm flex-shrink-0"
         />
