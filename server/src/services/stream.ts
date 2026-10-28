@@ -42,9 +42,6 @@ class ActiveSpoolManager {
 
 export const spoolManager = new ActiveSpoolManager(config.maxConcurrentStreams);
 
-// In-flight background spool download promises to avoid duplicate downloads
-const activeSpoolDownloads = new Map<number, Promise<number>>();
-
 /**
  * Generate an HMAC-SHA256 signed stream token valid for 10 minutes
  */
@@ -121,26 +118,9 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     } catch {}
   }
 
-  // Fast Path 2: First-time playback: Stream range directly from Telegram in ~100ms
-  // and simultaneously spool full track in background for subsequent 1ms seeks!
+  // Direct High-Speed Streaming: Resolve Telegram file URL and stream HTTP Range directly
   try {
     const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id);
-
-    // Trigger non-blocking background spool if not already running
-    if (!activeSpoolDownloads.has(songId)) {
-      await fs.promises.mkdir(config.tempDir, { recursive: true });
-      const downloadPromise = telegramService.downloadToFile(song.telegram_file_id, spoolPath)
-        .then((bytes) => {
-          activeSpoolDownloads.delete(songId);
-          return bytes;
-        })
-        .catch((err) => {
-          activeSpoolDownloads.delete(songId);
-          try { fs.unlinkSync(spoolPath); } catch {}
-          throw err;
-        });
-      activeSpoolDownloads.set(songId, downloadPromise);
-    }
 
     // Stream range immediately from Telegram's file CDN directly to client
     const rangeHeader = req.headers.range;
@@ -159,7 +139,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       const responseHeaders: Record<string, any> = {
         'Content-Type': 'audio/mpeg',
         'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=1800',
+        'Cache-Control': 'public, max-age=604800, immutable',
       };
 
       if (tgRes.headers['content-range']) {

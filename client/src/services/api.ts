@@ -126,7 +126,8 @@ export async function requestPlayUrl(songId: number): Promise<string | null> {
     });
     if (!res.ok) throw new Error('Unable to get stream token');
     const json = await res.json();
-    return json.streamUrl;
+    if (!json.streamUrl) return null;
+    return json.streamUrl.startsWith('http') ? json.streamUrl : `${API_BASE}${json.streamUrl}`;
   } catch (err) {
     console.error('[API requestPlayUrl Error]:', err);
     return null;

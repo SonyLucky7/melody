@@ -190,6 +190,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const historyRef = useRef<Song[]>([]);
   const isEqEnabledRef = useRef<boolean>(isEqEnabled);
   const eqBandsRef = useRef<number[]>(eqBands);
+  const downloadedSongIdsRef = useRef<Set<number>>(new Set());
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -215,6 +216,10 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   useEffect(() => {
     eqBandsRef.current = eqBands;
   }, [eqBands]);
+
+  useEffect(() => {
+    downloadedSongIdsRef.current = downloadedSongIds;
+  }, [downloadedSongIds]);
 
   // Download song to local device storage (IndexedDB)
   const downloadSong = useCallback(async (song: Song) => {
@@ -424,17 +429,39 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audioContextRef.current.resume().catch(() => {});
       }
 
-      // Check if song is downloaded in IndexedDB on this local device
-      const offline = await getOfflineSong(song.id);
-      if (offline && offline.audioBlob) {
-        const localBlobUrl = URL.createObjectURL(offline.audioBlob);
-        audio.src = localBlobUrl;
-        console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
+      // Check offline IndexedDB ONLY if downloaded on this device (eliminates async lag for 99% of plays)
+      let targetSrc: string;
+      if (downloadedSongIdsRef.current.has(song.id)) {
+        const offline = await getOfflineSong(song.id);
+        if (offline && offline.audioBlob) {
+          targetSrc = URL.createObjectURL(offline.audioBlob);
+          console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
+        } else {
+          targetSrc = `${STREAM_BASE}/api/stream/${song.id}`;
+        }
       } else {
-        // Stream sub-40ms instant audio via Cloudflare Edge CDN
-        const streamUrl = `${STREAM_BASE}/api/stream/${song.id}`;
-        audio.src = streamUrl;
+        targetSrc = `${STREAM_BASE}/api/stream/${song.id}`;
       }
+
+      // Smooth switch: stop old audio cleanly and start buffering immediately
+      if (!audio.paused) {
+        audio.pause();
+      }
+      audio.currentTime = 0;
+      audio.src = targetSrc;
+      audio.load();
+
+      // Auto-fallback: If Cloudflare Edge CDN ever errors, instantly retry direct Render stream
+      audio.onerror = () => {
+        const err = audio.error;
+        if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
+        if (audio.src.includes('workers.dev')) {
+          console.warn('[Melody CDN Notice] Fallback retry from Render backend...');
+          audio.src = `${API_BASE}/api/stream/${song.id}`;
+          audio.load();
+          audio.play().catch(() => {});
+        }
+      };
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
@@ -444,6 +471,10 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             setIsLoadingTrack(false);
           })
           .catch((err) => {
+            // Ignore intentional aborts from rapidly switching tracks
+            if (err.name === 'AbortError' || err.code === 20) {
+              return;
+            }
             console.warn('[Audio Play Promise Notice]:', err);
           });
       }
@@ -598,6 +629,12 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     const handleError = (e: any) => {
+      const err = audio.error;
+      // Code 1 = MEDIA_ERR_ABORTED: Normal when user switches tracks, ignore!
+      if (err && err.code === MediaError.MEDIA_ERR_ABORTED) {
+        return;
+      }
+      if (!audio.src) return;
       console.warn('[Audio Player Notice]:', e);
       setIsPlaying(false);
       setIsLoadingTrack(false);
