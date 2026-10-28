@@ -15,6 +15,8 @@ export interface TelegramUploadResult {
 export class TelegramMultiBotService {
   private botTokens: string[];
   private channelId: string;
+  private currentBotIndex = 0;
+  private urlCache = new Map<string, { downloadUrl: string; botIndex: number; expiresAt: number }>();
 
   constructor(botTokens: string[], channelId: string) {
     this.botTokens = botTokens.length > 0 ? botTokens : ['MOCK_BOT_TOKEN_1', 'MOCK_BOT_TOKEN_2'];
@@ -32,11 +34,13 @@ export class TelegramMultiBotService {
     coverBuffer?: Buffer
   ): Promise<TelegramUploadResult> {
     let lastError: Error | null = null;
+    const numBots = this.botTokens.length;
 
-    for (let i = 0; i < this.botTokens.length; i++) {
-      const token = this.botTokens[i];
+    for (let attempt = 0; attempt < numBots; attempt++) {
+      const idx = (this.currentBotIndex + attempt) % numBots;
+      const token = this.botTokens[idx];
       try {
-        console.log(`[Telegram Bot ${i + 1}] Uploading audio "${title}" to channel ${this.channelId}...`);
+        console.log(`[Telegram Bot ${idx + 1}] Uploading audio "${title}" to channel...`);
         const result = await this.executeMultipartAudioUpload(
           token,
           this.channelId,
@@ -46,9 +50,10 @@ export class TelegramMultiBotService {
           artist,
           coverBuffer
         );
+        this.currentBotIndex = (idx + 1) % numBots;
         return result;
       } catch (err: any) {
-        console.warn(`[Telegram Bot ${i + 1} Error]: ${err.message}. Trying next bot...`);
+        console.warn(`[Telegram Bot ${idx + 1} Error]: ${err.message}. Trying next bot...`);
         lastError = err;
       }
     }
@@ -57,9 +62,14 @@ export class TelegramMultiBotService {
   }
 
   /**
-   * Race multiple bots to fetch the file download URL with minimum latency
+   * Race multiple bots to fetch the file download URL with minimum latency (cached for 50 mins)
    */
   async getFileDownloadUrl(fileId: string): Promise<{ downloadUrl: string; botIndex: number }> {
+    const cached = this.urlCache.get(fileId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { downloadUrl: cached.downloadUrl, botIndex: cached.botIndex };
+    }
+
     const promises = this.botTokens.map(async (token, idx) => {
       const res = await this.fetchJson(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`);
       if (res && res.ok && res.result?.file_path) {
@@ -73,7 +83,14 @@ export class TelegramMultiBotService {
 
     try {
       // Whichever bot responds fastest with a valid file path wins!
-      return await Promise.any(promises);
+      const result = await Promise.any(promises);
+      // Cache URL for 50 minutes (Telegram URLs are valid for >= 1 hour)
+      this.urlCache.set(fileId, {
+        downloadUrl: result.downloadUrl,
+        botIndex: result.botIndex,
+        expiresAt: Date.now() + 50 * 60 * 1000,
+      });
+      return result;
     } catch (err: any) {
       throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message}`);
     }

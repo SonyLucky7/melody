@@ -1,6 +1,10 @@
 import { Song, Playlist, ActiveDevice } from '../types';
 
-const API_BASE = ''; // Uses Vite proxy to http://localhost:5000 or same host in prod
+export const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.port === '3000'
+    ? `http://${window.location.hostname}:5000`
+    : '');
 
 export function getDeviceId(): string {
   let id = localStorage.getItem('melody_device_id');

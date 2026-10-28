@@ -1,0 +1,21 @@
+{
+  "name": "melody",
+  "version": "1.0.0",
+  "description": "Melody - Spotify-grade Music Platform with Telegram Cloud Storage & Native Android App",
+  "scripts": {
+    "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run build",
+    "start": "npm --prefix server start",
+    "test": "npm --prefix server test"
+  },
+  "keywords": [
+    "melody",
+    "music",
+    "spotify",
+    "streaming",
+    "telegram",
+    "exoplayer",
+    "android"
+  ],
+  "author": "Melody Team",
+  "license": "ISC"
+}

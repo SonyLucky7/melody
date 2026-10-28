@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import {
   handleAdminUpload,
   handleAdminIssueLicence,
   handleFreeLicenceRegistration,
+  handleAdminDeleteSong,
 } from '../controllers/admin.controller';
-import { requireAdminSecret } from '../middleware/admin';
+import { requireAdminSecret, handleAdminLogin } from '../middleware/admin';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -14,7 +16,22 @@ const upload = multer({
   },
 });
 
+// Strict rate limiter for Admin Login to prevent brute-force attacks
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Max 10 attempts per 15 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'TOO_MANY_ATTEMPTS',
+    message: 'Too many admin authentication attempts. Please try again after 15 minutes.',
+  },
+});
+
 const router = Router();
+
+// Admin Authentication (Email & Password Gate with brute-force protection)
+router.post('/admin/login', adminLoginLimiter, handleAdminLogin);
 
 // Admin-only multipart song upload
 router.post(
@@ -26,6 +43,9 @@ router.post(
   ]),
   handleAdminUpload
 );
+
+// Admin-only delete song
+router.delete('/admin/songs/:id', requireAdminSecret, handleAdminDeleteSong);
 
 // Admin-only issue licence
 router.post('/admin/licences', requireAdminSecret, handleAdminIssueLicence);

@@ -5,10 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,7 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.melody.music.data.model.Song
+import com.melody.music.player.MelodyPlayerManager
+import com.melody.music.ui.theme.MelodyCard
 import com.melody.music.ui.theme.MelodyPrimary
+import com.melody.music.ui.theme.MelodyTextSecondary
 
 @Composable
 fun MiniPlayerBar(
@@ -34,20 +41,23 @@ fun MiniPlayerBar(
 ) {
     if (song == null) return
 
+    val likedSongIds by MelodyPlayerManager.likedSongIds.collectAsState()
+    val isLiked = likedSongIds.contains(song.id)
+
     val progress = if (durationMs > 0) (progressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1E1E2C))
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MelodyCard)
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
@@ -55,7 +65,7 @@ fun MiniPlayerBar(
                 contentDescription = song.title,
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(6.dp)),
                 contentScale = ContentScale.Crop
             )
 
@@ -72,19 +82,36 @@ fun MiniPlayerBar(
                 )
                 Text(
                     text = song.artist,
-                    color = Color(0xFFA0A0B0),
+                    color = MelodyTextSecondary,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            IconButton(onClick = onTogglePlay) {
+            // Quick Heart Like Button
+            IconButton(
+                onClick = { MelodyPlayerManager.toggleLike(song) },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = if (isLiked) MelodyPrimary else Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Play / Pause Button
+            IconButton(
+                onClick = onTogglePlay,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
@@ -95,7 +122,7 @@ fun MiniPlayerBar(
                 .fillMaxWidth()
                 .height(2.dp),
             color = MelodyPrimary,
-            trackColor = Color(0xFF2A2A3E)
+            trackColor = Color(0xFF333333)
         )
     }
 }

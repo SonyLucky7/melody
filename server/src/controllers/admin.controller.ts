@@ -149,3 +149,27 @@ export async function handleFreeLicenceRegistration(req: Request, res: Response)
     res.status(500).json({ error: 'REGISTRATION_ERROR', message: 'Failed to issue free licence.' });
   }
 }
+
+export async function handleAdminDeleteSong(req: Request, res: Response): Promise<void> {
+  const songId = parseInt(req.params.id, 10);
+  if (isNaN(songId)) {
+    res.status(400).json({ error: 'INVALID_ID', message: 'Valid integer song ID required.' });
+    return;
+  }
+
+  try {
+    const delRes = await query('DELETE FROM songs WHERE id = $1 RETURNING id, title', [songId]);
+    if (delRes.rows.length === 0) {
+      res.status(404).json({ error: 'NOT_FOUND', message: 'Song not found.' });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Song #${songId} ("${delRes.rows[0].title}") deleted from catalog.`,
+    });
+  } catch (err: any) {
+    console.error('[Admin Delete Song Error]:', err);
+    res.status(500).json({ error: 'DATABASE_ERROR', message: 'Failed to delete song.' });
+  }
+}

@@ -4,15 +4,19 @@ import { query } from '../db/client';
 
 export async function getFavourites(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
 
   try {
     const favRes = await query(
       `SELECT s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url, f.created_at
        FROM favourites f
        JOIN songs s ON s.id = f.song_id
-       WHERE f.licence_id = $1
+       WHERE (
+         ($1 != '' AND f.device_id = $1)
+         OR ($2 > 0 AND f.licence_id = $2)
+       )
        ORDER BY f.created_at DESC`,
-      [licenceId]
+      [deviceId, licenceId]
     );
 
     res.status(200).json({
@@ -27,6 +31,7 @@ export async function getFavourites(req: AuthenticatedRequest, res: Response): P
 
 export async function addFavourite(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || 'anonymous-device';
   const songId = parseInt(req.params.songId, 10);
 
   if (isNaN(songId)) {
@@ -36,10 +41,10 @@ export async function addFavourite(req: AuthenticatedRequest, res: Response): Pr
 
   try {
     await query(
-      `INSERT INTO favourites (licence_id, song_id)
-       VALUES ($1, $2)
-       ON CONFLICT (licence_id, song_id) DO NOTHING`,
-      [licenceId, songId]
+      `INSERT INTO favourites (licence_id, device_id, song_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (device_id, song_id) DO NOTHING`,
+      [licenceId > 0 ? licenceId : null, deviceId, songId]
     );
 
     res.status(200).json({ success: true, message: 'Song added to favourites.' });
@@ -51,6 +56,7 @@ export async function addFavourite(req: AuthenticatedRequest, res: Response): Pr
 
 export async function removeFavourite(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
   const songId = parseInt(req.params.songId, 10);
 
   if (isNaN(songId)) {
@@ -60,8 +66,13 @@ export async function removeFavourite(req: AuthenticatedRequest, res: Response):
 
   try {
     await query(
-      `DELETE FROM favourites WHERE licence_id = $1 AND song_id = $2`,
-      [licenceId, songId]
+      `DELETE FROM favourites 
+       WHERE song_id = $1 
+         AND (
+           ($2 != '' AND device_id = $2)
+           OR ($3 > 0 AND licence_id = $3)
+         )`,
+      [songId, deviceId, licenceId]
     );
 
     res.status(200).json({ success: true, message: 'Song removed from favourites.' });

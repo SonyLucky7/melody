@@ -6,3 +6,6 @@ build/
 .DS_Store
 Thumbs.db
 /tmp/
+org/
+*.apk
+*.exe

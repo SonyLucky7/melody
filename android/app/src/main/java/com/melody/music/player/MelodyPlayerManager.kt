@@ -1,21 +1,36 @@
 package com.melody.music.player
 
+import android.content.Context
+import android.media.audiofx.Equalizer
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import com.melody.music.data.api.ApiClient
+import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
+import java.util.Collections
+
+enum class RepeatState {
+    OFF, ALL, ONE
+}
+
+data class EqPreset(
+    val name: String,
+    val gains: List<Int> // 6 bands in dB: [-10 to +10]
+)
 
 object MelodyPlayerManager {
 
     private var service: MelodyPlaybackService? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var progressJob: Job? = null
+    private var equalizer: Equalizer? = null
 
     private val _currentSong = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _currentSong.asStateFlow()
@@ -32,6 +47,36 @@ object MelodyPlayerManager {
     private val _queue = MutableStateFlow<List<Song>>(emptyList())
     val queue: StateFlow<List<Song>> = _queue.asStateFlow()
 
+    private val _isShuffle = MutableStateFlow(false)
+    val isShuffle: StateFlow<Boolean> = _isShuffle.asStateFlow()
+
+    private val _repeatState = MutableStateFlow(RepeatState.OFF)
+    val repeatState: StateFlow<RepeatState> = _repeatState.asStateFlow()
+
+    private val _likedSongIds = MutableStateFlow<Set<Long>>(emptySet())
+    val likedSongIds: StateFlow<Set<Long>> = _likedSongIds.asStateFlow()
+
+    // 6-Band Equalizer State (60Hz, 230Hz, 910Hz, 3.6kHz, 14kHz)
+    private val _eqEnabled = MutableStateFlow(false)
+    val eqEnabled: StateFlow<Boolean> = _eqEnabled.asStateFlow()
+
+    private val _eqBands = MutableStateFlow(listOf(0, 0, 0, 0, 0, 0)) // 6 bands, -10 to +10 dB
+    val eqBands: StateFlow<List<Int>> = _eqBands.asStateFlow()
+
+    private val _currentPreset = MutableStateFlow("Flat")
+    val currentPreset: StateFlow<String> = _currentPreset.asStateFlow()
+
+    private var originalQueue: List<Song> = emptyList()
+
+    val PRESETS = listOf(
+        EqPreset("Flat", listOf(0, 0, 0, 0, 0, 0)),
+        EqPreset("Bass Boost", listOf(7, 5, 2, 0, -1, -2)),
+        EqPreset("Vocal Boost", listOf(-2, 0, 4, 6, 3, 1)),
+        EqPreset("Acoustic", listOf(3, 2, 0, 2, 4, 3)),
+        EqPreset("Electronic", listOf(6, 4, -1, 2, 5, 6)),
+        EqPreset("Rock", listOf(5, 3, -2, 2, 4, 5))
+    )
+
     fun bindService(playbackService: MelodyPlaybackService) {
         service = playbackService
 
@@ -44,35 +89,131 @@ object MelodyPlayerManager {
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) {
                     _durationMs.value = playbackService.player.duration.coerceAtLeast(0L)
+                    attachEqualizer(playbackService.player.audioSessionId)
                 } else if (state == Player.STATE_ENDED) {
-                    next()
+                    handleTrackEnded()
                 }
             }
         })
+
+        // Fetch initial liked songs
+        refreshFavourites()
     }
 
     fun unbindService() {
         stopProgressTracker()
+        equalizer?.release()
+        equalizer = null
         service = null
+    }
+
+    private fun handleTrackEnded() {
+        when (_repeatState.value) {
+            RepeatState.ONE -> {
+                service?.player?.seekTo(0)
+                service?.player?.play()
+            }
+            RepeatState.ALL -> {
+                next(forceLoop = true)
+            }
+            RepeatState.OFF -> {
+                val q = _queue.value
+                val cur = _currentSong.value ?: return
+                val curIdx = q.indexOfFirst { it.id == cur.id }
+                if (curIdx != -1 && curIdx + 1 < q.size) {
+                    playSong(q[curIdx + 1])
+                } else {
+                    _isPlaying.value = false
+                }
+            }
+        }
+    }
+
+    fun refreshFavourites() {
+        scope.launch {
+            try {
+                val res = ApiClient.service.getFavourites()
+                if (res.success) {
+                    _likedSongIds.value = res.data.map { it.id }.toSet()
+                }
+            } catch (e: Exception) {
+                // Ignore offline or unauthenticated
+            }
+        }
+    }
+
+    fun toggleLike(song: Song) {
+        val isLiked = _likedSongIds.value.contains(song.id)
+        val updated = if (isLiked) _likedSongIds.value - song.id else _likedSongIds.value + song.id
+        _likedSongIds.value = updated
+
+        scope.launch {
+            try {
+                if (isLiked) {
+                    ApiClient.service.removeFavourite(song.id)
+                } else {
+                    ApiClient.service.addFavourite(song.id)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun toggleShuffle() {
+        val newShuffle = !_isShuffle.value
+        _isShuffle.value = newShuffle
+
+        val cur = _currentSong.value
+        if (newShuffle) {
+            val list = originalQueue.toMutableList()
+            if (cur != null) list.remove(cur)
+            Collections.shuffle(list)
+            _queue.value = if (cur != null) listOf(cur) + list else list
+        } else {
+            _queue.value = originalQueue
+        }
+    }
+
+    fun cycleRepeat() {
+        _repeatState.value = when (_repeatState.value) {
+            RepeatState.OFF -> RepeatState.ALL
+            RepeatState.ALL -> RepeatState.ONE
+            RepeatState.ONE -> RepeatState.OFF
+        }
     }
 
     fun playSong(song: Song, queueList: List<Song> = emptyList()) {
         _currentSong.value = song
         if (queueList.isNotEmpty()) {
-            _queue.value = queueList
+            originalQueue = queueList
+            if (_isShuffle.value) {
+                val list = queueList.toMutableList()
+                list.remove(song)
+                Collections.shuffle(list)
+                _queue.value = listOf(song) + list
+            } else {
+                _queue.value = queueList
+            }
         }
 
         scope.launch {
             try {
-                // Request 10-minute signed stream token from backend
-                val playResponse = ApiClient.service.requestPlayUrl(song.id)
-                val streamUrl = if (playResponse.streamUrl.startsWith("http")) {
-                    playResponse.streamUrl
+                // Check if song is downloaded locally first!
+                val localFile = MelodyDownloadManager.getLocalFile(song.id)
+                val mediaUri: Uri = if (localFile != null && localFile.exists()) {
+                    Uri.fromFile(localFile)
                 } else {
-                    ApiClient.baseUrl.removeSuffix("/") + playResponse.streamUrl
+                    // Request 10-minute signed stream token from backend
+                    val playResponse = ApiClient.service.requestPlayUrl(song.id)
+                    val streamUrl = if (playResponse.streamUrl.startsWith("http")) {
+                        playResponse.streamUrl
+                    } else {
+                        ApiClient.baseUrl.removeSuffix("/") + playResponse.streamUrl
+                    }
+                    Uri.parse(streamUrl)
                 }
 
-                // Construct MediaItem with full metadata
                 val mediaMetadata = MediaMetadata.Builder()
                     .setTitle(song.title)
                     .setArtist(song.artist)
@@ -81,7 +222,7 @@ object MelodyPlayerManager {
                     .build()
 
                 val mediaItem = MediaItem.Builder()
-                    .setUri(streamUrl)
+                    .setUri(mediaUri)
                     .setMediaMetadata(mediaMetadata)
                     .build()
 
@@ -91,7 +232,7 @@ object MelodyPlayerManager {
                     play()
                 }
 
-                // Fire and forget playback recording
+                // Fire and forget play history increment
                 ApiClient.service.recordPlayed(song.id)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -109,7 +250,7 @@ object MelodyPlayerManager {
         }
     }
 
-    fun next() {
+    fun next(forceLoop: Boolean = false) {
         val q = _queue.value
         val cur = _currentSong.value ?: return
         if (q.isEmpty()) return
@@ -117,8 +258,8 @@ object MelodyPlayerManager {
         val curIdx = q.indexOfFirst { it.id == cur.id }
         if (curIdx != -1 && curIdx + 1 < q.size) {
             playSong(q[curIdx + 1])
-        } else if (q.isNotEmpty()) {
-            playSong(q[0]) // Loop back to start of playlist
+        } else if (forceLoop || _repeatState.value == RepeatState.ALL) {
+            playSong(q[0])
         }
     }
 
@@ -136,6 +277,8 @@ object MelodyPlayerManager {
         val curIdx = q.indexOfFirst { it.id == cur.id }
         if (curIdx > 0) {
             playSong(q[curIdx - 1])
+        } else {
+            playSong(q.last())
         }
     }
 
@@ -152,7 +295,7 @@ object MelodyPlayerManager {
                     _progressMs.value = it.currentPosition
                     _durationMs.value = it.duration.coerceAtLeast(0L)
                 }
-                delay(500)
+                delay(300)
             }
         }
     }
@@ -160,5 +303,63 @@ object MelodyPlayerManager {
     private fun stopProgressTracker() {
         progressJob?.cancel()
         progressJob = null
+    }
+
+    // Audio Equalizer Controls
+    private fun attachEqualizer(audioSessionId: Int) {
+        try {
+            if (audioSessionId != 0) {
+                equalizer?.release()
+                equalizer = Equalizer(0, audioSessionId).apply {
+                    enabled = _eqEnabled.value
+                    applyBands(this)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setEqEnabled(enabled: Boolean) {
+        _eqEnabled.value = enabled
+        try {
+            equalizer?.enabled = enabled
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun setEqBand(bandIndex: Int, gainDb: Int) {
+        val current = _eqBands.value.toMutableList()
+        if (bandIndex in 0 until current.size) {
+            current[bandIndex] = gainDb.coerceIn(-10, 10)
+            _eqBands.value = current
+            _currentPreset.value = "Custom"
+            equalizer?.let { applyBands(it) }
+        }
+    }
+
+    fun applyPreset(presetName: String) {
+        val preset = PRESETS.find { it.name.equals(presetName, ignoreCase = true) } ?: return
+        _currentPreset.value = preset.name
+        _eqBands.value = preset.gains
+        equalizer?.let { applyBands(it) }
+    }
+
+    private fun applyBands(eq: Equalizer) {
+        try {
+            val numBands = eq.numberOfBands.toInt()
+            val minEqLevel = eq.bandLevelRange[0] // e.g. -1500 mB (-15dB)
+            val maxEqLevel = eq.bandLevelRange[1] // e.g. +1500 mB (+15dB)
+            val bands = _eqBands.value
+
+            for (i in 0 until numBands.coerceAtMost(bands.size)) {
+                val db = bands[i]
+                val millibels = (db * 100).coerceIn(minEqLevel.toInt(), maxEqLevel.toInt()).toShort()
+                eq.setBandLevel(i.toShort(), millibels)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }

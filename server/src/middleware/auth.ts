@@ -85,6 +85,11 @@ export function requireDeviceAuth(
   res: Response,
   next: NextFunction
 ): void {
+  // If Free Mode is active, permit guest device sessions to manage their private favourites & playlists
+  if (config.freeMode) {
+    return next();
+  }
+
   if (!req.session || req.session.isGuest || !req.session.licenceId) {
     res.status(401).json({
       error: 'ACTIVATION_REQUIRED',

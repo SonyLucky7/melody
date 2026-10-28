@@ -53,7 +53,7 @@ fun ActivationDialog(
                     color = Color.White
                 )
                 Text(
-                    text = "100% Free Option 1 Device Key",
+                    text = "12-character device licence key",
                     fontSize = 12.sp,
                     color = Color(0xFFA0A0B0),
                     modifier = Modifier.padding(bottom = 16.dp)

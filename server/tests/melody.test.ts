@@ -80,3 +80,26 @@ describe('Active Spool Manager Concurrency Guards', () => {
     assert.equal(spoolManager.getActiveCount(), initial);
   });
 });
+
+describe('Password Hash & Verification Security', () => {
+  test('hashes password with bcrypt and matches correct plaintext', async () => {
+    const { hashPassword, verifyPassword } = await import('../src/utils/hash');
+    const plain = 'TestPassword@2026';
+    const hash = await hashPassword(plain);
+
+    assert.ok(hash.startsWith('$2'), 'Hash should be a valid bcrypt string');
+    assert.notEqual(hash, plain, 'Stored hash must never equal plaintext password');
+
+    const isValid = await verifyPassword(plain, hash);
+    assert.equal(isValid, true, 'Correct password should verify successfully');
+
+    const isWrong = await verifyPassword('WrongPassword123', hash);
+    assert.equal(isWrong, false, 'Incorrect password should be rejected');
+  });
+
+  test('rejects empty or null password inputs safely', async () => {
+    const { verifyPassword } = await import('../src/utils/hash');
+    assert.equal(await verifyPassword('', '$2b$10$...'), false);
+    assert.equal(await verifyPassword('any', ''), false);
+  });
+});

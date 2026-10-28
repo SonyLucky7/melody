@@ -3,100 +3,430 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Melody - Admin Upload Portal</title>
-  <link rel="icon" type="image/png" href="/Melody-AppIcon-1024.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Melody - Admin Portal</title>
+  <link rel="icon" type="image/x-icon" href="/Melody-Logo.ico">
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b0c10;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Login Box (Centered) */
+    .login-wrapper {
+      width: 100%;
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: #13151f;
+      border: 1px solid #202333;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .login-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+    }
+    .login-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .login-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 4px;
+      margin-bottom: 24px;
+    }
+
+    /* Dashboard Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1f2230;
+      padding-bottom: 18px;
+    }
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.5px;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .brand-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .user-pill {
+      font-size: 11px;
+      font-family: monospace;
+      color: #9ca3af;
+      background: #151824;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #232738;
+    }
+
+    /* Cards */
+    .card {
+      background: #13151f;
+      border: 1px solid #202333;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select {
+      width: 100%;
+      background: #0d0e15;
+      border: 1px solid #26293a;
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: #ffffff;
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Buttons */
+    .btn {
+      background: #1f2233;
+      border: 1px solid #2d3248;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: #282c42;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border: none;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      transform: translateY(-1px);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed #2a2e45;
+      background: #0d0f17;
+      border-radius: 14px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+    .drop-icon { font-size: 32px; }
+    .drop-text { font-size: 14px; font-weight: 700; color: #ffffff; }
+    .drop-sub { font-size: 11px; color: #6b7280; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 650px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .alert-success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    /* Track List */
+    .track-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .track-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d0f17;
+      border: 1px solid #1f2233;
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+    .track-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+    .track-id {
+      font-size: 11px;
+      font-family: monospace;
+      color: #6b7280;
+      background: #151824;
+      padding: 3px 6px;
+      border-radius: 6px;
+    }
+    .track-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .track-meta { font-size: 11px; color: #9ca3af; }
+    .track-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #6b7280;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
-<body class="bg-[#0f0f13] text-white min-h-screen p-6 antialiased">
-  <div class="max-w-4xl mx-auto space-y-6">
+<body>
 
-    <!-- Top Brand Header -->
-    <header class="flex items-center justify-between border-b border-[#242432] pb-5">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-extrabold text-xl shadow-lg shadow-blue-500/20">
-          M
+  <!-- 1. LOGIN GATE (Shown when unauthenticated) -->
+  <div id="loginView" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-icon">M</div>
+      <h1 class="login-title">Melody Admin Access</h1>
+      <p class="login-sub">Restricted to authorized administrators only</p>
+
+      <div id="loginAlert" class="alert alert-error"></div>
+
+      <form id="loginForm" class="space-y" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="input-group">
+          <label for="loginEmail">Admin Email</label>
+          <input type="email" id="loginEmail" placeholder="admin@domain.com" required>
         </div>
+
+        <div class="input-group">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" id="loginBtn" class="btn btn-primary" style="margin-top: 8px; padding: 12px;">
+          Authenticate
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. DASHBOARD VIEW (Shown only after verified login) -->
+  <div id="dashboardView" class="container hidden">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="brand-wrap">
+        <div class="brand-icon">M</div>
         <div>
-          <h1 class="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-            Melody <span class="text-xs uppercase font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Admin Portal</span>
-          </h1>
-          <p class="text-xs text-neutral-400">Upload and manage audio permanently stored in Telegram</p>
+          <div class="brand-title">
+            Melody <span class="badge">Admin Portal</span>
+          </div>
+          <div class="brand-subtitle">Manage audio tracks stored in Telegram & PostgreSQL</div>
         </div>
       </div>
-
-      <div class="flex items-center gap-2 text-xs">
-        <a href="http://localhost:3000" target="_blank" class="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-neutral-300 font-semibold transition-colors">
-          Open Web Player ↗
-        </a>
+      <div class="header-actions">
+        <span id="userPill" class="user-pill">Admin</span>
+        <button onclick="logoutAdmin()" class="btn" style="padding: 6px 12px; font-size: 11px;">Sign Out</button>
       </div>
     </header>
 
-    <!-- Admin Secret Configuration Bar -->
-    <div class="bg-[#16161f] border border-[#242432] rounded-xl p-4 flex items-center justify-between gap-4">
-      <div class="flex-1">
-        <label class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">Admin Secret Token</label>
-        <input 
-          id="adminSecret" 
-          type="password" 
-          value="melody-admin-access-token-9876" 
-          class="w-full bg-[#0f0f13] border border-[#2a2a3a] focus:border-blue-500 rounded-lg px-3 py-1.5 text-xs text-white outline-none font-mono"
-        />
-      </div>
-      <button 
-        onclick="refreshSongList()" 
-        class="mt-5 px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-xs font-bold rounded-lg transition-colors"
-      >
-        Save & Refresh
-      </button>
-    </div>
-
     <!-- Upload Card -->
-    <div class="bg-[#16161f] border border-[#242432] rounded-2xl p-6 shadow-xl">
-      <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-blue-400">
-        <span>Upload MP3 to Telegram Channel</span>
-      </h2>
+    <div class="card">
+      <div class="card-title">
+        <span>Upload MP3 Track to Telegram Channel</span>
+        <span class="badge" style="background: rgba(16,185,129,0.15); color:#34d399; border-color: rgba(16,185,129,0.3);">
+          Auto Cloud Storage
+        </span>
+      </div>
 
-      <div id="alertBox" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold"></div>
+      <div id="uploadAlert" class="alert"></div>
 
-      <form id="uploadForm" class="space-y-4">
-        <!-- Drag & Drop Zone -->
-        <div 
-          id="dropZone"
-          class="border-2 border-dashed border-[#2a2a3a] hover:border-blue-500/60 rounded-2xl p-8 text-center cursor-pointer transition-colors bg-[#0f0f13]/50"
-        >
-          <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg" class="hidden" required />
-          <div class="flex flex-col items-center gap-2">
-            <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <p id="audioFileName" class="text-sm font-bold text-white">Click or drag & drop MP3 song file</p>
-            <p class="text-xs text-neutral-500">MP3 only, up to 320 kbps studio quality (Max 20 MB Telegram Bot limit)</p>
+      <form id="uploadForm">
+        <!-- Drag and Drop Box -->
+        <div id="dropZone" class="dropzone">
+          <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg" style="display:none;" required>
+          <div class="drop-icon">🎵</div>
+          <div id="dropText" class="drop-text">Click or drag & drop MP3 audio file here</div>
+          <div class="drop-sub">Saved permanently to Telegram Channel &bull; Up to 20 MB per file</div>
+        </div>
+
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="title">Song Title *</label>
+            <input type="text" id="title" placeholder="e.g. Starboy" required>
+          </div>
+          <div class="input-group">
+            <label for="artist">Artist Name *</label>
+            <input type="text" id="artist" placeholder="e.g. The Weeknd" required>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-neutral-300 mb-1">Song Title *</label>
-            <input type="text" id="title" placeholder="e.g. Blinding Lights" required class="w-full bg-[#0f0f13] border border-[#2a2a3a] focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none" />
+        <div class="grid-3">
+          <div class="input-group">
+            <label for="album">Album (Optional)</label>
+            <input type="text" id="album" placeholder="e.g. Starboy">
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-neutral-300 mb-1">Artist *</label>
-            <input type="text" id="artist" placeholder="e.g. The Weeknd" required class="w-full bg-[#0f0f13] border border-[#2a2a3a] focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-neutral-300 mb-1">Album (optional)</label>
-            <input type="text" id="album" placeholder="e.g. After Hours" class="w-full bg-[#0f0f13] border border-[#2a2a3a] focus:border-blue-500 rounded-xl px-3.5 py-2 text-sm text-white outline-none" />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-neutral-300 mb-1">Language</label>
-            <select id="language" class="w-full bg-[#0f0f13] border border-[#2a2a3a] focus:border-blue-500 rounded-xl px-3 py-2 text-sm text-white outline-none">
+          <div class="input-group">
+            <label for="language">Language</label>
+            <select id="language">
               <option value="english">English</option>
               <option value="hindi">Hindi</option>
               <option value="tamil">Tamil</option>
@@ -105,77 +435,138 @@
               <option value="instrumental">Instrumental</option>
             </select>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-neutral-300 mb-1">Cover Image (optional)</label>
-            <input type="file" id="coverFile" accept="image/jpeg,image/png" class="w-full text-xs text-neutral-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-neutral-200 hover:file:bg-neutral-700 cursor-pointer" />
+          <div class="input-group">
+            <label for="coverFile">Cover Art (Optional)</label>
+            <input type="file" id="coverFile" accept="image/jpeg,image/png" style="padding: 8px 10px; background:#0d0e15; border:1px solid #26293a; border-radius:10px;">
           </div>
         </div>
 
-        <button 
-          id="submitBtn" 
-          type="submit" 
-          class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-extrabold text-sm rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
-        >
-          <span>Upload Track & Index in Telegram</span>
+        <button id="uploadBtn" type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 14px;">
+          Upload Song to Telegram Channel
         </button>
       </form>
     </div>
 
-    <!-- Live Track Catalog List -->
-    <div class="bg-[#16161f] border border-[#242432] rounded-2xl p-6 shadow-xl">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-white">Live Catalog Tracks</h2>
-        <span id="trackCount" class="text-xs text-neutral-400 font-semibold">0 tracks</span>
+    <!-- Live Catalog Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>Catalog Tracks in Database</span>
+        <span id="trackCount" class="badge">0 tracks</span>
       </div>
 
-      <div id="trackList" class="space-y-2">
-        <div class="text-center py-8 text-neutral-500 text-xs">Loading tracks...</div>
+      <div id="trackList" class="track-list">
+        <div style="text-align: center; padding: 24px; color: #6b7280; font-size: 13px;">Loading tracks...</div>
       </div>
     </div>
 
   </div>
 
   <script>
+    // Elements
+    const loginView = document.getElementById('loginView');
+    const dashboardView = document.getElementById('dashboardView');
+    const loginForm = document.getElementById('loginForm');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPass = document.getElementById('loginPass');
+    const loginAlert = document.getElementById('loginAlert');
+    const userPill = document.getElementById('userPill');
+
     const dropZone = document.getElementById('dropZone');
     const audioFileInput = document.getElementById('audioFile');
-    const audioFileName = document.getElementById('audioFileName');
-    const form = document.getElementById('uploadForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const alertBox = document.getElementById('alertBox');
-    const adminSecretInput = document.getElementById('adminSecret');
+    const dropText = document.getElementById('dropText');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadAlert = document.getElementById('uploadAlert');
 
-    // Drag and drop interaction
-    dropZone.addEventListener('click', () => audioFileInput.click());
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-blue-500'));
-    dropZone.addEventListener('drop', (e) => {
+    // Check existing login
+    let adminToken = sessionStorage.getItem('melody_admin_token');
+    let adminEmail = sessionStorage.getItem('melody_admin_email');
+
+    if (adminToken && adminEmail) {
+      showDashboard(adminEmail);
+    }
+
+    // 1. Login Handler
+    loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      dropZone.classList.remove('border-blue-500');
-      if (e.dataTransfer.files.length > 0) {
-        audioFileInput.files = e.dataTransfer.files;
-        updateFileLabel();
+      loginAlert.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: loginEmail.value.trim(),
+            password: loginPass.value
+          })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.token) {
+          adminToken = data.token;
+          adminEmail = data.email;
+          sessionStorage.setItem('melody_admin_token', adminToken);
+          sessionStorage.setItem('melody_admin_email', adminEmail);
+          showDashboard(adminEmail);
+        } else {
+          loginAlert.textContent = data.message || 'Invalid administrator email or password.';
+          loginAlert.style.display = 'block';
+        }
+      } catch (err) {
+        loginAlert.textContent = 'Network error while attempting to authenticate.';
+        loginAlert.style.display = 'block';
       }
     });
-    audioFileInput.addEventListener('change', updateFileLabel);
 
-    function updateFileLabel() {
+    function showDashboard(email) {
+      loginView.classList.add('hidden');
+      dashboardView.classList.remove('hidden');
+      userPill.textContent = email;
+      refreshCatalog();
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem('melody_admin_token');
+      sessionStorage.removeItem('melody_admin_email');
+      adminToken = null;
+      adminEmail = null;
+      dashboardView.classList.add('hidden');
+      loginView.classList.remove('hidden');
+    }
+
+    // 2. Drag & Drop File Upload
+    dropZone.addEventListener('click', () => audioFileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        audioFileInput.files = e.dataTransfer.files;
+        handleFileSelect();
+      }
+    });
+    audioFileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect() {
       if (audioFileInput.files.length > 0) {
         const file = audioFileInput.files[0];
         const mb = (file.size / 1024 / 1024).toFixed(2);
-        audioFileName.innerHTML = `<span class="text-blue-400">Selected:</span> ${file.name} (${mb} MB)`;
+        dropText.innerHTML = `<span style="color:#60a5fa;">Selected:</span> ${file.name} (${mb} MB)`;
       }
     }
 
-    form.addEventListener('submit', async (e) => {
+    // 3. Upload Form Handler
+    uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!audioFileInput.files[0]) {
-        showAlert('Please choose an MP3 file.', 'red');
+        showUploadAlert('Please choose an MP3 audio file.', false);
         return;
       }
 
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span>Uploading to Telegram & Database...</span>';
-      showAlert('', '');
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading to Telegram & Database...';
+      showUploadAlert('', false);
 
       const formData = new FormData();
       formData.append('title', document.getElementById('title').value);
@@ -191,40 +582,40 @@
         const res = await fetch('/api/admin/upload', {
           method: 'POST',
           headers: {
-            'x-admin-secret': adminSecretInput.value.trim()
+            'Authorization': `Bearer ${adminToken}`
           },
           body: formData
         });
 
         const data = await res.json();
         if (res.ok && data.success) {
-          showAlert(`✅ "${data.data.title}" successfully uploaded to Telegram Channel and saved to DB!`, 'green');
-          form.reset();
-          audioFileName.textContent = 'Click or drag & drop MP3 song file';
-          refreshSongList();
+          showUploadAlert(`✅ "${data.data.title}" successfully uploaded to Telegram Channel and saved to DB!`, true);
+          uploadForm.reset();
+          dropText.textContent = 'Click or drag & drop MP3 audio file here';
+          refreshCatalog();
         } else {
-          showAlert(`❌ ${data.message || 'Upload failed.'}`, 'red');
+          showUploadAlert(`❌ ${data.message || 'Upload failed.'}`, false);
         }
       } catch (err) {
-        showAlert(`❌ Network error: ${err.message}`, 'red');
+        showUploadAlert(`❌ Network error: ${err.message}`, false);
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<span>Upload Track & Index in Telegram</span>';
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload Song to Telegram Channel';
       }
     });
 
-    function showAlert(text, color) {
+    function showUploadAlert(text, isSuccess) {
       if (!text) {
-        alertBox.classList.add('hidden');
+        uploadAlert.style.display = 'none';
         return;
       }
-      alertBox.textContent = text;
-      alertBox.className = `mb-4 p-3 rounded-xl text-xs font-semibold ${
-        color === 'green' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'
-      }`;
+      uploadAlert.textContent = text;
+      uploadAlert.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+      uploadAlert.style.display = 'block';
     }
 
-    async function refreshSongList() {
+    // 4. Refresh Catalog & Delete Tracks
+    async function refreshCatalog() {
       try {
         const res = await fetch('/api/songs?limit=100');
         const data = await res.json();
@@ -233,32 +624,55 @@
 
         if (data.data && data.data.length > 0) {
           countSpan.textContent = `${data.data.length} tracks`;
-          container.innerHTML = data.data.map(song => `
-            <div class="flex items-center justify-between p-3 rounded-xl bg-[#0f0f13] border border-[#242432]">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-xs text-neutral-400">
-                  #${song.id}
+          container.innerHTML = data.data.map(song => {
+            const mins = Math.floor(song.duration_seconds / 60);
+            const secs = (song.duration_seconds % 60).toString().padStart(2, '0');
+            return `
+              <div class="track-row">
+                <div class="track-left">
+                  <span class="track-id">#${song.id}</span>
+                  <div>
+                    <div class="track-title">${song.title}</div>
+                    <div class="track-meta">${song.artist} &bull; ${song.album || 'Single'} (${song.language})</div>
+                  </div>
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-sm font-bold text-white">${song.title}</span>
-                  <span class="text-xs text-neutral-400">${song.artist} • ${song.album || 'Single'} (${song.language})</span>
+                <div class="track-right">
+                  <span>${mins}:${secs}</span>
+                  <button onclick="deleteTrack(${song.id}, '${song.title.replace(/'/g, "\\'")}')" class="btn btn-danger">Delete</button>
                 </div>
               </div>
-              <div class="text-xs text-neutral-500 font-mono">
-                ${Math.floor(song.duration_seconds / 60)}:${(song.duration_seconds % 60).toString().padStart(2, '0')}
-              </div>
-            </div>
-          `).join('');
+            `;
+          }).join('');
         } else {
           countSpan.textContent = '0 tracks';
-          container.innerHTML = '<div class="text-center py-8 text-neutral-500 text-xs">No tracks uploaded yet.</div>';
+          container.innerHTML = '<div style="text-align:center; padding:24px; color:#6b7280; font-size:13px;">No tracks in database yet.</div>';
         }
       } catch (err) {
         console.error(err);
       }
     }
 
-    refreshSongList();
+    async function deleteTrack(songId, songTitle) {
+      if (!confirm(`Are you sure you want to delete track #${songId} ("${songTitle}")?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/songs/${songId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${adminToken}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showUploadAlert(`🗑️ Deleted track #${songId} from database.`, true);
+          refreshCatalog();
+        } else {
+          showUploadAlert(`❌ ${data.message || 'Failed to delete track.'}`, false);
+        }
+      } catch (err) {
+        showUploadAlert(`❌ Delete error: ${err.message}`, false);
+      }
+    }
   </script>
 </body>
 </html>

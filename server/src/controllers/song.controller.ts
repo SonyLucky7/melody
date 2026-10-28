@@ -136,20 +136,31 @@ export async function getSongPlayUrl(req: AuthenticatedRequest, res: Response): 
 /**
  * Audio Stream Endpoint
  * Validates token and serves 64 KB HTTP 206 Range Stream
+ * In Free Mode: Allows instant zero-roundtrip direct streaming!
  */
 export async function streamAudio(req: AuthenticatedRequest, res: Response): Promise<void> {
   const songId = parseInt(req.params.id, 10);
   const token = req.query.token as string;
 
-  if (isNaN(songId) || !token) {
-    res.status(400).json({ error: 'BAD_REQUEST', message: 'Song ID and stream token are required.' });
+  if (isNaN(songId)) {
+    res.status(400).json({ error: 'BAD_REQUEST', message: 'Song ID must be an integer.' });
     return;
   }
 
-  const isValid = verifySignedStreamToken(token, songId);
-  if (!isValid) {
-    res.status(401).json({ error: 'TOKEN_EXPIRED', message: 'Stream token has expired or is invalid.' });
-    return;
+  // If Free Mode is active, allow instant streaming directly
+  if (!config.freeMode) {
+    if (!token) {
+      res.status(400).json({ error: 'BAD_REQUEST', message: 'Stream token is required.' });
+      return;
+    }
+    const isValid = verifySignedStreamToken(token, songId);
+    if (!isValid) {
+      res.status(401).json({ error: 'TOKEN_EXPIRED', message: 'Stream token has expired or is invalid.' });
+      return;
+    }
+  } else if (token) {
+    // If token provided in free mode, verify gently
+    verifySignedStreamToken(token, songId);
   }
 
   await handleAudioStream(req, res, songId);

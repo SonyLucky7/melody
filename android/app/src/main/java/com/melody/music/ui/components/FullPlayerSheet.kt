@@ -1,6 +1,9 @@
 package com.melody.music.ui.components
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,22 +14,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
-import com.melody.music.ui.theme.MelodyPrimary
+import com.melody.music.player.MelodyPlayerManager
+import com.melody.music.player.RepeatState
+import com.melody.music.ui.theme.*
 
 private fun formatTime(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return String.format("%d:%02d", minutes, seconds)
+}
+
+enum class PlayerTheme {
+    VINYL, WAVEFORM, COVER
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +59,21 @@ fun FullPlayerSheet(
 ) {
     if (song == null) return
 
+    val context = LocalContext.current
+    var selectedTheme by remember { mutableStateOf(PlayerTheme.VINYL) }
+    var isEqualizerOpen by remember { mutableStateOf(false) }
+
+    val likedSongIds by MelodyPlayerManager.likedSongIds.collectAsState()
+    val isLiked = likedSongIds.contains(song.id)
+
+    val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+    val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+    val isDownloaded = downloadedSongs.any { it.songId == song.id }
+    val isDownloading = downloadingIds.contains(song.id)
+
+    val shuffleOn by MelodyPlayerManager.isShuffle.collectAsState()
+    val repeatState by MelodyPlayerManager.repeatState.collectAsState()
+
     var sliderValue by remember { mutableFloatStateOf(0f) }
     var isDraggingSlider by remember { mutableStateOf(false) }
 
@@ -58,10 +88,12 @@ fun FullPlayerSheet(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1E2640), Color(0xFF0F0F13), Color(0xFF0A0A0E))
+                    colors = listOf(Color(0xFF241538), Color(0xFF140D20), MelodyBg)
                 )
             )
-            .padding(24.dp)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -82,53 +114,92 @@ fun FullPlayerSheet(
                     )
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "PLAYING FROM MELODY",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFA0A0B0),
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = song.album ?: "Telegram High-Fi Stream",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
+                // Theme Switcher Segmented Pills
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0x33FFFFFF))
+                        .padding(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    listOf(
+                        PlayerTheme.VINYL to "Vinyl",
+                        PlayerTheme.COVER to "Cover",
+                        PlayerTheme.WAVEFORM to "Wave"
+                    ).forEach { (theme, label) ->
+                        val isSelected = selectedTheme == theme
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(if (isSelected) MelodyPrimary else Color.Transparent)
+                                .clickable { selectedTheme = theme }
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.White else MelodyTextSecondary
+                            )
+                        }
+                    }
                 }
 
+                // High-Fi 320k badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0x333B82F6))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .background(Color(0x22A855F7))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "320k",
+                        text = "320k FLAC",
                         color = MelodyPrimary,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Album Artwork
-            AsyncImage(
-                model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
-                contentDescription = song.title,
+            // Main Visual Area (Vinyl Turntable / Cover / Waveform)
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(20.dp)),
-                contentScale = ContentScale.Crop
-            )
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                when (selectedTheme) {
+                    PlayerTheme.VINYL -> {
+                        VinylTurntableView(
+                            song = song,
+                            isPlaying = isPlaying
+                        )
+                    }
+                    PlayerTheme.WAVEFORM -> {
+                        WaveformAuraView(
+                            song = song,
+                            isPlaying = isPlaying
+                        )
+                    }
+                    PlayerTheme.COVER -> {
+                        AsyncImage(
+                            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+                            contentDescription = song.title,
+                            modifier = Modifier
+                                .fillMaxWidth(0.85f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(20.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Track Details & Heart
+            // Track Details + Heart & Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -145,24 +216,66 @@ fun FullPlayerSheet(
                     )
                     Text(
                         text = song.artist,
-                        fontSize = 16.sp,
-                        color = Color(0xFFA0A0B0),
+                        fontSize = 15.sp,
+                        color = MelodyTextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                IconButton(onClick = { /* toggle fav */ }) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Like",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Equalizer Button
+                    IconButton(onClick = { isEqualizerOpen = true }) {
+                        Icon(
+                            Icons.Default.Tune,
+                            contentDescription = "Equalizer",
+                            tint = if (MelodyPlayerManager.eqEnabled.collectAsState().value) MelodyPrimary else MelodyTextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    // Download Offline Button
+                    IconButton(
+                        onClick = {
+                            if (isDownloaded) {
+                                MelodyDownloadManager.removeDownload(context, song.id)
+                            } else {
+                                MelodyDownloadManager.downloadSong(context, song)
+                            }
+                        }
+                    ) {
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MelodyPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (isDownloaded) Icons.Default.DownloadDone else Icons.Default.FileDownload,
+                                contentDescription = "Download Offline",
+                                tint = if (isDownloaded) MelodyOffline else MelodyTextSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    // Like Button (Purple Heart)
+                    IconButton(onClick = { MelodyPlayerManager.toggleLike(song) }) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint = if (isLiked) MelodyPrimary else Color.White,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Seekbar
             Slider(
@@ -189,56 +302,285 @@ fun FullPlayerSheet(
             ) {
                 Text(
                     text = formatTime(if (isDraggingSlider) (sliderValue * durationMs).toLong() else progressMs),
-                    color = Color(0xFFA0A0B0),
+                    color = MelodyTextSecondary,
                     fontSize = 12.sp
                 )
                 Text(
                     text = formatTime(durationMs),
-                    color = Color(0xFFA0A0B0),
+                    color = MelodyTextSecondary,
                     fontSize = 12.sp
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Playback Controls
+            // Playback Controls Row (Shuffle, Prev, Play/Pause, Next, Repeat)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {}) {
-                    Icon(Icons.Default.Shuffle, "Shuffle", tint = Color(0xFFA0A0B0))
+                // Shuffle
+                IconButton(onClick = { MelodyPlayerManager.toggleShuffle() }) {
+                    Icon(
+                        Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (shuffleOn) MelodyPrimary else MelodyTextSecondary,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
 
+                // Previous
                 IconButton(onClick = onPrev) {
-                    Icon(Icons.Default.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(36.dp))
+                    Icon(
+                        Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        tint = Color.White,
+                        modifier = Modifier.size(38.dp)
+                    )
                 }
 
+                // Play / Pause FAB
                 FloatingActionButton(
                     onClick = onTogglePlay,
                     containerColor = MelodyPrimary,
                     contentColor = Color.White,
                     shape = CircleShape,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(68.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(38.dp)
                     )
                 }
 
+                // Next
                 IconButton(onClick = onNext) {
-                    Icon(Icons.Default.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(36.dp))
+                    Icon(
+                        Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        tint = Color.White,
+                        modifier = Modifier.size(38.dp)
+                    )
                 }
 
-                IconButton(onClick = {}) {
-                    Icon(Icons.Default.Repeat, "Repeat", tint = Color(0xFFA0A0B0))
+                // Repeat (Off, All, One)
+                IconButton(onClick = { MelodyPlayerManager.cycleRepeat() }) {
+                    when (repeatState) {
+                        RepeatState.OFF -> Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = "Repeat Off",
+                            tint = MelodyTextSecondary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        RepeatState.ALL -> Icon(
+                            Icons.Default.Repeat,
+                            contentDescription = "Repeat All",
+                            tint = MelodyPrimary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        RepeatState.ONE -> Icon(
+                            Icons.Default.RepeatOne,
+                            contentDescription = "Repeat One",
+                            tint = MelodyPrimary,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        // Equalizer Modal Sheet
+        if (isEqualizerOpen) {
+            EqualizerSheet(onDismiss = { isEqualizerOpen = false })
+        }
+    }
+}
+
+@Composable
+fun VinylTurntableView(
+    song: Song,
+    isPlaying: Boolean
+) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    val tonearmAngle by animateFloatAsState(
+        targetValue = if (isPlaying) 26f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        // Vinyl Record Disc
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.85f)
+                .rotate(if (isPlaying) rotation else 0f)
+                .clip(CircleShape)
+                .background(Color(0xFF111116)),
+            contentAlignment = Alignment.Center
+        ) {
+            // Grooves Canvas
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val maxR = size.width / 2f
+                val grooveColor = Color(0x22FFFFFF)
+                val highlightColor = Color(0x11A855F7)
+
+                for (r in listOf(0.92f, 0.85f, 0.78f, 0.71f, 0.64f, 0.57f, 0.50f)) {
+                    drawCircle(
+                        color = grooveColor,
+                        radius = maxR * r,
+                        center = center,
+                        style = Stroke(width = 1.5f)
+                    )
+                }
+
+                // Vinyl sheen
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            highlightColor,
+                            Color.Transparent,
+                            highlightColor,
+                            Color.Transparent
+                        ),
+                        center = center
+                    ),
+                    radius = maxR,
+                    center = center
+                )
+            }
+
+            // Center Record Label (Song Artwork)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize(0.42f)
+                    .clip(CircleShape)
+                    .background(Color(0xFF222230)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+                    contentDescription = song.title,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Center Spindle Hole
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF0F0F13))
+                )
+            }
+        }
+
+        // Mechanical Tonearm
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 10.dp, end = 20.dp),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .size(100.dp, 160.dp)
+                    .rotate(tonearmAngle)
+            ) {
+                // Pivot base
+                drawCircle(
+                    color = Color(0xFF6B7280),
+                    radius = 16f,
+                    center = Offset(size.width - 20f, 20f)
+                )
+                drawCircle(
+                    color = MelodyPrimary,
+                    radius = 8f,
+                    center = Offset(size.width - 20f, 20f)
+                )
+
+                // Arm bar
+                drawLine(
+                    color = Color(0xFFE5E7EB),
+                    start = Offset(size.width - 20f, 20f),
+                    end = Offset(20f, size.height - 30f),
+                    strokeWidth = 6f,
+                    cap = StrokeCap.Round
+                )
+
+                // Cartridge / Stylus head
+                drawRoundRect(
+                    color = MelodyPrimary,
+                    topLeft = Offset(10f, size.height - 40f),
+                    size = androidx.compose.ui.geometry.Size(22f, 32f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WaveformAuraView(
+    song: Song,
+    isPlaying: Boolean
+) {
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val baseRadius = (size.width / 3f) * (if (isPlaying) pulse else 1f)
+
+            for (i in 1..4) {
+                drawCircle(
+                    color = MelodyPrimary.copy(alpha = 0.15f / i),
+                    radius = baseRadius + (i * 24f),
+                    center = center
+                )
+            }
+        }
+
+        AsyncImage(
+            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+            contentDescription = song.title,
+            modifier = Modifier
+                .fillMaxSize(0.6f)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
     }
 }

@@ -7,8 +7,8 @@ import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -28,10 +28,14 @@ import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.components.ActivationDialog
 import com.melody.music.ui.components.FullPlayerSheet
 import com.melody.music.ui.components.MiniPlayerBar
+import com.melody.music.ui.screens.ArtistScreen
 import com.melody.music.ui.screens.HomeScreen
+import com.melody.music.ui.screens.LibraryScreen
+import com.melody.music.ui.screens.SearchScreen
 import com.melody.music.ui.theme.MelodyBg
 import com.melody.music.ui.theme.MelodyColorScheme
 import com.melody.music.ui.theme.MelodyPrimary
+import com.melody.music.ui.theme.MelodyTextSecondary
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -66,6 +70,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MelodyApp() {
     var selectedTab by remember { mutableStateOf(0) }
+    var selectedArtist by remember { mutableStateOf<String?>(null) }
     var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
     var isFullPlayerVisible by remember { mutableStateOf(false) }
     var isActivationDialogOpen by remember { mutableStateOf(false) }
@@ -74,9 +79,17 @@ fun MelodyApp() {
     val isPlaying by MelodyPlayerManager.isPlaying.collectAsState()
     val progressMs by MelodyPlayerManager.progressMs.collectAsState()
     val durationMs by MelodyPlayerManager.durationMs.collectAsState()
-    val queue by MelodyPlayerManager.queue.collectAsState()
 
     val scope = rememberCoroutineScope()
+
+    // Handle Android hardware back button
+    BackHandler(enabled = selectedArtist != null || isFullPlayerVisible) {
+        if (isFullPlayerVisible) {
+            isFullPlayerVisible = false
+        } else if (selectedArtist != null) {
+            selectedArtist = null
+        }
+    }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -105,58 +118,67 @@ fun MelodyApp() {
                     )
                 }
 
-                // Bottom Navigation
+                // Spotify Standard Bottom Navigation (Home, Search, Your Library, Licence)
                 NavigationBar(
-                    containerColor = Color(0xFF121218),
+                    containerColor = Color(0xFF121212),
                     tonalElevation = 8.dp
                 ) {
                     NavigationBarItem(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
+                        selected = selectedTab == 0 && selectedArtist == null,
+                        onClick = {
+                            selectedTab = 0
+                            selectedArtist = null
+                        },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                         label = { Text("Home") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MelodyPrimary,
                             selectedTextColor = MelodyPrimary,
-                            unselectedIconColor = Color(0xFFA0A0B0),
-                            unselectedTextColor = Color(0xFFA0A0B0),
-                            indicatorColor = Color(0x223B82F6)
+                            unselectedIconColor = MelodyTextSecondary,
+                            unselectedTextColor = MelodyTextSecondary,
+                            indicatorColor = Color(0x22A855F7)
                         )
                     )
                     NavigationBarItem(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
+                        selected = selectedTab == 1 && selectedArtist == null,
+                        onClick = {
+                            selectedTab = 1
+                            selectedArtist = null
+                        },
                         icon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                         label = { Text("Search") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MelodyPrimary,
                             selectedTextColor = MelodyPrimary,
-                            unselectedIconColor = Color(0xFFA0A0B0),
-                            unselectedTextColor = Color(0xFFA0A0B0),
-                            indicatorColor = Color(0x223B82F6)
+                            unselectedIconColor = MelodyTextSecondary,
+                            unselectedTextColor = MelodyTextSecondary,
+                            indicatorColor = Color(0x22A855F7)
                         )
                     )
                     NavigationBarItem(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
+                        selected = selectedTab == 2 && selectedArtist == null,
+                        onClick = {
+                            selectedTab = 2
+                            selectedArtist = null
+                        },
                         icon = { Icon(Icons.Default.LibraryMusic, contentDescription = "Library") },
-                        label = { Text("Library") },
+                        label = { Text("Your Library") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MelodyPrimary,
                             selectedTextColor = MelodyPrimary,
-                            unselectedIconColor = Color(0xFFA0A0B0),
-                            unselectedTextColor = Color(0xFFA0A0B0),
-                            indicatorColor = Color(0x223B82F6)
+                            unselectedIconColor = MelodyTextSecondary,
+                            unselectedTextColor = MelodyTextSecondary,
+                            indicatorColor = Color(0x22A855F7)
                         )
                     )
                     NavigationBarItem(
                         selected = false,
                         onClick = { isActivationDialogOpen = true },
-                        icon = { Icon(Icons.Default.Key, contentDescription = "Key") },
+                        icon = { Icon(Icons.Default.Key, contentDescription = "Licence") },
                         label = { Text("Licence") },
                         colors = NavigationBarItemDefaults.colors(
-                            unselectedIconColor = Color(0xFFA0A0B0),
-                            unselectedTextColor = Color(0xFFA0A0B0)
+                            unselectedIconColor = MelodyTextSecondary,
+                            unselectedTextColor = MelodyTextSecondary
                         )
                     )
                 }
@@ -168,25 +190,42 @@ fun MelodyApp() {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                0 -> HomeScreen(
+            if (selectedArtist != null) {
+                ArtistScreen(
+                    artistName = selectedArtist!!,
                     songs = songs,
-                    onSongClick = { song ->
-                        MelodyPlayerManager.playSong(song, songs)
+                    onBack = { selectedArtist = null },
+                    onSongClick = { song, queue ->
+                        MelodyPlayerManager.playSong(song, queue)
                     }
                 )
-                1 -> HomeScreen(
-                    songs = songs,
-                    onSongClick = { song ->
-                        MelodyPlayerManager.playSong(song, songs)
-                    }
-                )
-                2 -> HomeScreen(
-                    songs = songs,
-                    onSongClick = { song ->
-                        MelodyPlayerManager.playSong(song, songs)
-                    }
-                )
+            } else {
+                when (selectedTab) {
+                    0 -> HomeScreen(
+                        songs = songs,
+                        onSongClick = { song, queue ->
+                            MelodyPlayerManager.playSong(song, queue)
+                        },
+                        onArtistClick = { artistName ->
+                            selectedArtist = artistName
+                        }
+                    )
+                    1 -> SearchScreen(
+                        songs = songs,
+                        onSongClick = { song ->
+                            MelodyPlayerManager.playSong(song, songs)
+                        }
+                    )
+                    2 -> LibraryScreen(
+                        songs = songs,
+                        onSongClick = { song, queue ->
+                            MelodyPlayerManager.playSong(song, queue)
+                        },
+                        onArtistClick = { artistName ->
+                            selectedArtist = artistName
+                        }
+                    )
+                }
             }
 
             // Full Player Screen Sheet Overlay
@@ -209,7 +248,14 @@ fun MelodyApp() {
                 isOpen = isActivationDialogOpen,
                 onDismiss = { isActivationDialogOpen = false },
                 onActivated = {
-                    // refresh catalog
+                    scope.launch {
+                        try {
+                            val res = ApiClient.service.getSongs()
+                            songs = res.data
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
             )
         }

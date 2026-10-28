@@ -21,5 +21,12 @@
 }
 
 input[type="range"] {
-  accent-color: #3b82f6;
+  accent-color: #a855f7;
 }
+
+/* Vertical slider styling for Spotify Equalizer */
+input[type="range"].slider-vertical {
+  accent-color: #a855f7;
+  -webkit-appearance: slider-vertical;
+}
+

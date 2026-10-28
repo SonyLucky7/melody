@@ -1,12 +1,14 @@
 import https from 'https';
 import { config } from '../config';
 import { query } from '../db/client';
+import { verifyPassword } from '../utils/hash';
 
 export class TelegramBotAdminListener {
   private botToken: string;
   private channelId: string;
   private isPolling = false;
   private offset = 0;
+  private authorizedChatIds = new Set<number>();
 
   constructor(botToken: string, channelId: string) {
     this.botToken = botToken;
@@ -16,7 +18,7 @@ export class TelegramBotAdminListener {
   start(): void {
     if (this.isPolling) return;
     this.isPolling = true;
-    console.log('[Telegram Admin Bot] Polling started. You can now send MP3 files directly to @MelodyMusicPlayerBot to upload!');
+    console.log('[Telegram Admin Bot] Polling started. Direct upload listener active.');
     this.poll();
   }
 
@@ -46,12 +48,53 @@ export class TelegramBotAdminListener {
     if (!msg) return;
 
     const chatId = msg.chat?.id;
+    if (!chatId) return;
+
     const fromName = msg.from?.first_name || 'Admin';
 
-    // Handle /start or text commands
+    // Handle authentication command: /auth <password>
     if (msg.text) {
       const text = msg.text.trim();
+
+      if (text.startsWith('/auth')) {
+        const parts = text.split(/\s+/);
+        const pass = parts.slice(1).join(' ').trim();
+
+        // Attempt to delete the message containing the password for chat privacy
+        if (msg.message_id) {
+          this.deleteMessage(chatId, msg.message_id).catch(() => {});
+        }
+
+        const isValid = await verifyPassword(pass, config.adminPasswordHash);
+        if (isValid) {
+          this.authorizedChatIds.add(chatId);
+          await this.sendMessage(
+            chatId,
+            `🔓 *Administrator Authenticated!*
+Welcome, ${fromName}. You are now authorized to manage and upload music to Melody.
+
+Send or forward any *MP3 song file* here to save it to your private channel and database.`
+          );
+        } else {
+          await this.sendMessage(chatId, `⛔ *Access Denied:* Invalid administrator password.`);
+        }
+        return;
+      }
+
+      // Handle /start or /help
       if (text.startsWith('/start') || text.startsWith('/help')) {
+        if (!this.authorizedChatIds.has(chatId)) {
+          await this.sendMessage(
+            chatId,
+            `🔒 *Melody Admin Bot - Restricted Access*
+
+This bot is private to authorized *Melody* administrators.
+To authenticate, send:
+\`/auth <your_admin_password>\``
+          );
+          return;
+        }
+
         await this.sendMessage(
           chatId,
           `🎵 *Welcome to Melody Admin Bot, ${fromName}!*
@@ -65,6 +108,16 @@ Send or forward me any *MP3 song file* here, and I will instantly:
         );
         return;
       }
+    }
+
+    // Check authorization for audio uploads
+    if (!this.authorizedChatIds.has(chatId)) {
+      await this.sendMessage(
+        chatId,
+        `⛔ *Unauthorized:* You must authenticate first before uploading music.
+Send \`/auth <admin_password>\` to unlock upload capabilities.`
+      );
+      return;
     }
 
     // Handle Audio or MP3 Document Upload
@@ -197,6 +250,31 @@ Your track is now live in the *Melody* music player on Web, Desktop & Android!`
         }
       );
       req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+  }
+
+  private deleteMessage(chatId: number | string, messageId: number): Promise<boolean> {
+    const payload = JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+    });
+
+    return new Promise((resolve) => {
+      const req = https.request(
+        {
+          hostname: 'api.telegram.org',
+          path: `/bot${this.botToken}/deleteMessage`,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+        },
+        () => resolve(true)
+      );
+      req.on('error', () => resolve(false));
       req.write(payload);
       req.end();
     });

@@ -17,6 +17,7 @@ class MelodyApplication : Application() {
         super.onCreate()
         instance = this
         createNotificationChannel()
+        com.melody.music.data.download.MelodyDownloadManager.init(this)
     }
 
     private fun createNotificationChannel() {

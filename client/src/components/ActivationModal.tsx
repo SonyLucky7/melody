@@ -105,7 +105,7 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">Licence Key Activation</h3>
-            <p className="text-xs text-neutral-400">12-character Option 1 device key (100% Free)</p>
+            <p className="text-xs text-neutral-400">12-character device licence key</p>
           </div>
         </div>
 
@@ -224,7 +224,7 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
               disabled={loading}
               className="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
             >
-              {loading ? 'Generating...' : 'Generate Free Key (Option 1)'}
+              {loading ? 'Generating...' : 'Generate Free Licence Key'}
             </button>
           </form>
         )}

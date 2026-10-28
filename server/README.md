@@ -24,15 +24,17 @@ Create a `.env` file in `server/`:
 PORT=5000
 
 # PostgreSQL 18 Free Plan (1 CPU, 1 GB RAM, 1 GB storage)
-DATABASE_URL=postgres://avnadmin:AVNS_jQofDJASuMaK6SiZ8X3@pg-1e9f27fb-melody.k.aivencloud.com:19956/defaultdb?sslmode=require
+DATABASE_URL=postgres://user:password@localhost:5432/melody?sslmode=require
 
 # Telegram Multi-Bot Pool (Comma-separated bot tokens for racing & failover)
 TELEGRAM_BOT_TOKENS=7891234567:AAExampleToken1,7891234568:AAExampleToken2
 TELEGRAM_CHANNEL_ID=-1002345678901
 
 # JWT & HMAC Signing Secrets
-SESSION_SECRET=melody-super-secure-session-secret-2026
-ADMIN_SECRET=melody-admin-access-token-9876
+SESSION_SECRET=change-this-to-a-long-random-secret
+ADMIN_SECRET=change-this-to-a-secure-admin-token
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change-this-to-a-secure-admin-password
 
 # Mode Toggle: Set to 'true' for Free Mode, 'false' for Paid/Licence Required
 FREE_MODE=true

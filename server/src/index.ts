@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { checkDatabaseConnection, pool } from './db/client';
@@ -9,6 +10,7 @@ import { runMigrations } from './db/migrate';
 import { startPeriodicCleanupCron } from './services/cleanup';
 import { spoolManager } from './services/stream';
 import { botAdminListener } from './services/botListener';
+import { warmSpoolCache } from './services/cacheWarmer';
 
 import deviceRoutes from './routes/device.routes';
 import apiRoutes from './routes/api.routes';
@@ -20,6 +22,7 @@ const app = express();
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows cross-origin audio streaming
+    contentSecurityPolicy: false, // Allows clean inline styles and fonts on admin portal
   })
 );
 
@@ -60,17 +63,7 @@ const activateLimiter = rateLimit({
 app.use('/api', globalLimiter);
 app.use('/activate', activateLimiter);
 
-// --- Root & Healthcheck Endpoints ---
-app.get('/', (req, res) => {
-  res.status(200).json({
-    app: 'Melody Music Shared Backend',
-    version: '1.0.0',
-    freeMode: config.freeMode,
-    activeStreams: spoolManager.getActiveCount(),
-    status: 'online',
-  });
-});
-
+// --- Healthcheck Endpoint ---
 app.get('/health', async (req, res) => {
   const dbConnected = await checkDatabaseConnection();
   res.status(dbConnected ? 200 : 503).json({
@@ -84,16 +77,51 @@ app.get('/health', async (req, res) => {
   });
 });
 
-// --- Admin Portal Endpoint (Dedicated Admin Upload Dashboard) ---
-app.use(express.static(path.join(__dirname, '../public')));
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/admin.html'));
-});
-
 // --- Register Routes ---
 app.use(deviceRoutes);      // /activate, /devices
 app.use('/api', apiRoutes);  // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history
 app.use('/api', adminRoutes);// /api/admin/upload, /api/admin/licences, /api/checkout/free
+
+// --- Admin Portal Endpoint (Dedicated Admin Upload Dashboard) ---
+app.use('/admin', express.static(path.join(__dirname, '../public')));
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// --- Serve Compiled Client Web Player (Spotify UI) if present ---
+const clientDistCandidates = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+];
+const clientDistPath = clientDistCandidates.find(p => fs.existsSync(path.join(p, 'index.html')));
+
+if (clientDistPath) {
+  console.log(`[Static] Serving Melody Web Player UI from: ${clientDistPath}`);
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/activate') ||
+      req.path.startsWith('/devices') ||
+      req.path === '/health' ||
+      req.path.startsWith('/admin')
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      app: 'Melody Music Shared Backend',
+      version: '1.0.0',
+      freeMode: config.freeMode,
+      activeStreams: spoolManager.getActiveCount(),
+      status: 'online',
+    });
+  });
+}
 
 // 404 Handler
 app.use((req, res) => {
@@ -130,6 +158,8 @@ export const server = app.listen(config.port, async () => {
     if (isAlive) {
       console.log('[PostgreSQL] Database online. Running migrations...');
       await runMigrations();
+      // Auto-warm high-speed NVMe audio spool cache
+      warmSpoolCache().catch(() => {});
     } else {
       console.warn('[PostgreSQL] Database unreachable at startup. Will reconnect on demand.');
     }
