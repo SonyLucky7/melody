@@ -11,6 +11,7 @@ import { startPeriodicCleanupCron } from './services/cleanup';
 import { spoolManager } from './services/stream';
 import { botAdminListener } from './services/botListener';
 import { warmSpoolCache } from './services/cacheWarmer';
+import { startKeepAliveRobot } from './services/keepAliveRobot';
 
 import deviceRoutes from './routes/device.routes';
 import apiRoutes from './routes/api.routes';
@@ -151,6 +152,9 @@ export const server = app.listen(config.port, async () => {
 
   // Start Telegram Bot Admin direct upload listener
   botAdminListener.start();
+
+  // Start built-in 24/7 Keep-Alive Robot for Render
+  startKeepAliveRobot();
 
   // Run database migrations if DB is accessible
   try {

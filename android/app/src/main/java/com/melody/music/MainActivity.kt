@@ -81,6 +81,22 @@ fun MelodyApp() {
     val durationMs by MelodyPlayerManager.durationMs.collectAsState()
 
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Request notification permission on Android 13+ so Lock Screen & System Controls appear
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { }
+        LaunchedEffect(Unit) {
+            launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // Update Home Screen Widget when song or playback changes
+    LaunchedEffect(currentSong, isPlaying) {
+        com.melody.music.widget.MelodyAppWidgetProvider.updateAllWidgets(context, currentSong, isPlaying)
+    }
 
     // Handle Android hardware back button
     BackHandler(enabled = selectedArtist != null || isFullPlayerVisible) {

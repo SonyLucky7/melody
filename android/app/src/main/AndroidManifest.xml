@@ -41,6 +41,21 @@
             </intent-filter>
         </service>
 
+        <!-- Melody Spotify-Style Home Screen Widget -->
+        <receiver
+            android:name=".widget.MelodyAppWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.melody.music.ACTION_WIDGET_PLAY_PAUSE" />
+                <action android:name="com.melody.music.ACTION_WIDGET_PREV" />
+                <action android:name="com.melody.music.ACTION_WIDGET_NEXT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/melody_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>
