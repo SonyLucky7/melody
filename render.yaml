@@ -14,18 +14,18 @@ services:
       - key: FREE_MODE
         value: "true"
       - key: MAX_CONCURRENT_STREAMS
-        value: "50"
-      - key: STREAM_CHANNEL_ID
+        value: "20"
+      - key: TELEGRAM_CHANNEL_ID
         value: "-1004311926734"
       - key: DATABASE_URL
         sync: false
-      - key: TG_API_ID
+      - key: TELEGRAM_BOT_TOKENS
         sync: false
-      - key: TG_API_HASH
-        sync: false
-      - key: TG_SESSION_STRING
-        sync: false
-      - key: JWT_SECRET
+      - key: SESSION_SECRET
         generateValue: true
-      - key: LICENSE_ENC_KEY
-        generateValue: true
+      - key: ADMIN_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
