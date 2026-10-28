@@ -8,6 +8,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -40,3 +42,18 @@ jobs:
           name: Melody-Android-v1.0.4
           path: android/app/build/outputs/apk/debug/Melody-v1.0.4.apk
           retention-days: 30
+
+      - name: Release APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.4
+          name: Melody Android App v1.0.4
+          body: |
+            ### 🎵 Melody Android v1.0.4
+            - Spotify UI with Home, Search, Your Library, and Profile
+            - PostgreSQL cloud sync for Liked Songs and Custom Playlists
+            - Direct high-speed edge streaming & cover artwork
+            - Android 7.0 (Nougat) to Android 14+ support
+          files: android/app/build/outputs/apk/debug/Melody-v1.0.4.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
