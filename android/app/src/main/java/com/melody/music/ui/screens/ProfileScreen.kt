@@ -30,7 +30,7 @@ import com.melody.music.ui.theme.*
 
 @Composable
 fun ProfileScreen(
-    onOpenActivation: () => Unit,
+    onOpenActivation: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
