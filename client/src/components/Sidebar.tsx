@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown, HelpCircle } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown, HelpCircle, User } from 'lucide-react';
 import { Playlist } from '../types';
 import { UserProfile } from '../services/api';
 
@@ -264,14 +264,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <div className="flex gap-1.5">
-          <button
-            onClick={onOpenActivation}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
-            title="Licence Key"
-          >
-            <Key className="w-3 h-3 text-purple-400" />
-            <span>Key</span>
-          </button>
+          {userProfile ? (
+            <button
+              onClick={onOpenProfile}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-purple-300 hover:text-white transition-all border border-purple-500/20"
+              title="View Profile & Settings"
+            >
+              <User className="w-3 h-3 text-purple-400" />
+              <span>Profile</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenActivation}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
+              title="Log In with Licence Key"
+            >
+              <Key className="w-3 h-3 text-purple-400" />
+              <span>Log In</span>
+            </button>
+          )}
 
           <button
             onClick={onOpenDevices}
@@ -279,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Manage Devices"
           >
             <Laptop className="w-3 h-3 text-[#b3b3b3]" />
-            <span>5 Devices</span>
+            <span>Devices</span>
           </button>
         </div>
 

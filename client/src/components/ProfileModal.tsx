@@ -15,6 +15,10 @@ import {
   Music,
   Share2,
   ExternalLink,
+  Clock,
+  Sliders,
+  Database,
+  Radio,
 } from 'lucide-react';
 import { UserProfile, ActiveDevice, fetchDevices, logoutDevice, clearUserProfile } from '../services/api';
 
@@ -25,6 +29,10 @@ interface ProfileModalProps {
   onLogout: () => void;
   likedCount: number;
   playlistsCount: number;
+  recentCount?: number;
+  onNavigateHistory?: () => void;
+  onNavigatePlaylists?: () => void;
+  onNavigateLiked?: () => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -34,6 +42,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onLogout,
   likedCount,
   playlistsCount,
+  recentCount = 0,
+  onNavigateHistory,
+  onNavigatePlaylists,
+  onNavigateLiked,
 }) => {
   const [devices, setDevices] = useState<ActiveDevice[]>([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
@@ -135,22 +147,76 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
         {/* Scrollable Content Body */}
         <div className="p-6 overflow-y-auto space-y-5 text-sm custom-scrollbar">
-          {/* Cloud Sync Stats */}
+          {/* Cloud Sync Stats & Direct Navigation */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
-              <Heart className="w-5 h-5 text-pink-400 mx-auto mb-1" />
+            <button
+              onClick={() => {
+                onClose();
+                onNavigateLiked?.();
+              }}
+              className="p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center group cursor-pointer"
+            >
+              <Heart className="w-5 h-5 text-pink-400 mx-auto mb-1 group-hover:scale-110 transition-transform" />
               <div className="text-lg font-black text-white">{likedCount}</div>
               <div className="text-[11px] text-neutral-400 font-medium">Liked Songs</div>
-            </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
-              <Music className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                onNavigatePlaylists?.();
+              }}
+              className="p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center group cursor-pointer"
+            >
+              <Music className="w-5 h-5 text-purple-400 mx-auto mb-1 group-hover:scale-110 transition-transform" />
               <div className="text-lg font-black text-white">{playlistsCount}</div>
               <div className="text-[11px] text-neutral-400 font-medium">Playlists</div>
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                onNavigateHistory?.();
+              }}
+              className="p-3.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-all text-center group cursor-pointer"
+            >
+              <Clock className="w-5 h-5 text-amber-400 mx-auto mb-1 group-hover:scale-110 transition-transform" />
+              <div className="text-lg font-black text-white">{recentCount}</div>
+              <div className="text-[11px] text-neutral-400 font-medium">Recent Plays</div>
+            </button>
+          </div>
+
+          {/* User Settings & Audio Preferences */}
+          <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-300">
+                <Sliders className="w-4 h-4 text-purple-400" />
+                <span>Audio Quality & Settings</span>
+              </div>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                VIP Active
+              </span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 text-center">
-              <Laptop className="w-5 h-5 text-indigo-400 mx-auto mb-1" />
-              <div className="text-lg font-black text-white">{devices.length} / 5</div>
-              <div className="text-[11px] text-neutral-400 font-medium">Devices Active</div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/5">
+                <div>
+                  <div className="font-semibold text-white">Streaming Audio Quality</div>
+                  <div className="text-[10px] text-neutral-400">High-fidelity audio stream from edge CDN</div>
+                </div>
+                <span className="font-mono text-xs font-bold text-purple-300 px-2.5 py-1 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                  320 kbps Master
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/30 border border-white/5">
+                <div>
+                  <div className="font-semibold text-white">PostgreSQL Cloud Sync</div>
+                  <div className="text-[10px] text-neutral-400">Playlists & Liked Songs sync automatically</div>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Cloud Active</span>
+                </div>
+              </div>
             </div>
           </div>
 

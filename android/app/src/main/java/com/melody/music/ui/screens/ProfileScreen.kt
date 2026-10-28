@@ -303,6 +303,79 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
+            // Spotify Audio Settings & Cloud Status Card
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF181818))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "SETTINGS & CLOUD SYNC",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MelodyTextSecondary,
+                                letterSpacing = 1.sp
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = Color(0x3310B981)
+                            ) {
+                                Text(
+                                    text = "VIP ACTIVE",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color(0xFF10B981),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Streaming Audio Quality", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Text("High-fidelity audio stream from edge CDN", color = MelodyTextSecondary, fontSize = 11.sp)
+                            }
+                            Text(
+                                "320 kbps",
+                                color = MelodyPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Divider(color = Color.White.copy(alpha = 0.05f))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("PostgreSQL Cloud Database", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Playlists & liked songs synced in real time", color = MelodyTextSecondary, fontSize = 11.sp)
+                            }
+                            Icon(Icons.Default.CloudDone, contentDescription = "Synced", tint = Color(0xFF10B981), modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // Log Out Button
             item {
                 Button(

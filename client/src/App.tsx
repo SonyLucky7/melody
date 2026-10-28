@@ -338,10 +338,11 @@ export const App: React.FC = () => {
               {userProfile ? (
                 /* Authenticated VIP User Controls */
                 <div className="flex items-center gap-2.5">
-                  {/* VIP Plan Badge */}
+                  {/* VIP Plan Badge - Opens Spotify Profile */}
                   <div
-                    onClick={openVipModal}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-sm cursor-pointer hover:border-purple-400 transition-colors"
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-sm cursor-pointer hover:border-purple-400 hover:scale-105 transition-all"
+                    title="View Profile & Cloud Settings"
                   >
                     <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                     <span>{userProfile.plan === 'lifetime' ? 'Lifetime VIP' : 'Annual VIP'}</span>
@@ -429,7 +430,27 @@ export const App: React.FC = () => {
                             className="w-full py-1.5 px-2.5 text-left rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 flex items-center gap-2 transition-colors font-semibold"
                           >
                             <User className="w-3.5 h-3.5 text-purple-400" />
-                            <span>View Full Profile & Key</span>
+                            <span>Spotify Profile & Settings</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              handleSelectView('history');
+                            }}
+                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                            <span>Recently Played ({recentSongs.length})</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              handleSelectView('library');
+                            }}
+                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                          >
+                            <Disc className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Your Playlists ({playlists.length})</span>
                           </button>
                           <button
                             onClick={() => {
@@ -1130,6 +1151,10 @@ export const App: React.FC = () => {
         onLogout={handleLogout}
         likedCount={likedSongsList.length}
         playlistsCount={playlists.length}
+        recentCount={recentSongs.length}
+        onNavigateHistory={() => handleSelectView('history')}
+        onNavigatePlaylists={() => handleSelectView('library')}
+        onNavigateLiked={() => handleSelectView('liked')}
       />
 
       {/* Add To Custom Playlist Modal */}
