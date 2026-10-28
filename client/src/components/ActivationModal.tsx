@@ -88,7 +88,7 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
           onDeviceLimitReached(res.data.devices);
         }
       } else {
-        setErrorMsg(res.data.message || 'Invalid licence key. Please check your key or buy on digitalbros.qzz.io');
+        setErrorMsg(res.data.message || 'Invalid licence key. Please check your key or buy on digitalbros.qzz.io/product/melody-vip');
       }
     } catch {
       setErrorMsg('Failed to connect to authentication server. Please check your network.');
@@ -248,13 +248,15 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
 
               {/* Primary Action Button: Buy on Official Store */}
               <a
-                href="https://digitalbros.qzz.io/"
+                href="https://digitalbros.qzz.io/product/melody-vip"
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2.5 shadow-xl shadow-purple-600/30 transition-all group"
+                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2.5 shadow-xl shadow-purple-600/30 transition-all group hover:scale-[1.01]"
               >
                 <ShoppingBag className="w-4 h-4 text-yellow-300 group-hover:scale-110 transition-transform" />
-                <span>Buy Key on Official Store (digitalbros.qzz.io)</span>
+                <span>
+                  Buy {selectedPlanId === 'lifetime' ? 'Lifetime VIP (₹99)' : 'Annual VIP (₹49)'} on Official Store
+                </span>
                 <ExternalLink className="w-4 h-4 opacity-75 group-hover:translate-x-0.5 transition-transform" />
               </a>
 
@@ -362,15 +364,17 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
                 )}
               </button>
 
-              <div className="pt-2 text-center">
-                <span className="text-xs text-neutral-500">Don't have a key yet? </span>
-                <button
-                  type="button"
-                  onClick={() => setTab('vip')}
-                  className="text-xs text-purple-400 font-bold hover:underline"
+              <div className="pt-2 text-center flex items-center justify-center gap-1.5">
+                <span className="text-xs text-neutral-500">Don't have a key yet?</span>
+                <a
+                  href="https://digitalbros.qzz.io/product/melody-vip"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-purple-400 font-bold hover:underline inline-flex items-center gap-1"
                 >
-                  Buy Key on digitalbros.qzz.io
-                </button>
+                  <span>Buy VIP on digitalbros.qzz.io</span>
+                  <ExternalLink className="w-3 h-3 inline" />
+                </a>
               </div>
             </form>
           )}

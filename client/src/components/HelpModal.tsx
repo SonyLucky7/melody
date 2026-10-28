@@ -46,12 +46,12 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
             <div className="text-[10px] text-neutral-400 mt-0.5">Instant purchase with Card, UPI & NetBanking</div>
           </div>
           <a
-            href="https://digitalbros.qzz.io/"
+            href="https://digitalbros.qzz.io/product/melody-vip"
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+            className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-purple-600/30 hover:scale-105"
           >
-            <span>Visit Store</span>
+            <span>Buy VIP Key</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
