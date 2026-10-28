@@ -322,40 +322,56 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
                   </div>
 
                   {/* Contact for Key Option (Clean, Direct, 100% Privacy) */}
-                  <div className="p-3 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/25 rounded-xl">
-                    <div className="flex items-center justify-between mb-1.5">
+                  <div className="p-3.5 bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-500/25 rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <MessageCircle className="w-4 h-4 text-purple-400" />
-                        <span className="text-xs font-bold text-white">Contact for VIP Key</span>
+                        <span className="text-xs font-bold text-white">Contact Directly for VIP Key</span>
                       </div>
                       <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
                         Instant Delivery
                       </span>
                     </div>
-                    <p className="text-[11px] text-neutral-400 mb-2.5">
-                      Get your Option 1 Key directly without exposing personal bank details or UPI apps:
-                    </p>
+
+                    {/* Store Link Button */}
+                    <a
+                      href="https://digitalbros.qzz.io/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-purple-600/20 transition-all"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 text-yellow-300" />
+                      <span>Buy on Official Store (digitalbros.qzz.io)</span>
+                      <ExternalLink className="w-3 h-3 opacity-70" />
+                    </a>
+
                     <div className="grid grid-cols-2 gap-2">
                       <a
-                        href="https://t.me/melody_support"
+                        href="https://t.me/xO_HaC"
                         target="_blank"
                         rel="noreferrer"
                         className="py-1.5 px-2 bg-[#0088cc]/20 hover:bg-[#0088cc]/30 border border-[#0088cc]/30 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                       >
                         <Send className="w-3.5 h-3.5 text-[#0088cc]" />
-                        <span>Telegram Support</span>
+                        <span>Telegram: @xO_HaC</span>
                       </a>
                       <a
-                        href="https://discord.gg/melody"
+                        href="https://discord.com"
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => {
+                          navigator.clipboard.writeText('karmaa_07');
+                          alert('Copied Discord username "karmaa_07" to clipboard! You can now add on Discord.');
+                        }}
                         className="py-1.5 px-2 bg-[#5865F2]/20 hover:bg-[#5865F2]/30 border border-[#5865F2]/30 rounded-lg text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        title="Click to copy Discord handle"
                       >
                         <MessageCircle className="w-3.5 h-3.5 text-[#5865F2]" />
-                        <span>Discord Community</span>
+                        <span>Discord: karmaa_07</span>
                       </a>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+
+                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
                       <a
                         href="mailto:sonylucky46hac@gmail.com?subject=Melody%20VIP%20Licence%20Key%20Request"
                         className="text-neutral-400 hover:text-white flex items-center gap-1 transition-colors"

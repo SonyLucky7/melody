@@ -36,28 +36,49 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
           </div>
         </div>
 
+        {/* Official Store Banner */}
+        <div className="mb-4 p-3 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border border-purple-500/30 rounded-xl flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+              <span>DigitalBros Official Store</span>
+              <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-mono">NEW</span>
+            </div>
+            <div className="text-[10px] text-neutral-400 mt-0.5">Instant purchase with Card, UPI & NetBanking</div>
+          </div>
+          <a
+            href="https://digitalbros.qzz.io/"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+          >
+            <span>Visit Store</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+
         {/* Support Channels Grid */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {/* Discord Community */}
-          <a
-            href="https://discord.gg/melody"
-            target="_blank"
-            rel="noreferrer"
+          <div
+            onClick={() => {
+              navigator.clipboard.writeText('karmaa_07');
+              alert('Copied Discord username "karmaa_07" to clipboard! Send a friend request on Discord.');
+            }}
             className="p-3.5 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/30 hover:bg-[#5865F2]/20 transition-all flex flex-col justify-between group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2">
               <MessageSquare className="w-5 h-5 text-[#5865F2]" />
-              <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
+              <span className="text-[10px] text-[#5865F2] font-bold uppercase">Click to Copy</span>
             </div>
             <div>
-              <div className="font-bold text-white text-xs">Discord Server</div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">24/7 Community & Support</div>
+              <div className="font-bold text-white text-xs">Discord: karmaa_07</div>
+              <div className="text-[10px] text-neutral-400 mt-0.5">Direct chat & VIP delivery</div>
             </div>
-          </a>
+          </div>
 
           {/* Telegram Channel */}
           <a
-            href="https://t.me/melody_music_app"
+            href="https://t.me/xO_HaC"
             target="_blank"
             rel="noreferrer"
             className="p-3.5 rounded-xl bg-[#229ED9]/10 border border-[#229ED9]/30 hover:bg-[#229ED9]/20 transition-all flex flex-col justify-between group cursor-pointer"
@@ -67,8 +88,8 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
               <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
             </div>
             <div>
-              <div className="font-bold text-white text-xs">Telegram Support</div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">Music requests & updates</div>
+              <div className="font-bold text-white text-xs">Telegram: @xO_HaC</div>
+              <div className="text-[10px] text-neutral-400 mt-0.5">Instant 1-min response</div>
             </div>
           </a>
         </div>
