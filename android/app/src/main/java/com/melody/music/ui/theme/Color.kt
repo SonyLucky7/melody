@@ -20,6 +20,7 @@ val MelodyTextPrimary = Color(0xFFFFFFFF)
 val MelodyTextSecondary = Color(0xFFB3B3B3)
 val MelodyTextMuted = Color(0xFF727272)
 val MelodyDivider = Color(0xFF282828)
+val MelodyBorder = Color(0xFF282828)
 
 // Status & Special Accents
 val MelodyEmerald = Color(0xFF10B981)
