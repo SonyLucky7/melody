@@ -115,13 +115,8 @@ object MelodyDownloadManager {
         scope.launch {
             var success = false
             try {
-                // 1. Get Signed Play URL
-                val playUrlRes = ApiClient.service.requestPlayUrl(song.id)
-                val fullUrl = if (playUrlRes.streamUrl.startsWith("http")) {
-                    playUrlRes.streamUrl
-                } else {
-                    ApiClient.baseUrl.removeSuffix("/") + playUrlRes.streamUrl
-                }
+                // 1. High-Speed Cloudflare Edge CDN Download URL
+                val fullUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}"
 
                 // 2. Download File to app's music directory
                 val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)

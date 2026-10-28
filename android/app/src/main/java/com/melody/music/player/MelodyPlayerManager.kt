@@ -233,14 +233,9 @@ object MelodyPlayerManager {
                 val mediaUri: Uri = if (localFile != null && localFile.exists()) {
                     Uri.fromFile(localFile)
                 } else {
-                    // Request 10-minute signed stream token from backend
-                    val playResponse = ApiClient.service.requestPlayUrl(song.id)
-                    val streamUrl = if (playResponse.streamUrl.startsWith("http")) {
-                        playResponse.streamUrl
-                    } else {
-                        ApiClient.baseUrl.removeSuffix("/") + playResponse.streamUrl
-                    }
-                    Uri.parse(streamUrl)
+                    // Instant High-Speed Cloudflare Edge CDN stream with fallback
+                    val cdnUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}"
+                    Uri.parse(cdnUrl)
                 }
 
                 val mediaMetadata = MediaMetadata.Builder()
