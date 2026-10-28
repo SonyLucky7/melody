@@ -94,7 +94,7 @@ export async function handleAdminUpload(req: Request, res: Response): Promise<vo
 }
 
 export async function handleAdminIssueLicence(req: Request, res: Response): Promise<void> {
-  const { first_name, surname, mobile, email } = req.body;
+  const { first_name, surname, mobile, email, plan } = req.body;
 
   if (!first_name || !surname || !mobile) {
     res.status(400).json({
@@ -104,8 +104,11 @@ export async function handleAdminIssueLicence(req: Request, res: Response): Prom
     return;
   }
 
+  const targetPlan = plan === 'lifetime' ? 'lifetime' : 'annual';
+
   try {
-    const result = await issueLicence(first_name, surname, mobile, email);
+    const result = await issueLicence(first_name, surname, mobile, email, targetPlan);
+    const autoLoginUrl = `https://melody-chi-nine.vercel.app/?activate_key=${result.licenceKey}`;
 
     res.status(201).json({
       success: true,
@@ -113,12 +116,37 @@ export async function handleAdminIssueLicence(req: Request, res: Response): Prom
       data: {
         licenceKey: result.licenceKey,
         formattedKey: result.formattedKey,
+        plan: result.plan,
+        expiresAt: result.expiresAt,
         userId: result.userId,
+        autoLoginUrl,
       },
     });
   } catch (err: any) {
     console.error('[Admin Issue Licence Error]:', err);
     res.status(500).json({ error: 'DATABASE_ERROR', message: 'Failed to create licence key.' });
+  }
+}
+
+export async function handleAdminGetLicences(req: Request, res: Response): Promise<void> {
+  try {
+    const licencesRes = await query(
+      `SELECT l.id, l.licence_key, l.status, l.max_devices, l.plan, l.expires_at, l.paid_at,
+              u.first_name, u.surname, u.mobile, u.email,
+              (SELECT COUNT(*) FROM device_sessions ds WHERE ds.licence_id = l.id) as active_devices_count
+       FROM licences l
+       JOIN users u ON u.id = l.user_id
+       ORDER BY l.paid_at DESC
+       LIMIT 50`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: licencesRes.rows,
+    });
+  } catch (err: any) {
+    console.error('[Admin Get Licences Error]:', err);
+    res.status(500).json({ error: 'DATABASE_ERROR', message: 'Failed to fetch licences.' });
   }
 }
 

@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import {
   handleAdminUpload,
   handleAdminIssueLicence,
+  handleAdminGetLicences,
   handleFreeLicenceRegistration,
   handleAdminDeleteSong,
 } from '../controllers/admin.controller';
@@ -47,7 +48,8 @@ router.post(
 // Admin-only delete song
 router.delete('/admin/songs/:id', requireAdminSecret, handleAdminDeleteSong);
 
-// Admin-only issue licence
+// Admin-only issue and view licences
+router.get('/admin/licences', requireAdminSecret, handleAdminGetLicences);
 router.post('/admin/licences', requireAdminSecret, handleAdminIssueLicence);
 
 // Public Self-Service Free Licence Generator (All premium features for free)

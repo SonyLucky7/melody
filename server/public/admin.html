@@ -447,6 +447,81 @@
       </form>
     </div>
 
+    <!-- VIP Licence Keys Management Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>🔑 VIP Licence Key Generator & Members</span>
+        <span class="badge" style="background: rgba(168,85,247,0.15); color:#c084fc; border-color: rgba(168,85,247,0.3);">
+          Option 1 Keys (5 Devices)
+        </span>
+      </div>
+
+      <div id="licenceAlert" class="alert"></div>
+
+      <form id="licenceForm" style="margin-bottom: 20px;">
+        <div class="grid-2">
+          <div class="input-group">
+            <label for="licFirst">First Name *</label>
+            <input type="text" id="licFirst" placeholder="e.g. Rahul" required>
+          </div>
+          <div class="input-group">
+            <label for="licSurname">Surname / Last Name *</label>
+            <input type="text" id="licSurname" placeholder="e.g. Sharma" required>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="input-group">
+            <label for="licMobile">Mobile Number (10 digits) *</label>
+            <input type="tel" id="licMobile" placeholder="e.g. 9876543210" required>
+          </div>
+          <div class="input-group">
+            <label for="licEmail">Email Address (Optional)</label>
+            <input type="email" id="licEmail" placeholder="e.g. customer@gmail.com">
+          </div>
+          <div class="input-group">
+            <label for="licPlan">VIP Plan</label>
+            <select id="licPlan">
+              <option value="lifetime">Lifetime VIP (Forever Access)</option>
+              <option value="annual">Annual VIP (1 Year)</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="licenceBtn" type="submit" class="btn" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #9333ea, #6366f1); color: white; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(147, 51, 234, 0.35);">
+          ✨ Generate & Issue VIP Licence Key
+        </button>
+      </form>
+
+      <!-- Created Key Display Result Box -->
+      <div id="createdKeyBox" style="display:none; background: #0c0d14; border: 1px solid #3b2063; border-radius: 14px; padding: 18px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <span style="font-size: 13px; font-weight: 800; color: #a855f7;">🎉 Key Created Successfully!</span>
+          <span id="createdPlanBadge" class="badge" style="background:#22c55e20; color:#4ade80;">Lifetime VIP</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+          <input type="text" id="createdFormattedKey" readonly style="font-family: monospace; font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #fbbf24; background: #181926; border: 1px solid #312e81; padding: 10px 14px; border-radius: 8px; flex: 1;">
+          <button onclick="copyCreatedKey()" type="button" class="btn btn-primary" style="padding: 10px 16px;">Copy Key</button>
+        </div>
+        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 6px;">1-Click Auto-Activation URL (Send to customer on WhatsApp/Telegram):</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input type="text" id="createdAutoUrl" readonly style="font-size: 12px; color: #e0e7ff; background: #181926; border: 1px solid #312e81; padding: 8px 12px; border-radius: 8px; flex: 1;">
+          <button onclick="copyAutoUrl()" type="button" class="btn" style="background: #374151; color: white; padding: 8px 14px; font-size: 12px;">Copy Link</button>
+        </div>
+      </div>
+
+      <!-- Recent Licences Table -->
+      <div style="margin-top: 14px;">
+        <div style="font-size: 13px; font-weight: 700; color: #d1d5db; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Active VIP Members & Keys</span>
+          <button onclick="refreshLicences()" type="button" class="btn" style="padding: 4px 10px; font-size: 11px;">Refresh</button>
+        </div>
+        <div id="licencesList" style="max-height: 260px; overflow-y: auto;">
+          <div style="text-align: center; padding: 16px; color: #6b7280; font-size: 12px;">Loading licences...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Live Catalog Card -->
     <div class="card">
       <div class="card-title">
@@ -523,6 +598,7 @@
       dashboardView.classList.remove('hidden');
       userPill.textContent = email;
       refreshCatalog();
+      refreshLicences();
     }
 
     function logoutAdmin() {
@@ -671,6 +747,115 @@
         }
       } catch (err) {
         showUploadAlert(`❌ Delete error: ${err.message}`, false);
+      }
+    }
+    // 5. VIP Licence Key Management
+    const licenceForm = document.getElementById('licenceForm');
+    const licenceBtn = document.getElementById('licenceBtn');
+    const licenceAlert = document.getElementById('licenceAlert');
+    const createdKeyBox = document.getElementById('createdKeyBox');
+    const createdFormattedKey = document.getElementById('createdFormattedKey');
+    const createdAutoUrl = document.getElementById('createdAutoUrl');
+    const createdPlanBadge = document.getElementById('createdPlanBadge');
+
+    function showLicenceAlert(text, isSuccess) {
+      if (!text) {
+        licenceAlert.style.display = 'none';
+        return;
+      }
+      licenceAlert.textContent = text;
+      licenceAlert.className = isSuccess ? 'alert alert-success' : 'alert alert-error';
+      licenceAlert.style.display = 'block';
+    }
+
+    if (licenceForm) {
+      licenceForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showLicenceAlert('', false);
+        createdKeyBox.style.display = 'none';
+
+        const firstName = document.getElementById('licFirst').value.trim();
+        const surname = document.getElementById('licSurname').value.trim();
+        const mobile = document.getElementById('licMobile').value.trim();
+        const email = document.getElementById('licEmail').value.trim();
+        const plan = document.getElementById('licPlan').value;
+
+        licenceBtn.disabled = true;
+        licenceBtn.textContent = 'Generating Key...';
+
+        try {
+          const res = await fetch('/api/admin/licences', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${adminToken}`
+            },
+            body: JSON.stringify({ first_name: firstName, surname, mobile, email, plan })
+          });
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            showLicenceAlert('🎉 VIP Licence Key successfully created and active in database!', true);
+            createdFormattedKey.value = data.data.formattedKey;
+            createdAutoUrl.value = data.data.autoLoginUrl;
+            createdPlanBadge.textContent = data.data.plan === 'lifetime' ? 'Lifetime VIP' : 'Annual VIP';
+            createdKeyBox.style.display = 'block';
+            licenceForm.reset();
+            refreshLicences();
+          } else {
+            showLicenceAlert(`❌ ${data.message || 'Failed to create key.'}`, false);
+          }
+        } catch (err) {
+          showLicenceAlert(`❌ Network error: ${err.message}`, false);
+        } finally {
+          licenceBtn.disabled = false;
+          licenceBtn.textContent = '✨ Generate & Issue VIP Licence Key';
+        }
+      });
+    }
+
+    function copyCreatedKey() {
+      navigator.clipboard.writeText(createdFormattedKey.value);
+      alert('Key copied to clipboard: ' + createdFormattedKey.value);
+    }
+
+    function copyAutoUrl() {
+      navigator.clipboard.writeText(createdAutoUrl.value);
+      alert('Auto-activation URL copied: ' + createdAutoUrl.value);
+    }
+
+    async function refreshLicences() {
+      try {
+        const res = await fetch('/api/admin/licences', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        const list = document.getElementById('licencesList');
+        if (data.data && data.data.length > 0) {
+          list.innerHTML = data.data.map(l => {
+            const planBadge = l.plan === 'lifetime' 
+              ? '<span class="badge" style="background:rgba(34,197,94,0.15); color:#4ade80; border-color:rgba(34,197,94,0.3);">Lifetime</span>'
+              : '<span class="badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border-color:rgba(168,85,247,0.3);">Annual</span>';
+            const devices = l.active_devices_count || 0;
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#11131c; border:1px solid #1f2233; border-radius:10px; margin-bottom:8px; font-size:12px;">
+                <div>
+                  <div style="font-weight:700; color:#fff;">${l.first_name} ${l.surname} &bull; <span style="color:#9ca3af;">${l.mobile}</span></div>
+                  <div style="font-family:monospace; color:#fbbf24; font-size:14px; font-weight:800; margin-top:2px;">${l.licence_key}</div>
+                  <div style="color:#6b7280; font-size:11px; margin-top:1px;">Devices: ${devices}/5 active &bull; ${l.email || 'No email'}</div>
+                </div>
+                <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                  ${planBadge}
+                  <button onclick="navigator.clipboard.writeText('${l.licence_key}'); alert('Key copied: ${l.licence_key}');" type="button" class="btn" style="padding:4px 8px; font-size:11px; background:#1e202e; border:1px solid #32364c;">Copy Key</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          list.innerHTML = '<div style="text-align:center; padding:16px; color:#6b7280; font-size:12px;">No licences issued yet.</div>';
+        }
+      } catch (e) {
+        console.error('Failed to load licences:', e);
       }
     }
   </script>
