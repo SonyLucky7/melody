@@ -1,6 +1,7 @@
 package com.melody.music.data.model
 
 import com.google.gson.annotations.SerializedName
+import com.melody.music.data.api.ApiClient
 
 data class Song(
     @SerializedName("id") val id: Long,
@@ -11,7 +12,24 @@ data class Song(
     @SerializedName("duration_seconds") val durationSeconds: Int,
     @SerializedName("cover_url") val coverUrl: String?,
     @SerializedName("created_at") val createdAt: String?
-)
+) {
+    fun getFullCoverUrl(): String {
+        if (coverUrl.isNullOrBlank()) {
+            return "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80"
+        }
+        if (coverUrl.startsWith("http://") || coverUrl.startsWith("https://")) {
+            return coverUrl
+        }
+        // Resolves relative cover paths like /covers/lana-collection.jpg to production backend
+        return ApiClient.baseUrl.removeSuffix("/") + "/" + coverUrl.removePrefix("/")
+    }
+
+    fun getFormattedDuration(): String {
+        val minutes = durationSeconds / 60
+        val seconds = durationSeconds % 60
+        return String.format("%d:%02d", minutes, seconds)
+    }
+}
 
 data class SongResponse(
     @SerializedName("success") val success: Boolean,

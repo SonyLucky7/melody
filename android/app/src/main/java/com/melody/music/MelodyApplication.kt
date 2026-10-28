@@ -4,6 +4,12 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import coil.Coil
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 
 class MelodyApplication : Application() {
 
@@ -18,6 +24,36 @@ class MelodyApplication : Application() {
         instance = this
         createNotificationChannel()
         com.melody.music.data.download.MelodyDownloadManager.init(this)
+        setupCoilImageLoader()
+    }
+
+    private fun setupCoilImageLoader() {
+        try {
+            val imageLoader = ImageLoader.Builder(this)
+                .memoryCache {
+                    MemoryCache.Builder(this)
+                        .maxSizePercent(0.25)
+                        .build()
+                }
+                .diskCache {
+                    DiskCache.Builder()
+                        .directory(cacheDir.resolve("image_cache"))
+                        .maxSizeBytes(100L * 1024 * 1024) // 100 MB
+                        .build()
+                }
+                .okHttpClient {
+                    OkHttpClient.Builder()
+                        .connectTimeout(20, TimeUnit.SECONDS)
+                        .readTimeout(20, TimeUnit.SECONDS)
+                        .build()
+                }
+                .crossfade(true)
+                .respectCacheHeaders(false)
+                .build()
+            Coil.setImageLoader(imageLoader)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun createNotificationChannel() {

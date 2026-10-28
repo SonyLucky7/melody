@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +31,7 @@ fun HomeScreen(
     songs: List<Song>,
     onSongClick: (Song, List<Song>) -> Unit,
     onArtistClick: (String) -> Unit,
+    onRefresh: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf("") }
@@ -53,7 +55,8 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = "Good evening",
@@ -61,6 +64,12 @@ fun HomeScreen(
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
+
+                if (onRefresh != null) {
+                    IconButton(onClick = onRefresh) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MelodyTextSecondary)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -181,13 +190,30 @@ fun HomeScreen(
             )
         }
 
-        // Song Rows
-        items(filteredSongs) { song ->
-            SongListItem(
-                song = song,
-                onClick = { onSongClick(song, filteredSongs) }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+        if (filteredSongs.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 40.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MelodyPrimary, modifier = Modifier.size(36.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Connecting to Melody Cloud...", color = MelodyTextSecondary, fontSize = 13.sp)
+                    }
+                }
+            }
+        } else {
+            // Song Rows with key for instant 120fps recycle
+            items(filteredSongs, key = { it.id }) { song ->
+                SongListItem(
+                    song = song,
+                    onClick = { onSongClick(song, filteredSongs) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
 
         item {
@@ -206,7 +232,7 @@ fun QuickPickCard(song: Song, onClick: () -> Unit, modifier: Modifier = Modifier
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+            model = song.getFullCoverUrl(),
             contentDescription = song.title,
             modifier = Modifier.size(54.dp),
             contentScale = ContentScale.Crop
@@ -234,7 +260,7 @@ fun SongListItem(song: Song, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+            model = song.getFullCoverUrl(),
             contentDescription = song.title,
             modifier = Modifier
                 .size(48.dp)

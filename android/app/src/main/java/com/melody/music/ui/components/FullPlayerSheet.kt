@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -41,7 +42,7 @@ private fun formatTime(ms: Long): String {
 }
 
 enum class PlayerTheme {
-    VINYL, WAVEFORM, COVER
+    COVER, VINYL, WAVEFORM
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,7 +61,7 @@ fun FullPlayerSheet(
     if (song == null) return
 
     val context = LocalContext.current
-    var selectedTheme by remember { mutableStateOf(PlayerTheme.VINYL) }
+    var selectedTheme by remember { mutableStateOf(PlayerTheme.COVER) }
     var isEqualizerOpen by remember { mutableStateOf(false) }
 
     val likedSongIds by MelodyPlayerManager.likedSongIds.collectAsState()
@@ -88,12 +89,12 @@ fun FullPlayerSheet(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF241538), Color(0xFF140D20), MelodyBg)
+                    colors = listOf(Color(0xFF28183E), Color(0xFF140D20), MelodyBg)
                 )
             )
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -123,8 +124,8 @@ fun FullPlayerSheet(
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     listOf(
-                        PlayerTheme.VINYL to "Vinyl",
                         PlayerTheme.COVER to "Cover",
+                        PlayerTheme.VINYL to "Vinyl",
                         PlayerTheme.WAVEFORM to "Wave"
                     ).forEach { (theme, label) ->
                         val isSelected = selectedTheme == theme
@@ -133,7 +134,7 @@ fun FullPlayerSheet(
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(if (isSelected) MelodyPrimary else Color.Transparent)
                                 .clickable { selectedTheme = theme }
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = label,
@@ -149,7 +150,7 @@ fun FullPlayerSheet(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0x22A855F7))
+                        .background(Color(0x33A855F7))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -163,7 +164,7 @@ fun FullPlayerSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Main Visual Area (Vinyl Turntable / Cover / Waveform)
+            // Main Visual Area (Spotify Cover / Vinyl / Waveform)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -171,6 +172,19 @@ fun FullPlayerSheet(
                 contentAlignment = Alignment.Center
             ) {
                 when (selectedTheme) {
+                    PlayerTheme.COVER -> {
+                        // Spotify Standard Artwork View: Large high-res square with soft shadow
+                        AsyncImage(
+                            model = song.getFullCoverUrl(),
+                            contentDescription = song.title,
+                            modifier = Modifier
+                                .fillMaxWidth(0.92f)
+                                .aspectRatio(1f)
+                                .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                     PlayerTheme.VINYL -> {
                         VinylTurntableView(
                             song = song,
@@ -181,17 +195,6 @@ fun FullPlayerSheet(
                         WaveformAuraView(
                             song = song,
                             isPlaying = isPlaying
-                        )
-                    }
-                    PlayerTheme.COVER -> {
-                        AsyncImage(
-                            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
-                            contentDescription = song.title,
-                            modifier = Modifier
-                                .fillMaxWidth(0.85f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(20.dp)),
-                            contentScale = ContentScale.Crop
                         )
                     }
                 }
@@ -416,13 +419,13 @@ fun VinylTurntableView(
     )
 
     val tonearmAngle by animateFloatAsState(
-        targetValue = if (isPlaying) 26f else 0f,
+        targetValue = if (isPlaying) 22f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow)
     )
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.92f)
             .aspectRatio(1f),
         contentAlignment = Alignment.Center
     ) {
@@ -432,22 +435,21 @@ fun VinylTurntableView(
                 .fillMaxSize(0.85f)
                 .rotate(if (isPlaying) rotation else 0f)
                 .clip(CircleShape)
-                .background(Color(0xFF111116)),
+                .background(Color(0xFF141418)),
             contentAlignment = Alignment.Center
         ) {
-            // Grooves Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val maxR = size.width / 2f
                 val grooveColor = Color(0x22FFFFFF)
-                val highlightColor = Color(0x11A855F7)
+                val highlightColor = Color(0x18A855F7)
 
-                for (r in listOf(0.92f, 0.85f, 0.78f, 0.71f, 0.64f, 0.57f, 0.50f)) {
+                for (r in listOf(0.94f, 0.88f, 0.82f, 0.76f, 0.70f, 0.64f, 0.58f, 0.52f)) {
                     drawCircle(
                         color = grooveColor,
                         radius = maxR * r,
                         center = center,
-                        style = Stroke(width = 1.5f)
+                        style = Stroke(width = 1.2f)
                     )
                 }
 
@@ -477,7 +479,7 @@ fun VinylTurntableView(
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
-                    model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+                    model = song.getFullCoverUrl(),
                     contentDescription = song.title,
                     modifier = Modifier
                         .fillMaxSize()
@@ -488,7 +490,7 @@ fun VinylTurntableView(
                 // Center Spindle Hole
                 Box(
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(14.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF0F0F13))
                 )
@@ -499,40 +501,40 @@ fun VinylTurntableView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 10.dp, end = 20.dp),
+                .padding(top = 10.dp, end = 12.dp),
             contentAlignment = Alignment.TopEnd
         ) {
             Canvas(
                 modifier = Modifier
-                    .size(100.dp, 160.dp)
+                    .size(90.dp, 150.dp)
                     .rotate(tonearmAngle)
             ) {
                 // Pivot base
                 drawCircle(
                     color = Color(0xFF6B7280),
-                    radius = 16f,
-                    center = Offset(size.width - 20f, 20f)
+                    radius = 14f,
+                    center = Offset(size.width - 18f, 18f)
                 )
                 drawCircle(
                     color = MelodyPrimary,
-                    radius = 8f,
-                    center = Offset(size.width - 20f, 20f)
+                    radius = 7f,
+                    center = Offset(size.width - 18f, 18f)
                 )
 
                 // Arm bar
                 drawLine(
                     color = Color(0xFFE5E7EB),
-                    start = Offset(size.width - 20f, 20f),
-                    end = Offset(20f, size.height - 30f),
-                    strokeWidth = 6f,
+                    start = Offset(size.width - 18f, 18f),
+                    end = Offset(18f, size.height - 24f),
+                    strokeWidth = 5f,
                     cap = StrokeCap.Round
                 )
 
                 // Cartridge / Stylus head
                 drawRoundRect(
                     color = MelodyPrimary,
-                    topLeft = Offset(10f, size.height - 40f),
-                    size = androidx.compose.ui.geometry.Size(22f, 32f),
+                    topLeft = Offset(8f, size.height - 34f),
+                    size = androidx.compose.ui.geometry.Size(20f, 28f),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
                 )
             }
@@ -547,8 +549,8 @@ fun WaveformAuraView(
 ) {
     val infiniteTransition = rememberInfiniteTransition()
     val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.85f,
-        targetValue = 1.15f,
+        initialValue = 0.88f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -568,14 +570,14 @@ fun WaveformAuraView(
             for (i in 1..4) {
                 drawCircle(
                     color = MelodyPrimary.copy(alpha = 0.15f / i),
-                    radius = baseRadius + (i * 24f),
+                    radius = baseRadius + (i * 22f),
                     center = center
                 )
             }
         }
 
         AsyncImage(
-            model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+            model = song.getFullCoverUrl(),
             contentDescription = song.title,
             modifier = Modifier
                 .fillMaxSize(0.6f)

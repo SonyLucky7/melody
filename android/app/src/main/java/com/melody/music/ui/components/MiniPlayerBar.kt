@@ -61,7 +61,7 @@ fun MiniPlayerBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AsyncImage(
-                model = song.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+                model = song.getFullCoverUrl(),
                 contentDescription = song.title,
                 modifier = Modifier
                     .size(44.dp)

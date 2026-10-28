@@ -105,13 +105,14 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
   }
 
   const song = songRes.rows[0];
+  const expectedTotalBytes = parseInt(song.file_size_bytes || '0', 10);
   const spoolPath = path.join(config.tempDir, `song-${songId}.mp3`);
 
-  // Fast Path 1: Instant Local NVMe/SSD Spool Stream (1 - 3 ms latency)
+  // Fast Path 1: Instant Local Spool Stream (only when 100% downloaded)
   if (fs.existsSync(spoolPath)) {
     try {
       const stat = fs.statSync(spoolPath);
-      if (stat.size > 0) {
+      if (stat.size > 0 && (expectedTotalBytes === 0 || stat.size >= expectedTotalBytes - 2048)) {
         // Touch access time to keep cache hot
         fs.utimes(spoolPath, new Date(), new Date(), () => {});
         serveFromDisk(req, res, spoolPath, stat.size);

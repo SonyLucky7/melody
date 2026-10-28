@@ -5,6 +5,7 @@ import android.media.audiofx.Equalizer
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.MelodyDownloadManager
@@ -30,6 +31,7 @@ object MelodyPlayerManager {
     private var service: MelodyPlaybackService? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var progressJob: Job? = null
+    private var playJob: Job? = null
     private var equalizer: Equalizer? = null
 
     private val _currentSong = MutableStateFlow<Song?>(null)
@@ -94,6 +96,17 @@ object MelodyPlayerManager {
                     handleTrackEnded()
                 }
             }
+
+            override fun onPlayerError(error: PlaybackException) {
+                error.printStackTrace()
+                _isPlaying.value = false
+                try {
+                    playbackService.player.stop()
+                    playbackService.player.clearMediaItems()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         })
 
         // Fetch initial liked songs
@@ -102,6 +115,7 @@ object MelodyPlayerManager {
 
     fun unbindService() {
         stopProgressTracker()
+        playJob?.cancel()
         equalizer?.release()
         equalizer = null
         service = null
@@ -197,7 +211,22 @@ object MelodyPlayerManager {
             }
         }
 
-        scope.launch {
+        // 1. Immediately cancel any prior in-flight song request
+        playJob?.cancel()
+
+        // 2. Stop and clear previous decoder state to prevent deadlocks
+        try {
+            service?.player?.apply {
+                stop()
+                clearMediaItems()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        _progressMs.value = 0L
+
+        // 3. Launch isolated player loading job
+        playJob = scope.launch {
             try {
                 // Check if song is downloaded locally first!
                 val localFile = MelodyDownloadManager.getLocalFile(song.id)
@@ -218,7 +247,7 @@ object MelodyPlayerManager {
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setAlbumTitle(song.album ?: "Melody")
-                    .setArtworkUri(song.coverUrl?.let { Uri.parse(it) })
+                    .setArtworkUri(Uri.parse(song.getFullCoverUrl()))
                     .build()
 
                 val mediaItem = MediaItem.Builder()
@@ -233,7 +262,11 @@ object MelodyPlayerManager {
                 }
 
                 // Fire and forget play history increment
-                ApiClient.service.recordPlayed(song.id)
+                try {
+                    ApiClient.service.recordPlayed(song.id)
+                } catch (e: Exception) {}
+            } catch (e: CancellationException) {
+                // Superseded by another song selection, clean exit
             } catch (e: Exception) {
                 e.printStackTrace()
                 _isPlaying.value = false
@@ -349,8 +382,8 @@ object MelodyPlayerManager {
     private fun applyBands(eq: Equalizer) {
         try {
             val numBands = eq.numberOfBands.toInt()
-            val minEqLevel = eq.bandLevelRange[0] // e.g. -1500 mB (-15dB)
-            val maxEqLevel = eq.bandLevelRange[1] // e.g. +1500 mB (+15dB)
+            val minEqLevel = eq.bandLevelRange[0]
+            val maxEqLevel = eq.bandLevelRange[1]
             val bands = _eqBands.value
 
             for (i in 0 until numBands.coerceAtMost(bands.size)) {

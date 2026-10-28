@@ -98,21 +98,23 @@ export class TelegramMultiBotService {
 
   /**
    * Download audio file from Telegram directly to an ephemeral local temp file
+   * Writes to a .tmp file first, then atomically renames to destPath to prevent partial read bugs
    */
   async downloadToFile(fileId: string, destPath: string): Promise<number> {
     const { downloadUrl, botIndex } = await this.getFileDownloadUrl(fileId);
-    console.log(`[Telegram Streaming] Bot ${botIndex + 1} won race. Downloading to ${destPath}...`);
+    const tmpPath = `${destPath}.tmp.${Date.now()}`;
+    console.log(`[Telegram Streaming] Bot ${botIndex + 1} downloading to ${tmpPath}...`);
 
     await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
 
     return new Promise((resolve, reject) => {
-      const fileStream = fs.createWriteStream(destPath);
+      const fileStream = fs.createWriteStream(tmpPath);
       const protocol = downloadUrl.startsWith('https') ? https : http;
 
       const req = protocol.get(downloadUrl, (res) => {
         if (res.statusCode !== 200) {
           fileStream.close();
-          fs.unlink(destPath, () => {});
+          fs.unlink(tmpPath, () => {});
           return reject(new Error(`Telegram download returned status ${res.statusCode}`));
         }
 
@@ -124,13 +126,23 @@ export class TelegramMultiBotService {
         res.pipe(fileStream);
 
         fileStream.on('finish', () => {
-          fileStream.close(() => resolve(totalBytes));
+          fileStream.close(async () => {
+            try {
+              // Atomically rename once 100% complete so readers never see partial files
+              await fs.promises.rename(tmpPath, destPath);
+              console.log(`[Telegram Streaming] Finished spooling: ${destPath} (${totalBytes} bytes)`);
+              resolve(totalBytes);
+            } catch (renameErr) {
+              fs.unlink(tmpPath, () => {});
+              reject(renameErr);
+            }
+          });
         });
       });
 
       req.on('error', (err) => {
         fileStream.close();
-        fs.unlink(destPath, () => {});
+        fs.unlink(tmpPath, () => {});
         reject(err);
       });
     });

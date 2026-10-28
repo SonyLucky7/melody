@@ -91,15 +91,25 @@ fun MelodyApp() {
         }
     }
 
-    LaunchedEffect(Unit) {
+    fun loadCatalog() {
         scope.launch {
-            try {
-                val res = ApiClient.service.getSongs()
-                songs = res.data
-            } catch (e: Exception) {
-                e.printStackTrace()
+            for (attempt in 1..4) {
+                try {
+                    val res = ApiClient.service.getSongs(limit = 100)
+                    if (res.success && res.data.isNotEmpty()) {
+                        songs = res.data
+                        break
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    kotlinx.coroutines.delay(1500L * attempt)
+                }
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        loadCatalog()
     }
 
     Scaffold(
@@ -208,7 +218,8 @@ fun MelodyApp() {
                         },
                         onArtistClick = { artistName ->
                             selectedArtist = artistName
-                        }
+                        },
+                        onRefresh = { loadCatalog() }
                     )
                     1 -> SearchScreen(
                         songs = songs,

@@ -178,7 +178,7 @@ fun SearchScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 AsyncImage(
-                                    model = topResult.coverUrl ?: "file:///android_asset/ic_melody_logo.png",
+                                    model = topResult.getFullCoverUrl(),
                                     contentDescription = topResult.title,
                                     modifier = Modifier
                                         .size(72.dp)
