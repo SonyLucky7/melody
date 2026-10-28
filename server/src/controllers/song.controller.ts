@@ -11,7 +11,7 @@ import { generateSignedStreamToken, verifySignedStreamToken, handleAudioStream }
 export async function getSongs(req: AuthenticatedRequest, res: Response): Promise<void> {
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
   const language = typeof req.query.language === 'string' ? req.query.language.trim() : '';
-  const limit = Math.min(parseInt(req.query.limit as string, 10) || 30, 100);
+  const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 1000);
   const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
 
   let whereClauses: string[] = [];

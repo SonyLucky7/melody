@@ -87,6 +87,9 @@ export const SongRow: React.FC<SongRowProps> = ({ index, song, queueContext, onS
         <img
           src={getFullCoverUrl(song.cover_url)}
           alt={song.title}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+          }}
           className="w-10 h-10 rounded object-cover shadow-sm flex-shrink-0"
         />
 

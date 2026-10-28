@@ -116,6 +116,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
           <img
             src={meta.avatar}
             alt={artistName}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+            }}
             className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover shadow-2xl border-4 border-white/10 flex-shrink-0"
           />
 
@@ -258,6 +261,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
                   <img
                     src={getFullCoverUrl(song.cover_url)}
                     alt={song.title}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                    }}
                     className="w-10 h-10 rounded object-cover shadow-md flex-shrink-0"
                   />
                   <div className="flex flex-col truncate">
@@ -364,6 +370,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs }) => 
                 <img
                   src={getFullCoverUrl(song.cover_url)}
                   alt={song.title}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                  }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center justify-center shadow-xl opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 transition-all">

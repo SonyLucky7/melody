@@ -9,10 +9,6 @@
       "destination": "https://melody-mzsm.onrender.com/api/:path*"
     },
     {
-      "source": "/covers/:path*",
-      "destination": "https://melody-mzsm.onrender.com/covers/:path*"
-    },
-    {
       "source": "/stream/:path*",
       "destination": "https://melody-mzsm.onrender.com/stream/:path*"
     },

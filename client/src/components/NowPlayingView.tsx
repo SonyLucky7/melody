@@ -184,6 +184,9 @@ export const NowPlayingView: React.FC = () => {
                 <img
                   src={getFullCoverUrl(currentSong.cover_url)}
                   alt={currentSong.title}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                  }}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10 pointer-events-none" />
@@ -221,6 +224,9 @@ export const NowPlayingView: React.FC = () => {
                   <img
                     src={getFullCoverUrl(currentSong.cover_url)}
                     alt="Center label"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                    }}
                     className="w-full h-full object-cover rounded-full opacity-80"
                   />
                   {/* Center Spindle Hole */}
@@ -293,6 +299,9 @@ export const NowPlayingView: React.FC = () => {
               <img
                 src={getFullCoverUrl(currentSong.cover_url)}
                 alt={currentSong.title}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                }}
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />

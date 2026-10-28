@@ -13,6 +13,10 @@ export function getFullCoverUrl(coverUrl?: string | null): string {
     return coverUrl;
   }
   const cleanCover = coverUrl.startsWith('/') ? coverUrl : `/${coverUrl}`;
+  // In the browser, relative URLs resolve cleanly to current domain (Vercel CDN or localhost)
+  if (typeof window !== 'undefined') {
+    return cleanCover;
+  }
   return `${API_BASE}${cleanCover}`;
 }
 
@@ -300,11 +304,64 @@ export interface PaymentConfigResponse {
 export async function fetchPaymentConfig(): Promise<PaymentConfigResponse | null> {
   try {
     const res = await fetch(`${API_BASE}/api/payment/config`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.plans && data.plans.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[fetchPaymentConfig API Warning]:', err);
   }
+
+  // Instant resilient fallback with dynamic zero-fees UPI QR
+  const upiId = 'anantakrishi7@axl';
+  const upiName = 'Melody Music VIP';
+  const annualUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=49&cu=INR&tn=MelodyVIP-Annual`;
+  const lifetimeUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=99&cu=INR&tn=MelodyVIP-Lifetime`;
+
+  return {
+    success: true,
+    upiIdMasked: 'an****7@axl',
+    upiName,
+    plans: [
+      {
+        id: 'annual',
+        name: 'Annual VIP',
+        price: 49,
+        originalPrice: 199,
+        duration: '1 Year',
+        tag: 'POPULAR',
+        upiPayUri: annualUri,
+        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(annualUri)}`,
+        features: [
+          'Full Studio 320kbps High-Res Audio',
+          'Listen on up to 5 Devices at once',
+          'Unlimited Offline Downloads',
+          'Personalized Option 1 Licence Key',
+          '1 Full Year VIP Access (Just ₹4/month)',
+        ],
+      },
+      {
+        id: 'lifetime',
+        name: 'Lifetime VIP',
+        price: 99,
+        originalPrice: 499,
+        duration: 'Lifetime',
+        tag: 'BEST VALUE',
+        upiPayUri: lifetimeUri,
+        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(lifetimeUri)}`,
+        features: [
+          'Pay Once, Listen Forever ($0/month)',
+          'Full Studio 320kbps High-Res Audio',
+          'Listen on up to 5 Devices at once',
+          'Unlimited Offline Downloads',
+          'Golden VIP Profile Badge',
+          'All Future Updates & Music Drops Included',
+        ],
+      },
+    ],
+  };
 }
 
 export async function submitUpiPayment(payload: {

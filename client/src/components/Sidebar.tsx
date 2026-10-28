@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown, HelpCircle } from 'lucide-react';
 import { Playlist } from '../types';
 import { UserProfile } from '../services/api';
 
@@ -11,6 +11,7 @@ interface SidebarProps {
   onCreatePlaylist: () => void;
   onOpenActivation: () => void;
   onOpenDevices: () => void;
+  onOpenHelp?: () => void;
   userProfile?: UserProfile | null;
 }
 
@@ -22,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreatePlaylist,
   onOpenActivation,
   onOpenDevices,
+  onOpenHelp,
   userProfile,
 }) => {
   return (
@@ -272,6 +274,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>5 Devices</span>
           </button>
         </div>
+
+        {onOpenHelp && (
+          <button
+            onClick={onOpenHelp}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all"
+            title="Help & Discord"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
+            <span>Help, Discord & FAQ</span>
+          </button>
+        )}
       </div>
     </aside>
   );

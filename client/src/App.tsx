@@ -8,6 +8,7 @@ import { ActivationModal } from './components/ActivationModal';
 import { DeviceModal } from './components/DeviceModal';
 import { EqualizerModal } from './components/EqualizerModal';
 import { NowPlayingView } from './components/NowPlayingView';
+import { HelpModal } from './components/HelpModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -42,6 +43,7 @@ import {
   Check,
   User,
   ShieldCheck,
+  HelpCircle,
 } from 'lucide-react';
 
 function getGreeting(): string {
@@ -78,6 +80,7 @@ export const App: React.FC = () => {
 
   // Modals
   const [isActivationOpen, setIsActivationOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [activationInitialTab, setActivationInitialTab] = useState<'vip' | 'login'>('vip');
   const [isDevicesOpen, setIsDevicesOpen] = useState(false);
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
@@ -235,6 +238,7 @@ export const App: React.FC = () => {
           onCreatePlaylist={handleCreatePlaylist}
           onOpenActivation={openVipModal}
           onOpenDevices={() => setIsDevicesOpen(true)}
+          onOpenHelp={() => setIsHelpOpen(true)}
           userProfile={userProfile}
         />
 
@@ -410,6 +414,15 @@ export const App: React.FC = () => {
                   </button>
                 </div>
               )}
+
+              {/* Help & Support Trigger */}
+              <button
+                onClick={() => setIsHelpOpen(true)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-400 hover:text-white flex items-center justify-center transition-colors ml-1"
+                title="Help & Discord Support"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
             </div>
           </header>
 
@@ -435,6 +448,9 @@ export const App: React.FC = () => {
                         <img
                           src={getFullCoverUrl(song.cover_url)}
                           alt={song.title}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-16 h-16 object-cover flex-shrink-0"
                         />
                         <span className="font-bold text-sm truncate flex-1">{song.title}</span>
@@ -465,6 +481,9 @@ export const App: React.FC = () => {
                         <img
                           src="/covers/desi-295-mvs26s80.jpg"
                           alt="Sidhu Moose Wala"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
@@ -484,6 +503,9 @@ export const App: React.FC = () => {
                         <img
                           src="/covers/desi-desi-kalakaar-mvs2csms.jpg"
                           alt="Yo Yo Honey Singh"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
@@ -503,6 +525,9 @@ export const App: React.FC = () => {
                         <img
                           src="/covers/ariana-positions-mvrzwtf6.jpg"
                           alt="Ariana Grande"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
@@ -522,6 +547,9 @@ export const App: React.FC = () => {
                         <img
                           src="/covers/the-weeknd-avatar.jpg"
                           alt="The Weeknd"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
@@ -541,6 +569,9 @@ export const App: React.FC = () => {
                         <img
                           src="/covers/lana-collection.jpg"
                           alt="Lana Del Rey"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
@@ -967,6 +998,7 @@ export const App: React.FC = () => {
           setDeviceLimitDevices(devs);
           setIsDevicesOpen(true);
         }}
+        onOpenHelp={() => setIsHelpOpen(true)}
       />
 
       <DeviceModal
@@ -976,6 +1008,13 @@ export const App: React.FC = () => {
         onSlotFreed={() => {
           openLoginModal();
         }}
+      />
+
+      {/* Help, Discord & FAQ Support Modal */}
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        onOpenActivation={openVipModal}
       />
 
       {/* Spotify Equalizer Modal */}

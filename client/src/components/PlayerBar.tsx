@@ -71,6 +71,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
               <img
                 src={getFullCoverUrl(currentSong.cover_url)}
                 alt={currentSong.title}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                }}
                 className="w-14 h-14 rounded-md object-cover shadow-lg shadow-black/50 group-hover/cover:brightness-75 transition-all"
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity">

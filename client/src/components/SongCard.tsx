@@ -52,6 +52,9 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
         <img
           src={getFullCoverUrl(song.cover_url)}
           alt={song.title}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 

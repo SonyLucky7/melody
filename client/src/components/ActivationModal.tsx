@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ArrowRight,
   ExternalLink,
+  HelpCircle,
 } from 'lucide-react';
 import {
   activateLicence,
@@ -28,6 +29,7 @@ interface ActivationModalProps {
   onActivated: () => void;
   onDeviceLimitReached?: (devices: any[]) => void;
   initialTab?: 'vip' | 'login';
+  onOpenHelp?: () => void;
 }
 
 export const ActivationModal: React.FC<ActivationModalProps> = ({
@@ -36,6 +38,7 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
   onActivated,
   onDeviceLimitReached,
   initialTab = 'vip',
+  onOpenHelp,
 }) => {
   const [tab, setTab] = useState<'vip' | 'login'>(initialTab);
 
@@ -620,6 +623,33 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
             </button>
           </form>
         )}
+
+        {/* Footer Support Link */}
+        <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+          <span>Need assistance or having payment issues?</span>
+          {onOpenHelp ? (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenHelp();
+              }}
+              className="text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Help & Discord</span>
+            </button>
+          ) : (
+            <a
+              href="https://discord.gg/melody"
+              target="_blank"
+              rel="noreferrer"
+              className="text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Discord</span>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

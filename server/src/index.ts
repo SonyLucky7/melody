@@ -83,6 +83,10 @@ app.use(deviceRoutes);      // /activate, /devices
 app.use('/api', apiRoutes);  // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history
 app.use('/api', adminRoutes);// /api/admin/upload, /api/admin/licences, /api/checkout/free
 
+// --- Static Audio Cover Artwork & Public Assets ---
+app.use('/covers', express.static(path.join(__dirname, '../public/covers')));
+app.use(express.static(path.join(__dirname, '../public')));
+
 // --- Admin Portal Endpoint (Dedicated Admin Upload Dashboard) ---
 app.use('/admin', express.static(path.join(__dirname, '../public')));
 app.get('/admin', (req, res) => {
