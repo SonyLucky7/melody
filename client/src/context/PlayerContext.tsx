@@ -720,7 +720,15 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const seek = (seconds: number) => {
     const audio = audioRef.current;
     if (audio) {
-      audio.currentTime = seconds;
+      if ('fastSeek' in audio && typeof (audio as any).fastSeek === 'function') {
+        try {
+          (audio as any).fastSeek(seconds);
+        } catch {
+          audio.currentTime = seconds;
+        }
+      } else {
+        audio.currentTime = seconds;
+      }
       setCurrentTime(seconds);
     }
   };
