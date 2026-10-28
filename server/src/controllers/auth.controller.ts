@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { activateDevice, logoutDevice, getActiveDevices } from '../services/licence';
+import { activateDevice, logoutDevice, getActiveDevices, formatLicenceKey } from '../services/licence';
+import { query } from '../db/client';
 
 export async function handleActivate(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { key, device_id, device_name } = req.body;
@@ -41,6 +42,7 @@ export async function handleActivate(req: AuthenticatedRequest, res: Response): 
       success: true,
       status: result.status,
       token: result.token,
+      user: result.user,
       message: result.message,
     });
   } catch (err: any) {
@@ -88,8 +90,34 @@ export async function handleGetDevices(req: AuthenticatedRequest, res: Response)
 
   try {
     const devices = await getActiveDevices(req.session.licenceId);
+
+    // Fetch user and licence details for profile banner
+    const userRes = await query(
+      `SELECT u.first_name, u.surname, u.mobile, u.email, l.licence_key, l.plan, l.expires_at, l.status
+       FROM licences l
+       JOIN users u ON u.id = l.user_id
+       WHERE l.id = $1`,
+      [req.session.licenceId]
+    );
+
+    let user = null;
+    if (userRes.rows.length > 0) {
+      const u = userRes.rows[0];
+      user = {
+        firstName: u.first_name,
+        surname: u.surname,
+        mobile: u.mobile,
+        email: u.email,
+        plan: u.plan || 'lifetime',
+        expiresAt: u.expires_at ? new Date(u.expires_at).toISOString() : null,
+        licenceKey: u.licence_key,
+        formattedKey: formatLicenceKey(u.licence_key),
+      };
+    }
+
     res.status(200).json({
       success: true,
+      user,
       devices,
       count: devices.length,
       maxDevices: 5,

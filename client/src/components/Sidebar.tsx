@@ -1,6 +1,7 @@
 import React from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown } from 'lucide-react';
 import { Playlist } from '../types';
+import { UserProfile } from '../services/api';
 
 interface SidebarProps {
   currentView: string;
@@ -10,6 +11,7 @@ interface SidebarProps {
   onCreatePlaylist: () => void;
   onOpenActivation: () => void;
   onOpenDevices: () => void;
+  userProfile?: UserProfile | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -20,6 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreatePlaylist,
   onOpenActivation,
   onOpenDevices,
+  userProfile,
 }) => {
   return (
     <aside className="w-64 bg-[#121212] flex flex-col h-full border-r border-[#282828] text-[#b3b3b3] p-4 select-none">
@@ -31,11 +34,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <img 
           src="/Melody-AppIcon-1024.png" 
           alt="Melody Logo" 
-          className="w-9 h-9 rounded-xl shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform" 
+          className="w-9 h-9 rounded-xl shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform" 
         />
-        <span className="text-xl font-black tracking-tight text-white">
-          Melody
-        </span>
+        <div className="flex flex-col">
+          <span className="text-xl font-black tracking-tight text-white flex items-center gap-1.5 leading-none">
+            Melody
+            <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+          </span>
+          <span className="text-[10px] text-purple-400 font-semibold tracking-wider uppercase mt-0.5">
+            VIP Studio Audio
+          </span>
+        </div>
       </div>
 
       {/* Main Nav Links (Spotify Style) */}
@@ -131,7 +140,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="text-[11px] font-bold text-[#b3b3b3] uppercase px-3 py-1 tracking-wider">
           Artists
         </div>
-        <div className="space-y-0.5 mt-1">
+        <div className="space-y-0.5 mt-1 max-h-36 overflow-y-auto pr-1">
+          <button
+            onClick={() => onSelectView('artist', 'Sidhu Moose Wala')}
+            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+              currentView === 'artist' && selectedArtist === 'Sidhu Moose Wala'
+                ? 'text-[#a855f7] font-bold bg-white/10'
+                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <div className="w-4 h-4 rounded-full bg-red-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+              S
+            </div>
+            <span className="truncate">Sidhu Moose Wala</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('artist', 'Yo Yo Honey Singh')}
+            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+              currentView === 'artist' && selectedArtist === 'Yo Yo Honey Singh'
+                ? 'text-[#a855f7] font-bold bg-white/10'
+                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <div className="w-4 h-4 rounded-full bg-amber-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+              Y
+            </div>
+            <span className="truncate">Yo Yo Honey Singh</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('artist', 'Ariana Grande')}
+            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+              currentView === 'artist' && selectedArtist === 'Ariana Grande'
+                ? 'text-[#a855f7] font-bold bg-white/10'
+                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <div className="w-4 h-4 rounded-full bg-pink-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+              A
+            </div>
+            <span className="truncate">Ariana Grande</span>
+          </button>
+
           <button
             onClick={() => onSelectView('artist', 'The Weeknd')}
             className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
@@ -154,7 +205,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
             }`}
           >
-            <div className="w-4 h-4 rounded-full bg-purple-700/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+            <div className="w-4 h-4 rounded-full bg-blue-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
               L
             </div>
             <span className="truncate">Lana Del Rey</span>
@@ -179,27 +230,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Bottom Footer Actions */}
-      <div className="pt-3 border-t border-[#282828] space-y-1.5">
-        <button
-          onClick={onOpenActivation}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
-        >
-          <span className="flex items-center gap-2">
-            <Key className="w-3.5 h-3.5 text-blue-400" />
-            Licence Key
-          </span>
-        </button>
+      <div className="pt-3 border-t border-[#282828] space-y-2">
+        {userProfile ? (
+          <div className="p-2.5 rounded-xl bg-purple-950/20 border border-purple-500/20">
+            <div className="flex items-center justify-between text-[11px] mb-1">
+              <span className="font-bold text-white truncate">{userProfile.firstName} {userProfile.surname}</span>
+              <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
+                {userProfile.plan === 'lifetime' ? 'Lifetime' : 'Annual'}
+              </span>
+            </div>
+            <div className="font-mono text-[10px] text-neutral-400 truncate">
+              {userProfile.formattedKey}
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onOpenActivation}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02]"
+          >
+            <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+            <span>Get VIP Access (₹49)</span>
+          </button>
+        )}
 
-        <button
-          onClick={onOpenDevices}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
-        >
-          <span className="flex items-center gap-2">
-            <Laptop className="w-3.5 h-3.5 text-[#b3b3b3]" />
-            Manage Devices
-          </span>
-          <span className="text-[10px] text-[#b3b3b3]">5 Max</span>
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={onOpenActivation}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
+            title="Licence Key"
+          >
+            <Key className="w-3 h-3 text-purple-400" />
+            <span>Key</span>
+          </button>
+
+          <button
+            onClick={onOpenDevices}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#181818] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-all border border-[#282828]"
+            title="Manage Devices"
+          >
+            <Laptop className="w-3 h-3 text-[#b3b3b3]" />
+            <span>5 Devices</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

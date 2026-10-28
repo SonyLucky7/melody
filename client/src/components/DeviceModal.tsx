@@ -32,8 +32,8 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
 
   const loadDevices = async () => {
     setLoading(true);
-    const devs = await fetchDevices();
-    setDevices(devs);
+    const res = await fetchDevices();
+    setDevices(res.devices || []);
     setLoading(false);
   };
 

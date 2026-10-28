@@ -14,8 +14,18 @@ export interface DeviceSessionPayload {
 
 export interface ActivationResult {
   success: boolean;
-  status: 'ACTIVATED' | 'RENEWED' | 'DEVICE_LIMIT_REACHED' | 'INVALID_KEY' | 'REVOKED';
+  status: 'ACTIVATED' | 'RENEWED' | 'DEVICE_LIMIT_REACHED' | 'INVALID_KEY' | 'REVOKED' | 'EXPIRED';
   token?: string;
+  user?: {
+    firstName: string;
+    surname: string;
+    mobile: string;
+    email?: string | null;
+    plan: string;
+    expiresAt: string | null;
+    licenceKey: string;
+    formattedKey: string;
+  };
   devices?: Array<{
     device_id: string;
     device_name: string;
@@ -61,8 +71,16 @@ export async function issueLicence(
   firstName: string,
   surname: string,
   mobile: string,
-  email?: string
-): Promise<{ licenceKey: string; formattedKey: string; licenceId: number; userId: number }> {
+  email?: string,
+  plan: 'annual' | 'lifetime' = 'annual'
+): Promise<{
+  licenceKey: string;
+  formattedKey: string;
+  licenceId: number;
+  userId: number;
+  plan: string;
+  expiresAt: Date | null;
+}> {
   // 1. Find or create user
   const userRes = await query(
     `INSERT INTO users (first_name, surname, mobile, email)
@@ -78,14 +96,17 @@ export async function issueLicence(
   const rawKey = generateOption1Key(firstName, surname, mobile);
   const formattedKey = formatLicenceKey(rawKey);
 
-  // 3. Insert or update licence
+  // 3. Compute expiry date based on plan
+  const expiresAt = plan === 'annual' ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null;
+
+  // 4. Insert or update licence
   const licenceRes = await query(
-    `INSERT INTO licences (user_id, licence_key, status, max_devices, paid_at)
-     VALUES ($1, $2, 'active', 5, NOW())
+    `INSERT INTO licences (user_id, licence_key, status, max_devices, paid_at, plan, expires_at)
+     VALUES ($1, $2, 'active', 5, NOW(), $3, $4)
      ON CONFLICT (licence_key) DO UPDATE
-     SET status = 'active', paid_at = NOW()
-     RETURNING id`,
-    [userId, rawKey]
+     SET status = 'active', paid_at = NOW(), plan = EXCLUDED.plan, expires_at = EXCLUDED.expires_at
+     RETURNING id, plan, expires_at`,
+    [userId, rawKey, plan, expiresAt]
   );
   const licenceId = licenceRes.rows[0].id;
 
@@ -94,6 +115,8 @@ export async function issueLicence(
     formattedKey,
     licenceId,
     userId,
+    plan,
+    expiresAt,
   };
 }
 
@@ -107,10 +130,12 @@ export async function activateDevice(
 ): Promise<ActivationResult> {
   const normalizedKey = normalizeKey(keyInput);
 
-  // 1. Look up licence in PostgreSQL (Strict security: must exist in table)
+  // 1. Look up licence and user in PostgreSQL (Strict security: must exist in table)
   const licenceRes = await query(
-    `SELECT l.id as licence_id, l.user_id, l.status, l.max_devices, l.paid_at
+    `SELECT l.id as licence_id, l.user_id, l.status, l.max_devices, l.paid_at, l.plan, l.expires_at, l.licence_key,
+            u.first_name, u.surname, u.mobile, u.email
      FROM licences l
+     JOIN users u ON u.id = l.user_id
      WHERE l.licence_key = $1`,
     [normalizedKey]
   );
@@ -130,6 +155,15 @@ export async function activateDevice(
       success: false,
       status: 'REVOKED',
       message: 'This licence has been revoked.',
+    };
+  }
+
+  // Check plan expiry if annual
+  if (licence.expires_at && new Date(licence.expires_at).getTime() < Date.now()) {
+    return {
+      success: false,
+      status: 'EXPIRED',
+      message: 'Your Melody VIP subscription has expired. Please renew your plan.',
     };
   }
 
@@ -162,6 +196,17 @@ export async function activateDevice(
   const token = jwt.sign(payload, config.sessionSecret, { expiresIn: '90d' });
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
+  const userData = {
+    firstName: licence.first_name,
+    surname: licence.surname,
+    mobile: licence.mobile,
+    email: licence.email,
+    plan: licence.plan || 'lifetime',
+    expiresAt: licence.expires_at ? new Date(licence.expires_at).toISOString() : null,
+    licenceKey: licence.licence_key,
+    formattedKey: formatLicenceKey(licence.licence_key),
+  };
+
   // Case A: Device already registered -> renew session without consuming slot
   if (existingDevice) {
     await query(
@@ -175,6 +220,7 @@ export async function activateDevice(
       success: true,
       status: 'RENEWED',
       token,
+      user: userData,
       message: 'Session renewed successfully.',
     };
   }
@@ -191,6 +237,7 @@ export async function activateDevice(
       success: true,
       status: 'ACTIVATED',
       token,
+      user: userData,
       message: 'Device activated successfully.',
     };
   }

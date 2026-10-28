@@ -19,9 +19,14 @@ import {
   addFavourite,
   removeFavourite,
 } from '../controllers/favourite.controller';
+import { getPaymentConfig, handleUpiPaymentSubmit } from '../controllers/payment.controller';
 import { verifyDeviceSession, requireDeviceAuth } from '../middleware/auth';
 
 const router = Router();
+
+// --- Payment & VIP Subscriptions ---
+router.get('/payment/config', getPaymentConfig);
+router.post('/payment/upi-submit', handleUpiPaymentSubmit);
 
 // --- Songs Catalog & Streaming ---
 router.get('/songs', verifyDeviceSession, getSongs);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { PlayerBar } from './components/PlayerBar';
 import { SongCard } from './components/SongCard';
@@ -17,9 +17,32 @@ import {
   createPlaylist,
   fetchPlaylistSongs,
   getFullCoverUrl,
+  getUserProfile,
+  setUserProfile,
+  clearUserProfile,
+  fetchDevices,
+  UserProfile,
 } from './services/api';
 import { Song, Playlist, ActiveDevice } from './types';
-import { Search, Heart, Clock, Music, Disc, Play, ChevronLeft, ChevronRight, CheckCircle2, ArrowDownCircle } from 'lucide-react';
+import {
+  Search,
+  Heart,
+  Clock,
+  Disc,
+  Play,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  ArrowDownCircle,
+  Crown,
+  Key,
+  Laptop,
+  LogOut,
+  Copy,
+  Check,
+  User,
+  ShieldCheck,
+} from 'lucide-react';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -47,8 +70,15 @@ export const App: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // User Profile & Authentication State
+  const [userProfile, setUserProfileState] = useState<UserProfile | null>(() => getUserProfile());
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [copiedMenuKey, setCopiedMenuKey] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
   // Modals
   const [isActivationOpen, setIsActivationOpen] = useState(false);
+  const [activationInitialTab, setActivationInitialTab] = useState<'vip' | 'login'>('vip');
   const [isDevicesOpen, setIsDevicesOpen] = useState(false);
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
 
@@ -59,20 +89,61 @@ export const App: React.FC = () => {
     loadCatalog();
   }, []);
 
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const loadCatalog = async () => {
     setLoading(true);
-    const [fetchedSongs, fetchedPlaylists, fetchedRecent, fetchedFavs] = await Promise.all([
-      fetchSongs('', '', 100),
+    const [fetchedSongs, fetchedPlaylists, fetchedRecent, fetchedFavs, devicesData] = await Promise.all([
+      fetchSongs('', '', 350),
       fetchPlaylists(),
       fetchRecentlyPlayed(),
       fetchFavourites(),
+      fetchDevices(),
     ]);
 
     setSongs(fetchedSongs);
     setPlaylists(fetchedPlaylists);
     setRecentSongs(fetchedRecent);
     setLikedSongsList(fetchedFavs);
+
+    if (devicesData.user) {
+      setUserProfileState(devicesData.user);
+      setUserProfile(devicesData.user);
+    }
     setLoading(false);
+  };
+
+  const openVipModal = () => {
+    setActivationInitialTab('vip');
+    setIsActivationOpen(true);
+  };
+
+  const openLoginModal = () => {
+    setActivationInitialTab('login');
+    setIsActivationOpen(true);
+  };
+
+  const handleLogout = () => {
+    clearUserProfile();
+    setUserProfileState(null);
+    setIsProfileMenuOpen(false);
+    loadCatalog();
+  };
+
+  const handleCopyMenuKey = () => {
+    if (!userProfile?.formattedKey) return;
+    navigator.clipboard.writeText(userProfile.formattedKey);
+    setCopiedMenuKey(true);
+    setTimeout(() => setCopiedMenuKey(false), 2000);
   };
 
   const handleSelectView = async (view: string, data?: any, fromNav = false) => {
@@ -137,8 +208,20 @@ export const App: React.FC = () => {
     return matchesSearch && matchesLang;
   });
 
+  // Artist specific song collections
   const theWeekndSongs = songs.filter((s) => s.artist.toLowerCase().includes('weeknd'));
   const lanaSongs = songs.filter((s) => s.artist.toLowerCase().includes('lana'));
+  const arianaSongs = songs.filter((s) => s.artist.toLowerCase().includes('ariana'));
+  const sidhuSongs = songs.filter((s) => s.artist.toLowerCase().includes('moose wala'));
+  const honeySongs = songs.filter((s) => s.artist.toLowerCase().includes('honey singh'));
+
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (!userProfile) return 'M';
+    const first = userProfile.firstName?.charAt(0) || '';
+    const last = userProfile.surname?.charAt(0) || '';
+    return (first + last).toUpperCase() || 'VIP';
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#121212] text-white select-none">
@@ -150,8 +233,9 @@ export const App: React.FC = () => {
           onSelectView={(v, d) => handleSelectView(v, d)}
           playlists={playlists}
           onCreatePlaylist={handleCreatePlaylist}
-          onOpenActivation={() => setIsActivationOpen(true)}
+          onOpenActivation={openVipModal}
           onOpenDevices={() => setIsDevicesOpen(true)}
+          userProfile={userProfile}
         />
 
         {/* Main Content Area with Spotify Dark Gradient */}
@@ -195,14 +279,137 @@ export const App: React.FC = () => {
               )}
             </div>
 
-            {/* Right Header: Spotify Profile Avatar */}
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-full bg-[#242424] hover:bg-[#2e2e2e] border border-white/10 flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
-                title="Profile"
-              >
-                <span className="text-xs font-bold text-white">M</span>
-              </div>
+            {/* Right Header: Auth & VIP Badges */}
+            <div className="flex items-center gap-3" ref={profileMenuRef}>
+              {userProfile ? (
+                /* Authenticated VIP User Controls */
+                <div className="flex items-center gap-2.5">
+                  {/* VIP Plan Badge */}
+                  <div
+                    onClick={openVipModal}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-sm cursor-pointer hover:border-purple-400 transition-colors"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span>{userProfile.plan === 'lifetime' ? 'Lifetime VIP' : 'Annual VIP'}</span>
+                  </div>
+
+                  {/* Device Slot Button */}
+                  <button
+                    onClick={() => setIsDevicesOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-xs font-medium transition-all"
+                    title="Active Devices"
+                  >
+                    <Laptop className="w-3.5 h-3.5 text-neutral-400" />
+                    <span className="hidden sm:inline">Devices</span>
+                  </button>
+
+                  {/* Profile Avatar Trigger */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 border border-white/20 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shadow-md shadow-purple-900/30 font-bold text-xs text-white"
+                      title={`${userProfile.firstName} ${userProfile.surname}`}
+                    >
+                      {getInitials()}
+                    </button>
+
+                    {/* Profile Dropdown Menu */}
+                    {isProfileMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#181824] border border-purple-500/20 shadow-2xl p-4 z-50 text-xs space-y-3 animate-fade-in">
+                        <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                          <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 font-black text-sm">
+                            {getInitials()}
+                          </div>
+                          <div className="overflow-hidden">
+                            <div className="font-bold text-white text-sm truncate">
+                              {userProfile.firstName} {userProfile.surname}
+                            </div>
+                            <div className="text-[11px] text-neutral-400 font-mono">
+                              +91 {userProfile.mobile}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Licence Key Box */}
+                        <div className="p-2.5 rounded-xl bg-[#0e0e16] border border-purple-500/20">
+                          <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-0.5">
+                            Licence Key
+                          </div>
+                          <div className="flex items-center justify-between font-mono font-bold text-white text-xs tracking-wider">
+                            <span>{userProfile.formattedKey}</span>
+                            <button
+                              onClick={handleCopyMenuKey}
+                              className="p-1 hover:bg-white/10 rounded text-neutral-400 hover:text-white transition-colors"
+                              title="Copy Key"
+                            >
+                              {copiedMenuKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Plan Details */}
+                        <div className="space-y-1 text-[11px] text-neutral-400">
+                          <div className="flex justify-between">
+                            <span>Membership:</span>
+                            <span className="font-bold text-purple-300 capitalize">
+                              {userProfile.plan === 'lifetime' ? 'Lifetime VIP (Forever)' : 'Annual VIP'}
+                            </span>
+                          </div>
+                          {userProfile.expiresAt && (
+                            <div className="flex justify-between">
+                              <span>Expires:</span>
+                              <span className="text-neutral-300">
+                                {new Date(userProfile.expiresAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="pt-2 border-t border-white/5 space-y-1">
+                          <button
+                            onClick={() => {
+                              setIsProfileMenuOpen(false);
+                              setIsDevicesOpen(true);
+                            }}
+                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                          >
+                            <Laptop className="w-3.5 h-3.5" />
+                            <span>Manage Active Devices</span>
+                          </button>
+                          <button
+                            onClick={handleLogout}
+                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-red-500/10 text-red-400 flex items-center gap-2 transition-colors font-medium"
+                          >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Log Out on this Device</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Guest / Non-Activated Header Buttons */
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openVipModal}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                    <span>Get VIP</span>
+                    <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px] font-black">₹49</span>
+                  </button>
+
+                  <button
+                    onClick={openLoginModal}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold transition-all hover:scale-105"
+                  >
+                    <Key className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Log In</span>
+                  </button>
+                </div>
+              )}
             </div>
           </header>
 
@@ -249,6 +456,63 @@ export const App: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {/* Sidhu Moose Wala Card */}
+                    <div
+                      onClick={() => handleSelectView('artist', 'Sidhu Moose Wala')}
+                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                    >
+                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                        <img
+                          src="/covers/desi-295-mvs26s80.jpg"
+                          alt="Sidhu Moose Wala"
+                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
+                        />
+                      </div>
+                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                        Sidhu Moose Wala
+                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                      </span>
+                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {sidhuSongs.length} Tracks</span>
+                    </div>
+
+                    {/* Yo Yo Honey Singh Card */}
+                    <div
+                      onClick={() => handleSelectView('artist', 'Yo Yo Honey Singh')}
+                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                    >
+                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                        <img
+                          src="/covers/desi-desi-kalakaar-mvs2csms.jpg"
+                          alt="Yo Yo Honey Singh"
+                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
+                        />
+                      </div>
+                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                        Yo Yo Honey Singh
+                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                      </span>
+                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {honeySongs.length} Tracks</span>
+                    </div>
+
+                    {/* Ariana Grande Card */}
+                    <div
+                      onClick={() => handleSelectView('artist', 'Ariana Grande')}
+                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                    >
+                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                        <img
+                          src="/covers/ariana-positions-mvrzwtf6.jpg"
+                          alt="Ariana Grande"
+                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
+                        />
+                      </div>
+                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                        Ariana Grande
+                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                      </span>
+                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {arianaSongs.length} Tracks</span>
+                    </div>
+
                     {/* The Weeknd Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'The Weeknd')}
@@ -289,7 +553,109 @@ export const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 3. The Weeknd Curated Carousel */}
+                {/* 3. Sidhu Moose Wala Curated Section */}
+                {sidhuSongs.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2
+                          onClick={() => handleSelectView('artist', 'Sidhu Moose Wala')}
+                          className="text-2xl font-bold text-white tracking-tight hover:underline cursor-pointer"
+                        >
+                          Sidhu Moose Wala Essentials
+                        </h2>
+                        <p className="text-xs text-[#b3b3b3]">295, So High, Same Beef, East Side Flow & More</p>
+                      </div>
+                      <button
+                        onClick={() => handleSelectView('artist', 'Sidhu Moose Wala')}
+                        className="text-xs font-bold text-[#b3b3b3] hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                      >
+                        Show all ({sidhuSongs.length})
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {sidhuSongs.slice(0, 6).map((song) => (
+                        <SongCard
+                          key={song.id}
+                          song={song}
+                          queueContext={sidhuSongs}
+                          onSelectArtist={(a) => handleSelectView('artist', a)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Yo Yo Honey Singh Curated Section */}
+                {honeySongs.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2
+                          onClick={() => handleSelectView('artist', 'Yo Yo Honey Singh')}
+                          className="text-2xl font-bold text-white tracking-tight hover:underline cursor-pointer"
+                        >
+                          Yo Yo Honey Singh Blockbusters
+                        </h2>
+                        <p className="text-xs text-[#b3b3b3]">Brown Rang, Blue Eyes, Desi Kalakaar, Dope Shope & More</p>
+                      </div>
+                      <button
+                        onClick={() => handleSelectView('artist', 'Yo Yo Honey Singh')}
+                        className="text-xs font-bold text-[#b3b3b3] hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                      >
+                        Show all ({honeySongs.length})
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {honeySongs.slice(0, 6).map((song) => (
+                        <SongCard
+                          key={song.id}
+                          song={song}
+                          queueContext={honeySongs}
+                          onSelectArtist={(a) => handleSelectView('artist', a)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. Ariana Grande Curated Section */}
+                {arianaSongs.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2
+                          onClick={() => handleSelectView('artist', 'Ariana Grande')}
+                          className="text-2xl font-bold text-white tracking-tight hover:underline cursor-pointer"
+                        >
+                          Ariana Grande Hits
+                        </h2>
+                        <p className="text-xs text-[#b3b3b3]">Positions, thank u next, Dangerous Woman, 7 rings & More</p>
+                      </div>
+                      <button
+                        onClick={() => handleSelectView('artist', 'Ariana Grande')}
+                        className="text-xs font-bold text-[#b3b3b3] hover:text-white hover:underline transition-colors uppercase tracking-wider"
+                      >
+                        Show all ({arianaSongs.length})
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {arianaSongs.slice(0, 6).map((song) => (
+                        <SongCard
+                          key={song.id}
+                          song={song}
+                          queueContext={arianaSongs}
+                          onSelectArtist={(a) => handleSelectView('artist', a)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. The Weeknd Curated Carousel */}
                 {theWeekndSongs.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -323,7 +689,7 @@ export const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 4. Lana Del Rey Curated Carousel */}
+                {/* 7. Lana Del Rey Curated Carousel */}
                 {lanaSongs.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -357,7 +723,7 @@ export const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 5. Complete Featured Catalog Grid */}
+                {/* 8. Complete Featured Catalog Grid */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-2xl font-bold text-white tracking-tight">All Tracks</h2>
@@ -399,24 +765,24 @@ export const App: React.FC = () => {
                 {searchQuery && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-[#b3b3b3]">Artists</h3>
-                    <div className="flex gap-4">
-                      {['The Weeknd', 'Lana Del Rey'].filter((a) =>
-                        a.toLowerCase().includes(searchQuery.toLowerCase())
-                      ).map((artistName) => (
-                        <div
-                          key={artistName}
-                          onClick={() => handleSelectView('artist', artistName)}
-                          className="flex items-center gap-3 p-3 bg-[#181818] hover:bg-[#282828] rounded-md cursor-pointer transition-all"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white">
-                            {artistName[0]}
+                    <div className="flex flex-wrap gap-4">
+                      {['Sidhu Moose Wala', 'Yo Yo Honey Singh', 'Ariana Grande', 'The Weeknd', 'Lana Del Rey']
+                        .filter((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((artistName) => (
+                          <div
+                            key={artistName}
+                            onClick={() => handleSelectView('artist', artistName)}
+                            className="flex items-center gap-3 p-3 bg-[#181818] hover:bg-[#282828] rounded-md cursor-pointer transition-all"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold text-white">
+                              {artistName[0]}
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white">{artistName}</div>
+                              <div className="text-xs text-[#b3b3b3]">Artist</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-bold text-white">{artistName}</div>
-                            <div className="text-xs text-[#b3b3b3]">Artist</div>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 )}
@@ -592,6 +958,7 @@ export const App: React.FC = () => {
       {/* Interactive Modals */}
       <ActivationModal
         isOpen={isActivationOpen}
+        initialTab={activationInitialTab}
         onClose={() => setIsActivationOpen(false)}
         onActivated={() => {
           loadCatalog();
@@ -607,7 +974,7 @@ export const App: React.FC = () => {
         onClose={() => setIsDevicesOpen(false)}
         devicesList={deviceLimitDevices}
         onSlotFreed={() => {
-          setIsActivationOpen(true);
+          openLoginModal();
         }}
       />
 

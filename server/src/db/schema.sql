@@ -39,8 +39,13 @@ CREATE TABLE IF NOT EXISTS licences (
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   max_devices INT NOT NULL DEFAULT 5,
   paid_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  plan VARCHAR(50) DEFAULT 'lifetime',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE licences ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE licences ADD COLUMN IF NOT EXISTS plan VARCHAR(50) DEFAULT 'lifetime';
 
 CREATE INDEX IF NOT EXISTS idx_licences_key ON licences (licence_key);
 
@@ -91,3 +96,15 @@ CREATE TABLE IF NOT EXISTS recent_plays (
 );
 
 CREATE INDEX IF NOT EXISTS idx_recent_plays_history ON recent_plays (licence_id, played_at DESC);
+
+-- 9. Payments Table (Direct UPI QR Transactions)
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE SET NULL,
+  licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
+  plan VARCHAR(50) NOT NULL,
+  amount_inr INT NOT NULL,
+  upi_utr_ref VARCHAR(100) UNIQUE,
+  status VARCHAR(20) NOT NULL DEFAULT 'verified',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

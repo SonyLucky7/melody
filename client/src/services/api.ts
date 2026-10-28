@@ -190,7 +190,36 @@ export async function fetchPlaylistSongs(playlistId: number): Promise<Song[]> {
   }
 }
 
-// --- Auth & Device Management API ---
+// --- Auth, User Profile & Device Management API ---
+
+export interface UserProfile {
+  firstName: string;
+  surname: string;
+  mobile: string;
+  email?: string | null;
+  plan: 'annual' | 'lifetime';
+  expiresAt: string | null;
+  licenceKey: string;
+  formattedKey: string;
+}
+
+export function getUserProfile(): UserProfile | null {
+  try {
+    const raw = localStorage.getItem('melody_user_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setUserProfile(profile: UserProfile): void {
+  localStorage.setItem('melody_user_profile', JSON.stringify(profile));
+}
+
+export function clearUserProfile(): void {
+  localStorage.removeItem('melody_user_profile');
+  localStorage.removeItem('melody_session_token');
+}
 
 export async function activateLicence(key: string, deviceName: string) {
   const res = await fetch(`${API_BASE}/activate`, {
@@ -205,18 +234,24 @@ export async function activateLicence(key: string, deviceName: string) {
   const data = await res.json();
   if (res.ok && data.token) {
     setDeviceToken(data.token);
+    if (data.user) {
+      setUserProfile(data.user);
+    }
   }
   return { status: res.status, data };
 }
 
-export async function fetchDevices(): Promise<ActiveDevice[]> {
+export async function fetchDevices(): Promise<{ devices: ActiveDevice[]; user?: UserProfile }> {
   try {
     const res = await fetch(`${API_BASE}/devices`, { headers: authHeaders() });
-    if (!res.ok) return [];
+    if (!res.ok) return { devices: [] };
     const json = await res.json();
-    return json.devices || [];
+    if (json.user) {
+      setUserProfile(json.user);
+    }
+    return { devices: json.devices || [], user: json.user };
   } catch {
-    return [];
+    return { devices: [] };
   }
 }
 
@@ -239,4 +274,70 @@ export async function requestFreeLicence(firstName: string, surname: string, mob
     body: JSON.stringify({ first_name: firstName, surname, mobile }),
   });
   return res.json();
+}
+
+// --- Direct UPI QR Payment API ---
+
+export interface PaymentPlan {
+  id: 'annual' | 'lifetime';
+  name: string;
+  price: number;
+  originalPrice: number;
+  duration: string;
+  tag: string;
+  upiPayUri: string;
+  qrCodeUrl: string;
+  features: string[];
+}
+
+export interface PaymentConfigResponse {
+  success: boolean;
+  upiIdMasked: string;
+  upiName: string;
+  plans: PaymentPlan[];
+}
+
+export async function fetchPaymentConfig(): Promise<PaymentConfigResponse | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/payment/config`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function submitUpiPayment(payload: {
+  firstName: string;
+  surname: string;
+  mobile: string;
+  email?: string;
+  plan: 'annual' | 'lifetime';
+  upiUtrRef: string;
+  deviceName?: string;
+}) {
+  const res = await fetch(`${API_BASE}/api/payment/upi-submit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...payload,
+      deviceId: getDeviceId(),
+      deviceName: payload.deviceName || 'Melody Web Player',
+    }),
+  });
+  const data = await res.json();
+  if (res.ok && data.data?.token) {
+    setDeviceToken(data.data.token);
+    setUserProfile({
+      firstName: payload.firstName,
+      surname: payload.surname,
+      mobile: payload.mobile,
+      email: payload.email,
+      plan: data.data.plan,
+      expiresAt: data.data.expiresAt,
+      licenceKey: data.data.licenceKey,
+      formattedKey: data.data.formattedKey,
+    });
+  }
+  return { ok: res.ok, status: res.status, data };
 }

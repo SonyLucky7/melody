@@ -2,7 +2,95 @@ import fs from 'fs';
 import path from 'path';
 import { query, pool } from '../db/client';
 import { telegramService } from '../services/telegram';
-import { parseId3v2 } from './importPopularSongs';
+
+interface TrackMeta {
+  artist: string;
+  title: string;
+  album: string;
+  coverBuffer?: Buffer;
+}
+
+function parseId3v2(filePath: string): Partial<TrackMeta> {
+  const result: Partial<TrackMeta> = {};
+  let fd: number;
+  try {
+    fd = fs.openSync(filePath, 'r');
+  } catch {
+    return result;
+  }
+
+  try {
+    const header = Buffer.alloc(10);
+    fs.readSync(fd, header, 0, 10, 0);
+
+    if (header.toString('utf8', 0, 3) !== 'ID3') {
+      fs.closeSync(fd);
+      return result;
+    }
+
+    const tagSize =
+      ((header[6] & 0x7f) << 21) |
+      ((header[7] & 0x7f) << 14) |
+      ((header[8] & 0x7f) << 7) |
+      (header[9] & 0x7f);
+
+    const fullTag = Buffer.alloc(tagSize);
+    fs.readSync(fd, fullTag, 0, tagSize, 10);
+    fs.closeSync(fd);
+
+    let offset = 0;
+    while (offset + 10 < tagSize) {
+      const frameId = fullTag.toString('latin1', offset, offset + 4);
+      if (frameId.charCodeAt(0) === 0 || !/^[A-Z0-9]{4}$/.test(frameId)) {
+        break;
+      }
+
+      const frameSize = fullTag.readUInt32BE(offset + 4);
+      offset += 10;
+
+      if (frameSize <= 0 || offset + frameSize > tagSize) break;
+
+      const frameData = fullTag.slice(offset, offset + frameSize);
+      offset += frameSize;
+
+      if (frameId === 'TIT2' || frameId === 'TPE1' || frameId === 'TALB') {
+        const encoding = frameData[0];
+        let text = '';
+        if (encoding === 0 || encoding === 3) {
+          text = frameData.slice(1).toString(encoding === 3 ? 'utf8' : 'latin1').replace(/\0.*$/g, '').trim();
+        } else if (encoding === 1 || encoding === 2) {
+          text = frameData.slice(1).toString('utf16le').replace(/\0.*$/g, '').trim();
+        }
+
+        if (frameId === 'TIT2' && text) result.title = text;
+        if (frameId === 'TPE1' && text) result.artist = text;
+        if (frameId === 'TALB' && text) result.album = text;
+      } else if (frameId === 'APIC' && !result.coverBuffer) {
+        try {
+          const encoding = frameData[0];
+          let p = 1;
+          while (p < frameData.length && frameData[p] !== 0) p++;
+          p++;
+          p++;
+          if (encoding === 1 || encoding === 2) {
+            while (p + 1 < frameData.length && !(frameData[p] === 0 && frameData[p + 1] === 0)) p += 2;
+            p += 2;
+          } else {
+            while (p < frameData.length && frameData[p] !== 0) p++;
+            p++;
+          }
+          if (p < frameData.length) {
+            result.coverBuffer = frameData.slice(p);
+          }
+        } catch {}
+      }
+    }
+  } catch {
+    try { fs.closeSync(fd); } catch {}
+  }
+
+  return result;
+}
 
 interface TrackItem {
   folder: string;
