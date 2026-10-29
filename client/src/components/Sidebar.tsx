@@ -29,7 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
 }) => {
   return (
-    <aside className="w-64 bg-[#121212] flex flex-col h-full border-r border-[#282828] text-[#b3b3b3] p-4 select-none">
+    <aside className="w-64 md:w-72 bg-[#121212] flex flex-col h-full rounded-lg border border-white/5 text-[#b3b3b3] p-4 select-none">
       {/* Brand Logo Header */}
       <div 
         onClick={() => onSelectView('home')} 

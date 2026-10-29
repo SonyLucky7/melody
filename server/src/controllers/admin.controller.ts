@@ -90,10 +90,10 @@ export async function handleAdminUpload(req: Request, res: Response): Promise<vo
           plId = plRes.rows[0].id;
         } else {
           const newPl = await query(
-            `INSERT INTO playlists (name, description, is_public, created_at, updated_at)
-             VALUES ($1, $2, true, NOW(), NOW())
+            `INSERT INTO playlists (name, is_public, created_at)
+             VALUES ($1, true, NOW())
              RETURNING id`,
-            [playlistName, `Curated playlist for ${playlistName}`]
+            [playlistName]
           );
           plId = newPl.rows[0].id;
         }

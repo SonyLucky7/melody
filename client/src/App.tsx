@@ -51,6 +51,10 @@ import {
   HelpCircle,
   Plus,
   PlusSquare,
+  Home,
+  Bell,
+  Users,
+  FolderArchive,
 } from 'lucide-react';
 
 function getGreeting(): string {
@@ -305,9 +309,251 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#121212] text-white select-none">
-      {/* Upper Area: Spotify Sidebar + Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-black text-white select-none">
+      {/* 1. Spotify Modern Full-Width Top Header Bar */}
+      <header className="h-16 px-4 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none border-b border-white/5">
+        {/* Left: Spotify-style Circular Brand Icon + History < > */}
+        <div className="flex items-center gap-3">
+          <div 
+            onClick={() => handleSelectView('home')} 
+            className="flex items-center gap-2 cursor-pointer group"
+            title="Melody Home"
+          >
+            <img 
+              src="/Melody-AppIcon-1024.png" 
+              alt="Melody Logo" 
+              className="w-9 h-9 rounded-full shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform" 
+            />
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1.5 ml-1">
+            <button
+              onClick={handleBack}
+              disabled={historyIndex === 0}
+              className="w-8 h-8 rounded-full bg-[#181818] hover:bg-[#282828] text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-[#181818] cursor-pointer"
+              title="Go back"
+            >
+              <ChevronLeft className="w-5 h-5 ml-[-1px]" />
+            </button>
+            <button
+              onClick={handleForward}
+              disabled={historyIndex >= viewHistory.length - 1}
+              className="w-8 h-8 rounded-full bg-[#181818] hover:bg-[#282828] text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-[#181818] cursor-pointer"
+              title="Go forward"
+            >
+              <ChevronRight className="w-5 h-5 mr-[-1px]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Center: Circular Home Button + Capsule Pill Search Bar (Exact Spotify Design) */}
+        <div className="flex items-center gap-2.5 max-w-xl w-full justify-center px-2">
+          {/* Circular Home Button */}
+          <button
+            onClick={() => handleSelectView('home')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+              currentView === 'home'
+                ? 'bg-[#2a2a2a] text-white scale-105 shadow-md shadow-black/40'
+                : 'bg-[#1f1f1f] text-[#b3b3b3] hover:text-white hover:bg-[#282828] hover:scale-105'
+            }`}
+            title="Home"
+          >
+            <Home className="w-5 h-5 fill-current" />
+          </button>
+
+          {/* Spotify Capsule Pill Search Bar */}
+          <div className="relative flex-1 max-w-lg group">
+            <div className="flex items-center bg-[#1f1f1f] hover:bg-[#282828] focus-within:bg-[#1f1f1f] border border-transparent focus-within:border-white/20 rounded-full px-3.5 py-2.5 transition-all shadow-inner">
+              <Search className="w-5 h-5 text-[#b3b3b3] group-hover:text-white flex-shrink-0 mr-2.5 transition-colors" />
+              <input
+                type="text"
+                placeholder="What do you want to play?"
+                value={searchQuery}
+                onFocus={() => {
+                  if (currentView !== 'search') handleSelectView('search');
+                }}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (currentView !== 'search') handleSelectView('search');
+                }}
+                className="w-full bg-transparent text-sm text-white placeholder:text-[#b3b3b3] placeholder:font-medium outline-none"
+              />
+              {/* Divider */}
+              <div className="h-4 w-[1px] bg-white/20 mx-2.5 flex-shrink-0" />
+              {/* Browse Library Drawer Icon */}
+              <button
+                onClick={() => handleSelectView('library')}
+                title="Browse Your Library"
+                className="text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0 p-0.5 cursor-pointer"
+              >
+                <FolderArchive className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section: Explore Free, Install App, Bell, Users, Profile Avatar with Online Dot */}
+        <div className="flex items-center gap-2.5" ref={profileMenuRef}>
+          {/* White Pill Button */}
+          <button
+            onClick={userProfile ? () => setIsProfileModalOpen(true) : openLoginModal}
+            className="hidden sm:flex items-center px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-black tracking-tight transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer whitespace-nowrap"
+          >
+            {userProfile ? 'Master Audio' : 'Explore Free'}
+          </button>
+
+          {/* Install App Pill Button */}
+          <a
+            href="/Melody-v1.0.5.apk"
+            download
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black hover:bg-white/10 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+            title="Download Android App APK"
+          >
+            <ArrowDownCircle className="w-4 h-4 text-white" />
+            <span>Install App</span>
+          </a>
+
+          {/* Notification Bell */}
+          <button
+            onClick={() => setIsHelpOpen(true)}
+            className="w-9 h-9 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            title="Updates & Help"
+          >
+            <Bell className="w-5 h-5" />
+          </button>
+
+          {/* Friends / Devices Activity */}
+          <button
+            onClick={() => setIsDevicesOpen(true)}
+            className="hidden md:flex w-9 h-9 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white items-center justify-center transition-all cursor-pointer"
+            title="Active Devices & Sessions"
+          >
+            <Users className="w-5 h-5" />
+          </button>
+
+          {/* User Profile Avatar with Blue Online Status Dot */}
+          <div className="relative">
+            <button
+              onClick={() => userProfile ? setIsProfileMenuOpen(!isProfileMenuOpen) : openLoginModal()}
+              className="relative w-9 h-9 rounded-full bg-[#242424] hover:bg-[#333333] border border-white/10 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shadow-md text-white font-bold text-xs"
+              title={userProfile ? `${userProfile.firstName} ${userProfile.surname}` : 'Log In / Profile'}
+            >
+              {userProfile ? (
+                <span>{getInitials()}</span>
+              ) : (
+                <User className="w-4 h-4 text-[#b3b3b3]" />
+              )}
+              {/* Online indicator dot */}
+              <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-black" />
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#181824] border border-purple-500/20 shadow-2xl p-4 z-50 text-xs space-y-3 animate-fade-in">
+                {userProfile ? (
+                  <>
+                    <div className="flex items-center gap-3 pb-3 border-b border-white/5">
+                      <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 font-black text-sm">
+                        {getInitials()}
+                      </div>
+                      <div className="overflow-hidden">
+                        <div className="font-bold text-white text-sm truncate">
+                          {userProfile.firstName} {userProfile.surname}
+                        </div>
+                        <div className="text-[11px] text-neutral-400 font-mono">
+                          +91 {userProfile.mobile}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-[#0e0e16] border border-purple-500/20">
+                      <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-0.5">
+                        Licence Key
+                      </div>
+                      <div className="flex items-center justify-between font-mono font-bold text-white text-xs tracking-wider">
+                        <span>{userProfile.formattedKey}</span>
+                        <button
+                          onClick={handleCopyMenuKey}
+                          className="p-1 hover:bg-white/10 rounded text-neutral-400 hover:text-white transition-colors"
+                          title="Copy Key"
+                        >
+                          {copiedMenuKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5 space-y-1">
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          setIsProfileModalOpen(true);
+                        }}
+                        className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Account & Profile Settings</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          handleSelectView('liked');
+                        }}
+                        className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                      >
+                        <Heart className="w-3.5 h-3.5 text-pink-400" />
+                        <span>Liked Songs ({likedSongsList.length})</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          handleSelectView('library');
+                        }}
+                        className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                      >
+                        <Disc className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Your Playlists ({playlists.length})</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          setIsDevicesOpen(true);
+                        }}
+                        className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
+                      >
+                        <Laptop className="w-3.5 h-3.5" />
+                        <span>Manage Active Devices</span>
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-red-500/10 text-red-400 flex items-center gap-2 transition-colors font-medium"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Log Out on this Device</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-neutral-300 text-xs">Log in to sync your custom playlists and liked tracks across all your devices.</p>
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        openLoginModal();
+                      }}
+                      className="w-full py-2 rounded-full bg-white text-black font-extrabold text-xs hover:bg-neutral-200 transition-all cursor-pointer"
+                    >
+                      Log In to Cloud Sync
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace: Sidebar + Floating Spotify Rounded Card */}
+      <div className="flex flex-1 overflow-hidden px-2 pb-2 gap-2">
         <Sidebar
           currentView={currentView}
           selectedArtist={selectedArtist}
@@ -322,211 +568,7 @@ export const App: React.FC = () => {
         />
 
         {/* Main Content Area with Spotify Dark Gradient */}
-        <main className="flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212]">
-          {/* Top Sticky Header with Spotify Navigation Controls */}
-          <header className="sticky top-0 z-30 h-16 bg-[#121212]/80 backdrop-blur-md px-6 flex items-center justify-between border-b border-white/5">
-            {/* Left: Spotify Back & Forward Buttons */}
-            <div className="flex items-center gap-4 flex-1">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleBack}
-                  disabled={historyIndex === 0}
-                  className="w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-black/60"
-                  title="Go back"
-                >
-                  <ChevronLeft className="w-5 h-5 ml-[-1px]" />
-                </button>
-                <button
-                  onClick={handleForward}
-                  disabled={historyIndex >= viewHistory.length - 1}
-                  className="w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-black/60"
-                  title="Go forward"
-                >
-                  <ChevronRight className="w-5 h-5 mr-[-1px]" />
-                </button>
-              </div>
-
-              {/* Search Bar when on Search View */}
-              {currentView === 'search' && (
-                <div className="relative w-full max-w-md">
-                  <Search className="w-4 h-4 text-[#b3b3b3] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="What do you want to play?"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#242424] hover:bg-[#2a2a2a] focus:bg-[#242424] border border-transparent focus:border-white/20 rounded-full pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-[#b3b3b3] outline-none transition-all"
-                    autoFocus
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Right Header: Auth & VIP Badges */}
-            <div className="flex items-center gap-3" ref={profileMenuRef}>
-              {userProfile ? (
-                /* Authenticated VIP User Controls */
-                <div className="flex items-center gap-2.5">
-                  {/* VIP Plan Badge - Opens Spotify Profile */}
-                  <div
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-sm cursor-pointer hover:border-purple-400 hover:scale-105 transition-all"
-                    title="View Profile & Cloud Settings"
-                  >
-                    <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span>{userProfile.plan === 'lifetime' ? 'Lifetime VIP' : 'Annual VIP'}</span>
-                  </div>
-
-                  {/* Device Slot Button */}
-                  <button
-                    onClick={() => setIsDevicesOpen(true)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-xs font-medium transition-all"
-                    title="Active Devices"
-                  >
-                    <Laptop className="w-3.5 h-3.5 text-neutral-400" />
-                    <span className="hidden sm:inline">Devices</span>
-                  </button>
-
-                  {/* Profile Avatar Trigger */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 border border-white/20 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shadow-md shadow-purple-900/30 font-bold text-xs text-white"
-                      title={`${userProfile.firstName} ${userProfile.surname}`}
-                    >
-                      {getInitials()}
-                    </button>
-
-                    {/* Profile Dropdown Menu */}
-                    {isProfileMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#181824] border border-purple-500/20 shadow-2xl p-4 z-50 text-xs space-y-3 animate-fade-in">
-                        <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-                          <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 font-black text-sm">
-                            {getInitials()}
-                          </div>
-                          <div className="overflow-hidden">
-                            <div className="font-bold text-white text-sm truncate">
-                              {userProfile.firstName} {userProfile.surname}
-                            </div>
-                            <div className="text-[11px] text-neutral-400 font-mono">
-                              +91 {userProfile.mobile}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Licence Key Box */}
-                        <div className="p-2.5 rounded-xl bg-[#0e0e16] border border-purple-500/20">
-                          <div className="text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-0.5">
-                            Licence Key
-                          </div>
-                          <div className="flex items-center justify-between font-mono font-bold text-white text-xs tracking-wider">
-                            <span>{userProfile.formattedKey}</span>
-                            <button
-                              onClick={handleCopyMenuKey}
-                              className="p-1 hover:bg-white/10 rounded text-neutral-400 hover:text-white transition-colors"
-                              title="Copy Key"
-                            >
-                              {copiedMenuKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Plan Details */}
-                        <div className="space-y-1 text-[11px] text-neutral-400">
-                          <div className="flex justify-between">
-                            <span>Membership:</span>
-                            <span className="font-bold text-purple-300 capitalize">
-                              {userProfile.plan === 'lifetime' ? 'Lifetime VIP (Forever)' : 'Annual VIP'}
-                            </span>
-                          </div>
-                          {userProfile.expiresAt && (
-                            <div className="flex justify-between">
-                              <span>Expires:</span>
-                              <span className="text-neutral-300">
-                                {new Date(userProfile.expiresAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="pt-2 border-t border-white/5 space-y-1">
-                          <button
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              setIsProfileModalOpen(true);
-                            }}
-                            className="w-full py-1.5 px-2.5 text-left rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 flex items-center gap-2 transition-colors font-semibold"
-                          >
-                            <User className="w-3.5 h-3.5 text-purple-400" />
-                            <span>Spotify Profile & Settings</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              handleSelectView('history');
-                            }}
-                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
-                          >
-                            <Clock className="w-3.5 h-3.5 text-purple-400" />
-                            <span>Recently Played ({recentSongs.length})</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              handleSelectView('library');
-                            }}
-                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
-                          >
-                            <Disc className="w-3.5 h-3.5 text-indigo-400" />
-                            <span>Your Playlists ({playlists.length})</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setIsProfileMenuOpen(false);
-                              setIsDevicesOpen(true);
-                            }}
-                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
-                          >
-                            <Laptop className="w-3.5 h-3.5" />
-                            <span>Manage Active Devices</span>
-                          </button>
-                          <button
-                            onClick={handleLogout}
-                            className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-red-500/10 text-red-400 flex items-center gap-2 transition-colors font-medium"
-                          >
-                            <LogOut className="w-3.5 h-3.5" />
-                            <span>Log Out on this Device</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* Guest Header: Clean Log In Button for Profile & Cloud Sync */
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={openLoginModal}
-                    className="flex items-center gap-2 px-5 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-extrabold tracking-wide transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
-                  >
-                    <User className="w-3.5 h-3.5 text-black" />
-                    <span>Log In</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Help & Support Trigger */}
-              <button
-                onClick={() => setIsHelpOpen(true)}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-400 hover:text-white flex items-center justify-center transition-colors ml-1"
-                title="Help & Discord Support"
-              >
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </div>
-          </header>
-
+        <main className="flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212] rounded-lg border border-white/5">
           {/* View Router */}
           <div className="p-6 flex-1">
             {/* VIEW: HOME (Exact Spotify Dashboard) */}

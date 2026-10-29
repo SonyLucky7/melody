@@ -12,7 +12,9 @@ export async function getPlaylists(req: AuthenticatedRequest, res: Response): Pr
        FROM playlists p
        LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
        WHERE (
-         ($1 > 0 AND p.licence_id = $1)
+         p.is_public = true
+         OR p.licence_id IS NULL
+         OR ($1 > 0 AND p.licence_id = $1)
          OR ($1 = 0 AND $2 != '' AND p.device_id = $2)
        )
        GROUP BY p.id
@@ -42,8 +44,8 @@ export async function createPlaylist(req: AuthenticatedRequest, res: Response): 
 
   try {
     const createRes = await query(
-      `INSERT INTO playlists (licence_id, device_id, name)
-       VALUES ($1, $2, $3)
+      `INSERT INTO playlists (licence_id, device_id, name, is_public)
+       VALUES ($1, $2, $3, true)
        RETURNING id, name, created_at`,
       [licenceId > 0 ? licenceId : null, deviceId, name]
     );
@@ -76,7 +78,9 @@ export async function getPlaylistSongs(req: AuthenticatedRequest, res: Response)
     const pCheck = await query(
       `SELECT id, name FROM playlists 
        WHERE id = $1 AND (
-         ($2 > 0 AND licence_id = $2)
+         is_public = true
+         OR licence_id IS NULL
+         OR ($2 > 0 AND licence_id = $2)
          OR ($2 = 0 AND $3 != '' AND device_id = $3)
        )`,
       [playlistId, licenceId, deviceId]
