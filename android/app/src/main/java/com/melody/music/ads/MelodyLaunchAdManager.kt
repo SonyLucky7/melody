@@ -21,7 +21,7 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 object MelodyLaunchAdManager {
 
     private const val TAG = "MelodyLaunchAd"
-    private const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712" // Official Google Test ID
+    private const val AD_UNIT_ID = "ca-app-pub-2649114568233395/6656692006"
 
     private var interstitialAd: InterstitialAd? = null
     private var isLoading = false

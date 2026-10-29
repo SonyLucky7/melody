@@ -92,7 +92,7 @@ export const LaunchAdModal: React.FC<LaunchAdModalProps> = ({ isOpen, onClose })
               <ins
                 className="adsbygoogle"
                 style={{ display: 'block', width: '100%', height: '100%' }}
-                data-ad-client="ca-pub-3940256099942544"
+                data-ad-client="ca-pub-2649114568233395"
                 data-ad-slot="1033173712"
                 data-ad-format="auto"
                 data-full-width-responsive="true"
