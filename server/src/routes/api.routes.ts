@@ -43,9 +43,9 @@ router.post('/songs/:id/played', verifyDeviceSession, recordSongPlay);
 router.get('/history', verifyDeviceSession, requireDeviceAuth, getRecentlyPlayed);
 
 // --- Playlists ---
-router.get('/playlists', verifyDeviceSession, requireDeviceAuth, getPlaylists);
+router.get('/playlists', verifyDeviceSession, getPlaylists);
 router.post('/playlists', verifyDeviceSession, requireDeviceAuth, createPlaylist);
-router.get('/playlists/:id', verifyDeviceSession, requireDeviceAuth, getPlaylistSongs);
+router.get('/playlists/:id', verifyDeviceSession, getPlaylistSongs);
 router.post('/playlists/:id/songs', verifyDeviceSession, requireDeviceAuth, addSongToPlaylist);
 router.delete('/playlists/:id/songs/:songId', verifyDeviceSession, requireDeviceAuth, removeSongFromPlaylist);
 router.delete('/playlists/:id', verifyDeviceSession, requireDeviceAuth, deletePlaylist);
