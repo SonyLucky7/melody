@@ -171,13 +171,38 @@ export const App: React.FC = () => {
     ]);
 
     setSongs(fetchedSongs);
-    setPlaylists(fetchedPlaylists);
+
+    // Curated Public Playlists that must always show for everyone
+    const PUBLIC_PLAYLISTS: Playlist[] = [
+      { id: 9, name: 'TikTok Phonk', total_songs: 75, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
+      { id: 3, name: 'Slowed + Reverb Essentials', total_songs: 95, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg' },
+      { id: 4, name: 'Sidhu Moose Wala Legends', total_songs: 9, cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg' },
+      { id: 5, name: 'Yo Yo Honey Singh Blockbusters', total_songs: 10, cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg' },
+      { id: 6, name: 'The Weeknd Master Collection', total_songs: 54, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg' },
+      { id: 7, name: 'Lana Del Rey Aesthetics', total_songs: 31, cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg' },
+      { id: 8, name: 'Ariana Grande Top Hits', total_songs: 60, cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg' },
+    ];
+
+    // Merge public playlists with fetched ones
+    const playlistMap = new Map<number, Playlist>();
+    PUBLIC_PLAYLISTS.forEach(p => playlistMap.set(p.id, p));
+    fetchedPlaylists.forEach(p => {
+      const existing = playlistMap.get(p.id);
+      playlistMap.set(p.id, {
+        ...existing,
+        ...p,
+        total_songs: p.total_songs || existing?.total_songs || 0,
+      });
+    });
+
+    const combinedPlaylists = Array.from(playlistMap.values());
+    setPlaylists(combinedPlaylists);
     setRecentSongs(fetchedRecent);
     setLikedSongsList(fetchedFavs);
 
     try {
       if (fetchedSongs.length > 0) localStorage.setItem('melody_cached_songs', JSON.stringify(fetchedSongs));
-      if (fetchedPlaylists.length > 0) localStorage.setItem('melody_cached_playlists', JSON.stringify(fetchedPlaylists));
+      if (combinedPlaylists.length > 0) localStorage.setItem('melody_cached_playlists', JSON.stringify(combinedPlaylists));
       if (fetchedRecent.length > 0) localStorage.setItem('melody_cached_recents', JSON.stringify(fetchedRecent));
     } catch {}
 
@@ -220,8 +245,27 @@ export const App: React.FC = () => {
       setSelectedArtist(data);
     } else if (view === 'playlist' && data) {
       setSelectedPlaylist(data);
-      const s = await fetchPlaylistSongs(data.id);
-      setPlaylistSongs(s);
+      let s = await fetchPlaylistSongs(data.id);
+      if (!s || s.length === 0) {
+        // Fallback: extract songs matching playlist theme directly from catalog
+        const nameLower = (data.name || '').toLowerCase();
+        if (nameLower.includes('phonk')) {
+          s = songs.filter(x => x.album?.toLowerCase().includes('phonk') || x.language?.toLowerCase() === 'phonk' || x.title.toLowerCase().includes('phonk') || x.title.toLowerCase().includes('montagem'));
+        } else if (nameLower.includes('slowed') || nameLower.includes('reverb')) {
+          s = songs.filter(x => x.title.toLowerCase().includes('slowed') || x.title.toLowerCase().includes('reverb') || x.album?.toLowerCase().includes('slowed'));
+        } else if (nameLower.includes('sidhu') || nameLower.includes('moose')) {
+          s = songs.filter(x => x.artist.toLowerCase().includes('moose wala'));
+        } else if (nameLower.includes('honey') || nameLower.includes('yo yo')) {
+          s = songs.filter(x => x.artist.toLowerCase().includes('honey singh'));
+        } else if (nameLower.includes('weeknd')) {
+          s = songs.filter(x => x.artist.toLowerCase().includes('weeknd'));
+        } else if (nameLower.includes('lana')) {
+          s = songs.filter(x => x.artist.toLowerCase().includes('lana'));
+        } else if (nameLower.includes('ariana')) {
+          s = songs.filter(x => x.artist.toLowerCase().includes('ariana'));
+        }
+      }
+      setPlaylistSongs(s || []);
     } else if (view === 'favourites') {
       const favs = await fetchFavourites();
       setLikedSongsList(favs);
@@ -737,26 +781,40 @@ export const App: React.FC = () => {
                       <span className="text-[11px] text-[#b3b3b3] mt-0.5">Add your favorite tracks</span>
                     </div>
 
-                    {/* All User & Uploaded Playlists */}
-                    {playlists.map((pl) => (
-                      <div
-                        key={pl.id}
-                        onClick={() => handleSelectView('playlist', pl)}
-                        className="group relative p-3.5 bg-[#181818] hover:bg-[#282828] rounded-md transition-all duration-300 cursor-pointer shadow-md flex flex-col"
-                      >
-                        <div className="relative aspect-square w-full rounded-md overflow-hidden bg-gradient-to-br from-purple-900/60 via-indigo-950/80 to-neutral-900 mb-3 shadow-lg flex items-center justify-center border border-white/5">
-                          <Disc className="w-16 h-16 text-purple-400/60 group-hover:scale-110 group-hover:text-purple-300 transition-all duration-300" />
-                          <div className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#a855f7] hover:bg-[#9333ea] active:scale-95 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:scale-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                    {/* All User & Public Curated Playlists */}
+                    {playlists.map((pl) => {
+                      const songCount = pl.total_songs ?? pl.song_count ?? 0;
+                      return (
+                        <div
+                          key={pl.id}
+                          onClick={() => handleSelectView('playlist', pl)}
+                          className="group relative p-3.5 bg-[#181818] hover:bg-[#282828] rounded-md transition-all duration-300 cursor-pointer shadow-md flex flex-col"
+                        >
+                          <div className="relative aspect-square w-full rounded-md overflow-hidden bg-gradient-to-br from-purple-900/60 via-indigo-950/80 to-neutral-900 mb-3 shadow-lg flex items-center justify-center border border-white/5">
+                            {pl.cover_url ? (
+                              <img 
+                                src={pl.cover_url} 
+                                alt={pl.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Disc className="w-16 h-16 text-purple-400/60 group-hover:scale-110 group-hover:text-purple-300 transition-all duration-300" />
+                            )}
+                            <div className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#a855f7] hover:bg-[#9333ea] active:scale-95 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:scale-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                              <Play className="w-5 h-5 fill-white ml-0.5" />
+                            </div>
                           </div>
+                          <span className="font-bold text-sm text-white truncate w-full" title={pl.name}>{pl.name}</span>
+                          <span className="text-xs text-[#b3b3b3] mt-1 font-medium flex items-center gap-1">
+                            <Disc className="w-3 h-3 text-purple-400" />
+                            <span>{songCount} songs</span>
+                          </span>
                         </div>
-                        <span className="font-bold text-sm text-white truncate w-full">{pl.name}</span>
-                        <span className="text-xs text-[#b3b3b3] mt-1 font-medium flex items-center gap-1">
-                          <Disc className="w-3 h-3 text-purple-400" />
-                          <span>{pl.song_count || 0} songs</span>
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
