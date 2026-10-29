@@ -78,6 +78,12 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// --- Google AdSense & AdMob Crawler Verification (ads.txt / app-ads.txt) ---
+const GOOGLE_ADS_TXT = 'google.com, pub-2649114568233395, DIRECT, f08c47fec0942fa0\n';
+app.get(['/ads.txt', '/app-ads.txt'], (_req, res) => {
+  res.type('text/plain').send(GOOGLE_ADS_TXT);
+});
+
 // --- Register Routes ---
 app.use(deviceRoutes);      // /activate, /devices
 app.use('/api', apiRoutes);  // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history

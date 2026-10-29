@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, Crown, HelpCircle, User } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, HelpCircle, User } from 'lucide-react';
 import { Playlist } from '../types';
 import { UserProfile } from '../services/api';
 
@@ -43,10 +43,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col">
           <span className="text-xl font-black tracking-tight text-white flex items-center gap-1.5 leading-none">
             Melody
-            <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           </span>
           <span className="text-[10px] text-purple-400 font-semibold tracking-wider uppercase mt-0.5">
-            VIP Studio Audio
+            Lossless Master Audio
           </span>
         </div>
       </div>
