@@ -60,9 +60,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <footer className="h-20 bg-[#181818] border-t border-[#282828] px-4 flex items-center justify-between z-40 select-none">
+    <footer className="relative h-16 md:h-20 bg-[#181818] border-t border-[#282828] px-3 md:px-4 flex items-center justify-between z-40 select-none">
+      {/* Top Edge Micro-Progress Bar on Mobile */}
+      <div className="md:hidden absolute top-0 left-0 right-0 h-1 bg-white/10 overflow-hidden">
+        <div
+          className="h-full bg-[#a855f7] transition-all"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
       {/* 1. Left: Track Info & Cover (Click opens Now Playing Animated Theme) */}
-      <div className="flex items-center gap-3.5 w-1/4 min-w-[200px]">
+      <div className="flex items-center gap-2.5 md:gap-3.5 flex-1 min-w-0 md:w-1/4 md:min-w-[200px]">
         {currentSong ? (
           <>
             <div
@@ -76,18 +84,18 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
                 }}
-                className="w-14 h-14 rounded-md object-cover shadow-lg shadow-black/50 group-hover/cover:brightness-75 transition-all"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-md object-cover shadow-lg shadow-black/50 group-hover/cover:brightness-75 transition-all"
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity">
-                <Maximize2 className="w-5 h-5 text-white drop-shadow-md" />
+                <Maximize2 className="w-4 h-4 md:w-5 md:h-5 text-white drop-shadow-md" />
               </div>
             </div>
             <div
               onClick={() => setIsNowPlayingOpen(true)}
-              className="flex flex-col truncate max-w-[180px] cursor-pointer group/title"
+              className="flex flex-col truncate max-w-[120px] sm:max-w-[180px] cursor-pointer group/title"
               title="Open Now Playing Theme"
             >
-              <span className="text-sm font-semibold text-white truncate group-hover/title:text-[#a855f7] hover:underline transition-colors">
+              <span className="text-xs md:text-sm font-semibold text-white truncate group-hover/title:text-[#a855f7] hover:underline transition-colors">
                 {currentSong.title}
               </span>
               <span
@@ -95,7 +103,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
                   e.stopPropagation();
                   if (onSelectArtist) onSelectArtist(currentSong.artist);
                 }}
-                className="text-xs text-[#b3b3b3] truncate hover:text-white hover:underline cursor-pointer transition-colors"
+                className="text-[10px] md:text-xs text-[#b3b3b3] truncate hover:text-white hover:underline cursor-pointer transition-colors"
               >
                 {currentSong.artist}
               </span>
@@ -126,12 +134,12 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
       </div>
 
       {/* 2. Center: Spotify Controls & Seekbar */}
-      <div className="flex flex-col items-center gap-1.5 w-2/4 max-w-2xl">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-col items-center gap-1 md:gap-1.5 w-auto md:w-2/4 md:max-w-2xl px-1 sm:px-2 flex-shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-5">
           {/* Shuffle */}
           <button
             onClick={toggleShuffle}
-            className={`p-1.5 rounded-full transition-colors relative ${
+            className={`hidden sm:block p-1.5 rounded-full transition-colors relative ${
               isShuffle ? 'text-[#a855f7]' : 'text-[#b3b3b3] hover:text-white'
             }`}
             title={isShuffle ? 'Disable shuffle' : 'Enable shuffle'}
@@ -149,22 +157,22 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
             className="p-1 text-[#b3b3b3] hover:text-white transition-colors disabled:opacity-40"
             title="Previous track"
           >
-            <SkipBack className="w-5 h-5 fill-current" />
+            <SkipBack className="w-4 h-4 md:w-5 md:h-5 fill-current" />
           </button>
 
           {/* Pure Spotify Circular Play/Pause Button */}
           <button
             onClick={togglePlay}
             disabled={!currentSong}
-            className="w-9 h-9 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-md transition-transform disabled:opacity-40 disabled:hover:scale-100"
+            className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white hover:scale-105 active:scale-95 text-black flex items-center justify-center shadow-md transition-transform disabled:opacity-40 disabled:hover:scale-100"
             title={isLoadingTrack ? 'Buffering track...' : isPlaying ? 'Pause' : 'Play'}
           >
             {isLoadingTrack ? (
-              <Loader2 className="w-4 h-4 text-black animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 text-black animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-4 h-4 fill-black text-black" />
+              <Pause className="w-3.5 h-3.5 md:w-4 md:h-4 fill-black text-black" />
             ) : (
-              <Play className="w-4 h-4 fill-black text-black ml-0.5" />
+              <Play className="w-3.5 h-3.5 md:w-4 md:h-4 fill-black text-black ml-0.5" />
             )}
           </button>
 
@@ -175,13 +183,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
             className="p-1 text-[#b3b3b3] hover:text-white transition-colors disabled:opacity-40"
             title="Next track"
           >
-            <SkipForward className="w-5 h-5 fill-current" />
+            <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
           </button>
 
           {/* Repeat */}
           <button
             onClick={toggleRepeat}
-            className={`p-1.5 rounded-full transition-colors relative ${
+            className={`hidden sm:block p-1.5 rounded-full transition-colors relative ${
               repeatMode !== 'off' ? 'text-[#a855f7]' : 'text-[#b3b3b3] hover:text-white'
             }`}
             title={
@@ -204,8 +212,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
           </button>
         </div>
 
-        {/* Spotify Scrubber Seekbar with Purple Progress & Knob on Hover */}
-        <div className="w-full flex items-center gap-2 text-xs font-medium text-[#b3b3b3]">
+        {/* Spotify Scrubber Seekbar with Purple Progress & Knob on Hover (Desktop) */}
+        <div className="hidden md:flex w-full items-center gap-2 text-xs font-medium text-[#b3b3b3]">
           <span className="w-9 text-right text-[11px] font-mono tabular-nums">{formatTime(currentTime)}</span>
           
           <div
@@ -249,8 +257,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
         </div>
       </div>
 
-      {/* 3. Right: Audio Options & Volume */}
-      <div className="flex items-center justify-end gap-3 w-1/4 min-w-[200px]">
+      {/* 3. Right: Audio Options & Volume (Desktop Only) */}
+      <div className="hidden md:flex items-center justify-end gap-3 w-1/4 min-w-[200px]">
         {/* Equalizer Quick Access */}
         <button
           onClick={() => setIsEqModalOpen(true)}

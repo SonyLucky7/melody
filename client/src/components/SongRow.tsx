@@ -154,7 +154,7 @@ export const SongRow: React.FC<SongRowProps> = ({
               <Check className="w-3 h-3 stroke-[3] text-white" />
             </div>
           ) : (
-            <Download className="w-4 h-4 text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-white transition-opacity" />
+            <Download className="w-4 h-4 text-neutral-400 opacity-70 sm:opacity-0 group-hover:opacity-100 hover:text-white transition-opacity" />
           )}
         </button>
 
@@ -169,7 +169,7 @@ export const SongRow: React.FC<SongRowProps> = ({
         >
           <Heart
             className={`w-4 h-4 ${
-              isLiked ? 'fill-[#a855f7] text-[#a855f7]' : 'opacity-0 group-hover:opacity-100'
+              isLiked ? 'fill-[#a855f7] text-[#a855f7]' : 'opacity-70 sm:opacity-0 group-hover:opacity-100'
             }`}
           />
         </button>
@@ -181,7 +181,7 @@ export const SongRow: React.FC<SongRowProps> = ({
               e.stopPropagation();
               onAddToPlaylist(song);
             }}
-            className="p-1 text-neutral-400 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+            className="p-1 text-neutral-400 hover:text-white transition-colors opacity-70 sm:opacity-0 group-hover:opacity-100"
             title="Add to Playlist"
           >
             <ListPlus className="w-4 h-4" />

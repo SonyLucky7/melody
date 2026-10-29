@@ -29,7 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
 }) => {
   return (
-    <aside className="w-64 md:w-72 bg-[#121212] flex flex-col h-full rounded-lg border border-white/5 text-[#b3b3b3] p-4 select-none">
+    <aside className="hidden md:flex w-64 md:w-72 bg-[#121212] flex-col h-full rounded-lg border border-white/5 text-[#b3b3b3] p-4 select-none flex-shrink-0">
       {/* Brand Logo Header */}
       <div 
         onClick={() => onSelectView('home')} 
@@ -284,6 +284,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Devices</span>
           </button>
         </div>
+
+        {/* Download Android App Button */}
+        <a
+          href="/Melody-v1.0.5.apk"
+          download
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
+          title="Download Melody Android APK (v1.0.5)"
+        >
+          <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
+          <span>Download Android App</span>
+        </a>
 
         {onOpenHelp && (
           <button

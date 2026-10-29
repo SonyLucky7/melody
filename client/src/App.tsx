@@ -55,6 +55,8 @@ import {
   Bell,
   Users,
   FolderArchive,
+  Library,
+  X,
 } from 'lucide-react';
 
 function getGreeting(): string {
@@ -62,6 +64,72 @@ function getGreeting(): string {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
+}
+
+// Curated Public Playlists always available across mobile and desktop
+export const PUBLIC_PLAYLISTS: Playlist[] = [
+  { id: 10, name: 'Motivation Vol. 1', total_songs: 92, cover_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80' },
+  { id: 11, name: 'Motivation Vol. 2', total_songs: 91, cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80' },
+  { id: 9, name: 'TikTok Phonk', total_songs: 51, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
+  { id: 3, name: 'Slowed + Reverb Essentials', total_songs: 95, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg' },
+  { id: 4, name: 'Sidhu Moose Wala Legends', total_songs: 9, cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg' },
+  { id: 5, name: 'Yo Yo Honey Singh Blockbusters', total_songs: 10, cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg' },
+  { id: 6, name: 'The Weeknd Master Collection', total_songs: 54, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg' },
+  { id: 7, name: 'Lana Del Rey Aesthetics', total_songs: 31, cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg' },
+  { id: 8, name: 'Ariana Grande Top Hits', total_songs: 60, cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg' },
+];
+
+export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song[] {
+  if (!playlist || !songCatalog || songCatalog.length === 0) return [];
+  const nameLower = (playlist.name || '').toLowerCase();
+  const id = Number(playlist.id);
+
+  if (id === 10 || nameLower.includes('motivation vol. 1') || nameLower === 'motivation 1') {
+    return songCatalog.filter((x) => x.album === 'Motivation Vol. 1');
+  }
+  if (id === 11 || nameLower.includes('motivation vol. 2') || nameLower === 'motivation 2') {
+    return songCatalog.filter((x) => x.album === 'Motivation Vol. 2');
+  }
+  if (nameLower.includes('motivation')) {
+    return songCatalog.filter((x) => x.album?.toLowerCase().includes('motivation'));
+  }
+  if (id === 9 || nameLower.includes('phonk')) {
+    return songCatalog.filter(
+      (x) =>
+        x.album?.toLowerCase().includes('phonk') ||
+        x.language?.toLowerCase() === 'phonk' ||
+        x.title.toLowerCase().includes('phonk') ||
+        x.title.toLowerCase().includes('montagem')
+    );
+  }
+  if (id === 3 || nameLower.includes('slowed') || nameLower.includes('reverb')) {
+    return songCatalog.filter(
+      (x) =>
+        x.title.toLowerCase().includes('slowed') ||
+        x.title.toLowerCase().includes('reverb') ||
+        x.album?.toLowerCase().includes('slowed')
+    );
+  }
+  if (id === 4 || nameLower.includes('sidhu') || nameLower.includes('moose')) {
+    return songCatalog.filter((x) => x.artist.toLowerCase().includes('moose wala'));
+  }
+  if (id === 5 || nameLower.includes('honey') || nameLower.includes('yo yo')) {
+    return songCatalog.filter((x) => x.artist.toLowerCase().includes('honey singh'));
+  }
+  if (id === 6 || nameLower.includes('weeknd')) {
+    return songCatalog.filter((x) => x.artist.toLowerCase().includes('weeknd'));
+  }
+  if (id === 7 || nameLower.includes('lana')) {
+    return songCatalog.filter((x) => x.artist.toLowerCase().includes('lana'));
+  }
+  if (id === 8 || nameLower.includes('ariana')) {
+    return songCatalog.filter((x) => x.artist.toLowerCase().includes('ariana'));
+  }
+
+  const byAlbum = songCatalog.filter((x) => x.album && x.album.toLowerCase() === nameLower);
+  if (byAlbum.length > 0) return byAlbum;
+
+  return [];
 }
 
 export const App: React.FC = () => {
@@ -85,9 +153,16 @@ export const App: React.FC = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>(() => {
     try {
       const cached = localStorage.getItem('melody_cached_playlists');
-      return cached ? JSON.parse(cached) : [];
+      if (cached) {
+        const parsed: Playlist[] = JSON.parse(cached);
+        const map = new Map<number, Playlist>();
+        PUBLIC_PLAYLISTS.forEach((p) => map.set(p.id, p));
+        parsed.forEach((p) => map.set(p.id, { ...map.get(p.id), ...p }));
+        return Array.from(map.values());
+      }
+      return PUBLIC_PLAYLISTS;
     } catch {
-      return [];
+      return PUBLIC_PLAYLISTS;
     }
   });
   const [recentSongs, setRecentSongs] = useState<Song[]>(() => {
@@ -118,9 +193,22 @@ export const App: React.FC = () => {
   const [isDevicesOpen, setIsDevicesOpen] = useState(false);
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
+  const [showMobileInstallBanner, setShowMobileInstallBanner] = useState(true);
 
   const { playSong, offlineTracks, refreshFavourites } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
+
+  // Auto-resolve playlist tracks if songs were still fetching when playlist was selected
+  useEffect(() => {
+    if (currentView === 'playlist' && selectedPlaylist && songs.length > 0) {
+      if (playlistSongs.length === 0) {
+        const resolved = getPlaylistTracks(selectedPlaylist, songs);
+        if (resolved.length > 0) {
+          setPlaylistSongs(resolved);
+        }
+      }
+    }
+  }, [songs, currentView, selectedPlaylist, playlistSongs.length]);
 
   useEffect(() => {
     loadCatalog();
@@ -163,7 +251,7 @@ export const App: React.FC = () => {
   const loadCatalog = async () => {
     setLoading(true);
     const [fetchedSongs, fetchedPlaylists, fetchedRecent, fetchedFavs, devicesData] = await Promise.all([
-      fetchSongs('', '', 500),
+      fetchSongs('', '', 1000),
       fetchPlaylists(),
       fetchRecentlyPlayed(),
       fetchFavourites(),
@@ -171,19 +259,6 @@ export const App: React.FC = () => {
     ]);
 
     setSongs(fetchedSongs);
-
-    // Curated Public Playlists that must always show for everyone
-    const PUBLIC_PLAYLISTS: Playlist[] = [
-      { id: 10, name: 'Motivation Vol. 1', total_songs: 92, cover_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80' },
-      { id: 11, name: 'Motivation Vol. 2', total_songs: 91, cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80' },
-      { id: 9, name: 'TikTok Phonk', total_songs: 51, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
-      { id: 3, name: 'Slowed + Reverb Essentials', total_songs: 95, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg' },
-      { id: 4, name: 'Sidhu Moose Wala Legends', total_songs: 9, cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg' },
-      { id: 5, name: 'Yo Yo Honey Singh Blockbusters', total_songs: 10, cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg' },
-      { id: 6, name: 'The Weeknd Master Collection', total_songs: 54, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg' },
-      { id: 7, name: 'Lana Del Rey Aesthetics', total_songs: 31, cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg' },
-      { id: 8, name: 'Ariana Grande Top Hits', total_songs: 60, cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg' },
-    ];
 
     // Merge public playlists with fetched ones
     const playlistMap = new Map<number, Playlist>();
@@ -246,28 +321,23 @@ export const App: React.FC = () => {
     if (view === 'artist' && data) {
       setSelectedArtist(data);
     } else if (view === 'playlist' && data) {
-      setSelectedPlaylist(data);
-      let s = await fetchPlaylistSongs(data.id);
-      if (!s || s.length === 0) {
-        // Fallback: extract songs matching playlist theme directly from catalog
-        const nameLower = (data.name || '').toLowerCase();
-        if (nameLower.includes('phonk')) {
-          s = songs.filter(x => x.album?.toLowerCase().includes('phonk') || x.language?.toLowerCase() === 'phonk' || x.title.toLowerCase().includes('phonk') || x.title.toLowerCase().includes('montagem'));
-        } else if (nameLower.includes('slowed') || nameLower.includes('reverb')) {
-          s = songs.filter(x => x.title.toLowerCase().includes('slowed') || x.title.toLowerCase().includes('reverb') || x.album?.toLowerCase().includes('slowed'));
-        } else if (nameLower.includes('sidhu') || nameLower.includes('moose')) {
-          s = songs.filter(x => x.artist.toLowerCase().includes('moose wala'));
-        } else if (nameLower.includes('honey') || nameLower.includes('yo yo')) {
-          s = songs.filter(x => x.artist.toLowerCase().includes('honey singh'));
-        } else if (nameLower.includes('weeknd')) {
-          s = songs.filter(x => x.artist.toLowerCase().includes('weeknd'));
-        } else if (nameLower.includes('lana')) {
-          s = songs.filter(x => x.artist.toLowerCase().includes('lana'));
-        } else if (nameLower.includes('ariana')) {
-          s = songs.filter(x => x.artist.toLowerCase().includes('ariana'));
+      const fullPlaylist = playlists.find(p => p.id === data.id) || PUBLIC_PLAYLISTS.find(p => p.id === data.id) || data;
+      setSelectedPlaylist(fullPlaylist);
+
+      // Instant local resolution so tracks NEVER show empty!
+      const instant = getPlaylistTracks(fullPlaylist, songs);
+      setPlaylistSongs(instant);
+
+      // In background, fetch from backend and use if returned
+      fetchPlaylistSongs(fullPlaylist.id).then((s) => {
+        if (s && s.length > 0) {
+          setPlaylistSongs(s);
+        } else if (instant.length > 0) {
+          setPlaylistSongs(instant);
         }
-      }
-      setPlaylistSongs(s || []);
+      }).catch(() => {
+        if (instant.length > 0) setPlaylistSongs(instant);
+      });
     } else if (view === 'favourites') {
       const favs = await fetchFavourites();
       setLikedSongsList(favs);
@@ -356,10 +426,45 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-black text-white select-none">
+      {/* 0. Mobile Top Dismissible App Install Banner (Spotify mobile web pattern) */}
+      {showMobileInstallBanner && (
+        <div className="md:hidden flex items-center justify-between px-3 py-2 bg-gradient-to-r from-purple-950 via-[#181818] to-neutral-900 border-b border-purple-500/20 text-white z-50 flex-shrink-0 animate-fade-in">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              onClick={() => setShowMobileInstallBanner(false)}
+              className="text-neutral-400 hover:text-white p-1 -ml-1 transition-colors flex-shrink-0"
+              title="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <img
+              src="/Melody-AppIcon-1024.png"
+              alt="Melody App"
+              className="w-8 h-8 rounded-lg shadow-md border border-white/10 flex-shrink-0 object-cover"
+            />
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-bold text-white truncate flex items-center gap-1">
+                Melody Music App
+                <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.5</span>
+              </span>
+              <span className="text-[10px] text-purple-200/80 truncate">Free 320k streaming & offline mode</span>
+            </div>
+          </div>
+          <a
+            href="/Melody-v1.0.5.apk"
+            download
+            className="flex-shrink-0 ml-2 px-3 py-1.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1"
+          >
+            <ArrowDownCircle className="w-3.5 h-3.5 text-black" />
+            <span>Install</span>
+          </a>
+        </div>
+      )}
+
       {/* 1. Spotify Modern Full-Width Top Header Bar (Exact match to official Spotify Desktop) */}
-      <header className="h-16 px-4 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none">
+      <header className="h-14 sm:h-16 px-3 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none">
         {/* Left: Melody Circular Brand Icon */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div 
             onClick={() => handleSelectView('home')} 
             className="flex items-center cursor-pointer group"
@@ -368,17 +473,17 @@ export const App: React.FC = () => {
             <img 
               src="/Melody-AppIcon-1024.png" 
               alt="Melody Logo" 
-              className="w-10 h-10 rounded-full shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform object-cover" 
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform object-cover" 
             />
           </div>
         </div>
 
         {/* Center: Circular Home Button + Capsule Pill Search Bar (Exact Spotify Design) */}
-        <div className="flex items-center gap-2.5 max-w-xl w-full justify-center px-2">
+        <div className="flex items-center gap-2 max-w-xl w-full justify-center px-1 sm:px-2">
           {/* Circular Home Button */}
           <button
             onClick={() => handleSelectView('home')}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+            className={`hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
               currentView === 'home'
                 ? 'bg-[#2a2a2a] text-white scale-105 shadow-md shadow-black/40'
                 : 'bg-[#1f1f1f] text-[#b3b3b3] hover:text-white hover:bg-[#282828] hover:scale-105'
@@ -390,8 +495,8 @@ export const App: React.FC = () => {
 
           {/* Spotify Capsule Pill Search Bar */}
           <div className="relative flex-1 max-w-[474px] group">
-            <div className="flex items-center h-12 bg-[#1f1f1f] hover:bg-[#282828] focus-within:bg-[#1f1f1f] border border-transparent focus-within:border-white/20 rounded-full px-4 transition-all shadow-inner">
-              <Search className="w-5 h-5 text-[#b3b3b3] group-hover:text-white flex-shrink-0 mr-3 transition-colors" />
+            <div className="flex items-center h-10 md:h-12 bg-[#1f1f1f] hover:bg-[#282828] focus-within:bg-[#1f1f1f] border border-transparent focus-within:border-white/20 rounded-full px-3 md:px-4 transition-all shadow-inner">
+              <Search className="w-4 h-4 md:w-5 md:h-5 text-[#b3b3b3] group-hover:text-white flex-shrink-0 mr-2 md:mr-3 transition-colors" />
               <input
                 type="text"
                 placeholder="What do you want to play?"
@@ -403,15 +508,15 @@ export const App: React.FC = () => {
                   setSearchQuery(e.target.value);
                   if (currentView !== 'search') handleSelectView('search');
                 }}
-                className="w-full bg-transparent text-sm text-white placeholder:text-[#b3b3b3] placeholder:font-normal outline-none"
+                className="w-full bg-transparent text-xs sm:text-sm text-white placeholder:text-[#b3b3b3] placeholder:font-normal outline-none"
               />
               {/* Divider */}
-              <div className="h-5 w-[1px] bg-white/20 mx-3 flex-shrink-0" />
+              <div className="hidden sm:block h-5 w-[1px] bg-white/20 mx-3 flex-shrink-0" />
               {/* Browse Library Drawer Icon */}
               <button
                 onClick={() => handleSelectView('library')}
                 title="Browse Your Library"
-                className="text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0 p-1 cursor-pointer"
+                className="hidden sm:block text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0 p-1 cursor-pointer"
               >
                 <FolderArchive className="w-5 h-5" />
               </button>
@@ -420,7 +525,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* Right Section: Explore Premium, Install App, Bell, Users, Profile Avatar with Online Dot */}
-        <div className="flex items-center gap-3" ref={profileMenuRef}>
+        <div className="flex items-center gap-2 sm:gap-3" ref={profileMenuRef}>
           {/* White Pill Button: Explore Premium */}
           <button
             onClick={userProfile ? () => setIsProfileModalOpen(true) : openLoginModal}
@@ -429,15 +534,16 @@ export const App: React.FC = () => {
             Explore Premium
           </button>
 
-          {/* Install App Pill Button */}
+          {/* Install App Pill Button (Prominently visible on mobile & desktop) */}
           <a
             href="/Melody-v1.0.5.apk"
             download
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-white/10 text-white text-sm font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md transition-all whitespace-nowrap cursor-pointer"
             title="Download Android App APK"
           >
-            <ArrowDownCircle className="w-4 h-4 text-white" />
-            <span>Install App</span>
+            <ArrowDownCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+            <span className="hidden sm:inline">Install App</span>
+            <span className="sm:hidden">Install</span>
           </a>
 
           {/* Notification Bell */}
@@ -580,7 +686,7 @@ export const App: React.FC = () => {
       </header>
 
       {/* Main Workspace: Sidebar + Floating Spotify Rounded Card */}
-      <div className="flex flex-1 overflow-hidden px-2 pb-2 gap-2">
+      <div className="flex flex-1 overflow-hidden px-1 sm:px-2 pb-1 sm:pb-2 gap-2">
         <Sidebar
           currentView={currentView}
           selectedArtist={selectedArtist}
@@ -597,18 +703,18 @@ export const App: React.FC = () => {
         {/* Main Content Area with Spotify Dark Gradient */}
         <main className="flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212] rounded-lg border border-white/5">
           {/* View Router */}
-          <div className="p-6 flex-1">
+          <div className="p-3 sm:p-6 flex-1">
             {/* VIEW: HOME (Exact Spotify Dashboard) */}
             {currentView === 'home' && (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {/* Time-of-day Spotify Greeting */}
                 <div>
-                  <h1 className="text-3xl font-black text-white tracking-tight">{getGreeting()}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{getGreeting()}</h1>
                 </div>
 
                 {/* 1. Top 6 Spotify Quick-Picks Grid */}
                 {songs.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
                     {songs.slice(0, 6).map((song) => (
                       <div
                         key={song.id}
@@ -1197,18 +1303,46 @@ export const App: React.FC = () => {
             {/* VIEW: CUSTOM PLAYLIST */}
             {currentView === 'playlist' && selectedPlaylist && (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 p-8 rounded-2xl bg-gradient-to-r from-purple-900/40 via-neutral-900/40 to-neutral-900/20 border border-white/5 shadow-2xl">
-                  <div className="w-44 h-44 rounded-xl bg-gradient-to-br from-purple-700 via-indigo-800 to-neutral-900 flex items-center justify-center shadow-2xl shadow-purple-950/50 flex-shrink-0 border border-white/10">
-                    <Disc className="w-20 h-20 text-purple-300" />
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8 rounded-2xl bg-gradient-to-b sm:bg-gradient-to-r from-purple-900/40 via-neutral-900/60 to-black/80 border border-white/10 shadow-2xl">
+                  {/* Playlist Cover Art with fallback */}
+                  <div className="relative w-36 h-36 sm:w-48 sm:h-48 rounded-xl overflow-hidden shadow-2xl shadow-purple-950/60 flex-shrink-0 border border-white/10 bg-neutral-900">
+                    {selectedPlaylist.cover_url ? (
+                      <img
+                        src={selectedPlaylist.cover_url}
+                        alt={selectedPlaylist.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-700 via-indigo-800 to-neutral-900">
+                        <Disc className="w-16 h-16 text-purple-300" />
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-3 flex-1 min-w-0">
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-purple-400">Public Playlist</span>
-                    <h1 className="text-4xl sm:text-5xl font-black text-white truncate">{selectedPlaylist.name}</h1>
-                    <p className="text-xs text-neutral-400">
-                      Created by you • {playlistSongs.length} songs • Synced with PostgreSQL Database
+
+                  <div className="space-y-2.5 flex-1 min-w-0 text-center sm:text-left w-full">
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-purple-500/30">
+                        {selectedPlaylist.id <= 11 ? 'Curated Playlist' : 'Your Playlist'}
+                      </span>
+                      <span className="text-[11px] text-neutral-400">Studio 320k Audio</span>
+                    </div>
+
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white truncate" title={selectedPlaylist.name}>
+                      {selectedPlaylist.name}
+                    </h1>
+
+                    <p className="text-xs text-neutral-400 flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
+                      <span>Melody Music</span>
+                      <span>•</span>
+                      <span className="font-semibold text-white">{playlistSongs.length} songs</span>
+                      <span>•</span>
+                      <span>Free Streaming</span>
                     </p>
 
-                    <div className="flex items-center gap-3 pt-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-3 pt-2">
                       <button
                         onClick={() => {
                           if (playlistSongs.length > 0) {
@@ -1216,18 +1350,21 @@ export const App: React.FC = () => {
                           }
                         }}
                         disabled={playlistSongs.length === 0}
-                        className="flex items-center gap-2 px-6 py-3 rounded-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all hover:scale-105"
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-40 text-white font-extrabold text-sm shadow-xl shadow-purple-950/60 transition-all hover:scale-105 active:scale-95"
                       >
                         <Play className="w-4 h-4 fill-white" />
-                        <span>Play</span>
+                        <span>Play All</span>
                       </button>
 
-                      <button
-                        onClick={() => handleDeletePlaylist(selectedPlaylist.id)}
-                        className="px-4 py-2.5 rounded-full bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-neutral-400 hover:text-red-400 text-xs font-semibold transition-colors"
-                      >
-                        Delete Playlist
-                      </button>
+                      {/* Only allow deleting custom playlists, never system curated */}
+                      {selectedPlaylist.id > 11 && (
+                        <button
+                          onClick={() => handleDeletePlaylist(selectedPlaylist.id)}
+                          className="px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-neutral-400 hover:text-red-400 text-xs font-semibold transition-colors"
+                        >
+                          Delete Playlist
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1260,6 +1397,52 @@ export const App: React.FC = () => {
 
       {/* Persistent Bottom Spotify-Style Player */}
       <PlayerBar onSelectArtist={(artist) => handleSelectView('artist', artist)} />
+
+      {/* Spotify Mobile Bottom Navigation Bar (md:hidden) */}
+      <nav className="md:hidden flex items-center justify-around bg-[#121212] border-t border-white/10 py-1.5 px-2 z-40 select-none flex-shrink-0">
+        <button
+          onClick={() => handleSelectView('home')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-all ${
+            currentView === 'home' ? 'text-white' : 'text-[#b3b3b3]'
+          }`}
+        >
+          <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#a855f7] fill-current' : ''}`} />
+          <span className="text-[10px] font-bold">Home</span>
+        </button>
+
+        <button
+          onClick={() => handleSelectView('search')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-all ${
+            currentView === 'search' ? 'text-white' : 'text-[#b3b3b3]'
+          }`}
+        >
+          <Search className={`w-5 h-5 ${currentView === 'search' ? 'text-[#a855f7] stroke-[2.5]' : ''}`} />
+          <span className="text-[10px] font-bold">Search</span>
+        </button>
+
+        <button
+          onClick={() => handleSelectView('library')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-all ${
+            currentView === 'library' ? 'text-white' : 'text-[#b3b3b3]'
+          }`}
+        >
+          <Library className={`w-5 h-5 ${currentView === 'library' ? 'text-[#a855f7]' : ''}`} />
+          <span className="text-[10px] font-bold">Your Library</span>
+        </button>
+
+        <a
+          href="/Melody-v1.0.5.apk"
+          download
+          className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-purple-400 hover:text-purple-300 transition-all active:scale-95"
+          title="Download Android App APK"
+        >
+          <div className="relative">
+            <ArrowDownCircle className="w-5 h-5 text-[#a855f7]" />
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
+          <span className="text-[10px] font-extrabold text-white">Install App</span>
+        </a>
+      </nav>
 
       {/* Interactive Modals */}
       <ActivationModal

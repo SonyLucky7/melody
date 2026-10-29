@@ -71,6 +71,7 @@ app.get('/health', async (req, res) => {
   const dbConnected = await checkDatabaseConnection();
   res.status(dbConnected ? 200 : 503).json({
     status: dbConnected ? 'healthy' : 'degraded',
+    version: '1.0.5-mobile-sync',
     database: dbConnected ? 'connected' : 'disconnected',
     freeMode: config.freeMode,
     activeStreams: spoolManager.getActiveCount(),
