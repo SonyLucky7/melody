@@ -71,6 +71,29 @@ export class TelegramMultiBotService {
   }
 
   /**
+   * Upload audio with a specific dedicated bot for maximum multi-bot concurrency
+   */
+  async uploadAudioWithBotIndex(
+    botIndex: number,
+    audioBuffer: Buffer,
+    filename: string,
+    title: string,
+    artist: string,
+    coverBuffer?: Buffer
+  ): Promise<TelegramUploadResult> {
+    const token = this.botTokens[botIndex % this.botTokens.length];
+    return this.executeMultipartAudioUpload(
+      token,
+      this.channelId,
+      audioBuffer,
+      filename,
+      title,
+      artist,
+      coverBuffer
+    );
+  }
+
+  /**
    * Race all Telegram bots in parallel simultaneously - fastest bot wins immediately with minimum latency!
    * File download URL is cached in memory for 50 minutes.
    */
@@ -243,11 +266,12 @@ export class TelegramMultiBotService {
           hostname: url.hostname,
           path: url.pathname,
           method: 'POST',
+          agent: telegramAgent,
           headers: {
             'Content-Type': `multipart/form-data; boundary=${boundary}`,
             'Content-Length': fullBody.length,
           },
-          timeout: 30000,
+          timeout: 45000,
         },
         (res) => {
           let data = '';
