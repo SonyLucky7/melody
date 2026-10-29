@@ -13,7 +13,17 @@ data class Song(
     @SerializedName("created_at") val createdAt: String?
 ) {
     fun getFullCoverUrl(): String {
-        if (coverUrl.isNullOrBlank()) {
+        if (coverUrl.isNullOrBlank() || coverUrl == "/Melody-Logo-512.png") {
+            val alb = album?.lowercase() ?: ""
+            if (alb.contains("motivation vol. 1") || alb == "motivation 1") {
+                return "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"
+            }
+            if (alb.contains("motivation vol. 2") || alb == "motivation 2") {
+                return "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80"
+            }
+            if (alb.contains("phonk")) {
+                return "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23"
+            }
             return "https://melody-chi-nine.vercel.app/Melody-Logo-512.png"
         }
         if (coverUrl.startsWith("http://") || coverUrl.startsWith("https://")) {
@@ -47,8 +57,61 @@ data class PlayUrlResponse(
 data class Playlist(
     @SerializedName("id") val id: Long,
     @SerializedName("name") val name: String,
-    @SerializedName("total_songs") val totalSongs: Int? = 0
+    @SerializedName("total_songs") val totalSongs: Int? = 0,
+    @SerializedName("cover_url") val coverUrl: String? = null
 )
+
+val PUBLIC_PLAYLISTS = listOf(
+    Playlist(10L, "Motivation Vol. 1", 92, "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"),
+    Playlist(11L, "Motivation Vol. 2", 91, "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80"),
+    Playlist(9L, "TikTok Phonk", 51, "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23"),
+    Playlist(3L, "Slowed + Reverb Essentials", 95, "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg"),
+    Playlist(4L, "Sidhu Moose Wala Legends", 9, "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg"),
+    Playlist(5L, "Yo Yo Honey Singh Blockbusters", 10, "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg"),
+    Playlist(6L, "The Weeknd Master Collection", 54, "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg"),
+    Playlist(7L, "Lana Del Rey Aesthetics", 31, "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg"),
+    Playlist(8L, "Ariana Grande Top Hits", 60, "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg")
+)
+
+fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Song> {
+    val nameLower = playlist.name.lowercase()
+    val id = playlist.id
+    return when {
+        id == 10L || nameLower.contains("motivation vol. 1") || nameLower == "motivation 1" ->
+            allSongs.filter { it.album?.equals("Motivation Vol. 1", ignoreCase = true) == true }
+        id == 11L || nameLower.contains("motivation vol. 2") || nameLower == "motivation 2" ->
+            allSongs.filter { it.album?.equals("Motivation Vol. 2", ignoreCase = true) == true }
+        nameLower.contains("motivation") ->
+            allSongs.filter { it.album?.contains("motivation", ignoreCase = true) == true }
+        id == 9L || nameLower.contains("phonk") ->
+            allSongs.filter {
+                it.album?.contains("phonk", ignoreCase = true) == true ||
+                it.language?.equals("phonk", ignoreCase = true) == true ||
+                it.title.contains("phonk", ignoreCase = true) ||
+                it.title.contains("montagem", ignoreCase = true)
+            }
+        id == 3L || nameLower.contains("slowed") || nameLower.contains("reverb") ->
+            allSongs.filter {
+                it.title.contains("slowed", ignoreCase = true) ||
+                it.title.contains("reverb", ignoreCase = true) ||
+                it.album?.contains("slowed", ignoreCase = true) == true
+            }
+        id == 4L || nameLower.contains("sidhu") || nameLower.contains("moose") ->
+            allSongs.filter { it.artist.contains("moose wala", ignoreCase = true) }
+        id == 5L || nameLower.contains("honey") || nameLower.contains("yo yo") ->
+            allSongs.filter { it.artist.contains("honey singh", ignoreCase = true) }
+        id == 6L || nameLower.contains("weeknd") ->
+            allSongs.filter { it.artist.contains("weeknd", ignoreCase = true) }
+        id == 7L || nameLower.contains("lana") ->
+            allSongs.filter { it.artist.contains("lana", ignoreCase = true) }
+        id == 8L || nameLower.contains("ariana") ->
+            allSongs.filter { it.artist.contains("ariana", ignoreCase = true) }
+        else -> {
+            val byAlbum = allSongs.filter { it.album?.equals(nameLower, ignoreCase = true) == true }
+            if (byAlbum.isNotEmpty()) byAlbum else emptyList()
+        }
+    }
+}
 
 data class PlaylistsResponse(
     @SerializedName("success") val success: Boolean,

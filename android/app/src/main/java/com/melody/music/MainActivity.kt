@@ -25,6 +25,7 @@ import androidx.core.view.WindowCompat
 import com.melody.music.ads.MelodyLaunchAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
+import com.melody.music.data.model.Playlist
 import com.melody.music.player.MelodyPlaybackService
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.components.ActivationDialog
@@ -33,6 +34,7 @@ import com.melody.music.ui.components.MiniPlayerBar
 import com.melody.music.ui.screens.ArtistScreen
 import com.melody.music.ui.screens.HomeScreen
 import com.melody.music.ui.screens.LibraryScreen
+import com.melody.music.ui.screens.CustomPlaylistScreen
 import com.melody.music.ui.screens.ProfileScreen
 import com.melody.music.ui.screens.SearchScreen
 import com.melody.music.ui.theme.MelodyBg
@@ -82,6 +84,7 @@ class MainActivity : ComponentActivity() {
 fun MelodyApp() {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedArtist by remember { mutableStateOf<String?>(null) }
+    var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
     var isFullPlayerVisible by remember { mutableStateOf(false) }
     var isActivationDialogOpen by remember { mutableStateOf(false) }
@@ -110,11 +113,13 @@ fun MelodyApp() {
     }
 
     // Handle Android hardware back button
-    BackHandler(enabled = selectedArtist != null || isFullPlayerVisible) {
+    BackHandler(enabled = selectedArtist != null || selectedPlaylist != null || isFullPlayerVisible) {
         if (isFullPlayerVisible) {
             isFullPlayerVisible = false
         } else if (selectedArtist != null) {
             selectedArtist = null
+        } else if (selectedPlaylist != null) {
+            selectedPlaylist = null
         }
     }
 
@@ -122,7 +127,7 @@ fun MelodyApp() {
         scope.launch {
             for (attempt in 1..4) {
                 try {
-                    val res = ApiClient.service.getSongs(limit = 100)
+                    val res = ApiClient.service.getSongs(limit = 1000)
                     if (res.success && res.data.isNotEmpty()) {
                         songs = res.data
                         break
@@ -161,10 +166,11 @@ fun MelodyApp() {
                     tonalElevation = 8.dp
                 ) {
                     NavigationBarItem(
-                        selected = selectedTab == 0 && selectedArtist == null,
+                        selected = selectedTab == 0 && selectedArtist == null && selectedPlaylist == null,
                         onClick = {
                             selectedTab = 0
                             selectedArtist = null
+                            selectedPlaylist = null
                         },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                         label = { Text("Home") },
@@ -177,10 +183,11 @@ fun MelodyApp() {
                         )
                     )
                     NavigationBarItem(
-                        selected = selectedTab == 1 && selectedArtist == null,
+                        selected = selectedTab == 1 && selectedArtist == null && selectedPlaylist == null,
                         onClick = {
                             selectedTab = 1
                             selectedArtist = null
+                            selectedPlaylist = null
                         },
                         icon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                         label = { Text("Search") },
@@ -193,10 +200,11 @@ fun MelodyApp() {
                         )
                     )
                     NavigationBarItem(
-                        selected = selectedTab == 2 && selectedArtist == null,
+                        selected = selectedTab == 2 && selectedArtist == null && selectedPlaylist == null,
                         onClick = {
                             selectedTab = 2
                             selectedArtist = null
+                            selectedPlaylist = null
                         },
                         icon = { Icon(Icons.Default.LibraryMusic, contentDescription = "Library") },
                         label = { Text("Your Library") },
@@ -209,10 +217,11 @@ fun MelodyApp() {
                         )
                     )
                     NavigationBarItem(
-                        selected = selectedTab == 3 && selectedArtist == null,
+                        selected = selectedTab == 3 && selectedArtist == null && selectedPlaylist == null,
                         onClick = {
                             selectedTab = 3
                             selectedArtist = null
+                            selectedPlaylist = null
                         },
                         icon = {
                             Icon(
@@ -247,6 +256,16 @@ fun MelodyApp() {
                         MelodyPlayerManager.playSong(song, queue)
                     }
                 )
+            } else if (selectedPlaylist != null) {
+                CustomPlaylistScreen(
+                    playlist = selectedPlaylist!!,
+                    allSongs = songs,
+                    onBack = { selectedPlaylist = null },
+                    onSongClick = { song, queue ->
+                        MelodyPlayerManager.playSong(song, queue)
+                    },
+                    onPlaylistDeleted = { selectedPlaylist = null }
+                )
             } else {
                 when (selectedTab) {
                     0 -> HomeScreen(
@@ -256,6 +275,9 @@ fun MelodyApp() {
                         },
                         onArtistClick = { artistName ->
                             selectedArtist = artistName
+                        },
+                        onPlaylistClick = { playlist ->
+                            selectedPlaylist = playlist
                         },
                         onRefresh = { loadCatalog() }
                     )

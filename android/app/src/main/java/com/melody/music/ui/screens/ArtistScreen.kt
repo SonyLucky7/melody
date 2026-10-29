@@ -38,21 +38,61 @@ data class ArtistProfile(
 )
 
 val ARTIST_PROFILES = mapOf(
+    "Sidhu Moose Wala" to ArtistProfile(
+        name = "Sidhu Moose Wala",
+        imageUrl = "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg",
+        bannerUrl = "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg",
+        monthlyListeners = "28,450,120 monthly listeners",
+        rank = "#1 Punjabi Legend",
+        bio = "Shubhdeep Singh Sidhu, known globally as Sidhu Moose Wala, was an iconic Indian rapper, singer, and songwriter. He redefined modern Punjabi music with massive anthems like 295, So High, and Same Beef."
+    ),
+    "Yo Yo Honey Singh" to ArtistProfile(
+        name = "Yo Yo Honey Singh",
+        imageUrl = "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg",
+        bannerUrl = "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg",
+        monthlyListeners = "24,910,800 monthly listeners",
+        rank = "Desi Hip Hop Pioneer",
+        bio = "Hirdesh Singh, known as Yo Yo Honey Singh, pioneered modern Indian pop and Desi hip-hop. His record-shattering albums like International Villager created history worldwide."
+    ),
     "The Weeknd" to ArtistProfile(
         name = "The Weeknd",
-        imageUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
-        bannerUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        imageUrl = "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg",
+        bannerUrl = "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg",
         monthlyListeners = "112,450,290 monthly listeners",
         rank = "#1 in the world",
         bio = "Abel Makkonen Tesfaye, known professionally as The Weeknd, is a Canadian singer, songwriter, and record producer known for his sonic versatility and dark lyricism."
     ),
     "Lana Del Rey" to ArtistProfile(
         name = "Lana Del Rey",
-        imageUrl = "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80",
-        bannerUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80",
+        imageUrl = "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg",
+        bannerUrl = "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg",
         monthlyListeners = "62,890,140 monthly listeners",
         rank = "#18 in the world",
         bio = "Elizabeth Woolridge Grant, known professionally as Lana Del Rey, is an American singer-songwriter celebrated for cinematic quality and tragic romance melancholia."
+    ),
+    "Ariana Grande" to ArtistProfile(
+        name = "Ariana Grande",
+        imageUrl = "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg",
+        bannerUrl = "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg",
+        monthlyListeners = "89,120,500 monthly listeners",
+        rank = "#4 in the world",
+        bio = "Ariana Grande-Butera is an American pop icon, songwriter, and multi-platinum singer celebrated for her four-octave vocal range and blockbuster chart toppers."
+    ),
+    "2Pac" to ArtistProfile(
+        name = "2Pac",
+        imageUrl = "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
+        bannerUrl = "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80",
+        monthlyListeners = "31,200,000 monthly listeners",
+        rank = "Hip Hop Icon",
+        bio = "Tupac Amaru Shakur is widely considered one of the most influential and revolutionary rappers of all time."
+    ),
+    "50 Cent" to ArtistProfile(
+        name = "50 Cent",
+        imageUrl = "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80",
+        bannerUrl = "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80",
+        monthlyListeners = "39,800,000 monthly listeners",
+        rank = "G-Unit Leader",
+        bio = "Curtis James Jackson III, known professionally as 50 Cent, is an American rapper, actor, and entrepreneur known for Get Rich or Die Tryin'."
     )
 )
 

@@ -34,27 +34,27 @@ jobs:
       - name: Rename APK
         working-directory: android/app/build/outputs/apk/debug
         run: |
-          cp app-debug.apk Melody-v1.0.5.apk
+          cp app-debug.apk Melody-v1.0.6.apk
 
       - name: Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.0.5
-          path: android/app/build/outputs/apk/debug/Melody-v1.0.5.apk
+          name: Melody-Android-v1.0.6
+          path: android/app/build/outputs/apk/debug/Melody-v1.0.6.apk
           retention-days: 30
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.5
-          name: Melody Android App v1.0.5
+          tag_name: v1.0.6
+          name: Melody Android App v1.0.6
           body: |
-            ### 🎵 Melody Android v1.0.5
-            - Instant <1s playback with direct streaming & Telegram Bot priority lanes
-            - 100% Free uninterrupted music for all users with zero ads
-            - Lifetime VIP Bot 1 priority & Annual VIP Bot 2 priority
-            - Full Spotify profile integration with PostgreSQL cloud sync
-            - Android 7.0 (Nougat) to Android 15+ support
-          files: android/app/build/outputs/apk/debug/Melody-v1.0.5.apk
+            ### 🎵 Melody Android v1.0.6
+            - Spotify-grade mobile layout & full public playlist carousel (Motivation Vol. 1 & 2, TikTok Phonk, Slowed Reverb, Sidhu Moose Wala, Honey Singh, Weeknd, Lana, Ariana)
+            - 1000 track catalog sync with instant 0ms track playback
+            - Popular Artists carousel with all 7 featured artists & verified discographies
+            - Direct scoped offline storage on device with zero-data playback
+            - Pinned bottom mini player and seamless back-navigation
+          files: android/app/build/outputs/apk/debug/Melody-v1.0.6.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

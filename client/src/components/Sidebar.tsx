@@ -287,10 +287,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Download Android App Button */}
         <a
-          href="/Melody-v1.0.5.apk"
+          href="/Melody-v1.0.6.apk"
           download
           className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
-          title="Download Melody Android APK (v1.0.5)"
+          title="Download Melody Android APK (v1.0.6)"
         >
           <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
           <span>Download Android App</span>

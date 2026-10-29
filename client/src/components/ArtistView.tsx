@@ -123,32 +123,32 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 select-none">
       {/* 1. Header Hero Banner */}
       <div
-        className="relative -mx-6 -mt-6 p-8 md:p-12 min-h-[300px] flex flex-col justify-end overflow-hidden"
+        className="relative -mx-3 -mt-3 sm:-mx-6 sm:-mt-6 p-4 sm:p-8 md:p-12 min-h-[220px] sm:min-h-[280px] md:min-h-[320px] flex flex-col justify-end overflow-hidden"
         style={{ background: meta.banner }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-black/30 pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end gap-6">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6">
           <img
             src={meta.avatar}
             alt={artistName}
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
             }}
-            className="w-32 h-32 md:w-44 md:h-44 rounded-full object-cover shadow-2xl border-4 border-white/10 flex-shrink-0"
+            className="w-24 h-24 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full object-cover shadow-2xl border-4 border-white/10 flex-shrink-0"
           />
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-white/90">
-              <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] sm:text-xs font-semibold tracking-wider uppercase text-white/90">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-blue-500 text-white" />
               Verified Artist
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-white tracking-tight break-words">
               {artistName}
             </h1>
 
-            <p className="text-xs md:text-sm text-neutral-300 font-medium">
+            <p className="text-xs sm:text-sm text-neutral-300 font-medium">
               {meta.listeners} monthly listeners &bull; <span className="text-[#a855f7] font-bold">{meta.rank}</span>
             </p>
           </div>
@@ -156,25 +156,25 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
       </div>
 
       {/* 2. Action Bar */}
-      <div className="flex items-center gap-4 pt-2">
+      <div className="flex items-center gap-2.5 sm:gap-4 pt-2 flex-wrap">
         {/* Purple Big Play Button */}
         <button
           onClick={handlePlayArtist}
           disabled={artistSongs.length === 0}
-          className="w-14 h-14 rounded-full bg-[#a855f7] hover:bg-[#9333ea] hover:scale-105 active:scale-95 text-white flex items-center justify-center shadow-2xl shadow-purple-900/40 transition-all disabled:opacity-40"
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#a855f7] hover:bg-[#9333ea] hover:scale-105 active:scale-95 text-white flex items-center justify-center shadow-2xl shadow-purple-900/40 transition-all disabled:opacity-40"
           title={isCurrentArtistPlaying ? 'Pause' : 'Play'}
         >
           {isCurrentArtistPlaying ? (
-            <Pause className="w-6 h-6 fill-white text-white" />
+            <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white text-white" />
           ) : (
-            <Play className="w-6 h-6 fill-white text-white ml-1" />
+            <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white text-white ml-0.5 sm:ml-1" />
           )}
         </button>
 
         {/* Follow Button */}
         <button
           onClick={() => setIsFollowing(!isFollowing)}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
+          className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
             isFollowing
               ? 'border-white text-white bg-white/10'
               : 'border-white/30 text-white hover:border-white hover:scale-105'
@@ -193,18 +193,18 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
         <button
           onClick={handleDownloadAll}
           disabled={isDownloadingAll}
-          className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-white/20 hover:border-white text-[#b3b3b3] hover:text-white flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50"
+          className="px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-white/20 hover:border-white text-[#b3b3b3] hover:text-white flex items-center gap-1.5 sm:gap-2 transition-all hover:scale-105 disabled:opacity-50"
           title="Download entire artist collection to this device"
         >
           {isDownloadingAll ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#a855f7]" />
-              Downloading...
+              <span className="text-[11px] sm:text-xs">Downloading...</span>
             </>
           ) : (
             <>
               <Download className="w-3.5 h-3.5 text-[#a855f7]" />
-              Save All Offline
+              <span className="text-[11px] sm:text-xs">Save All Offline</span>
             </>
           )}
         </button>
@@ -212,10 +212,10 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
 
       {/* 3. Popular Tracks Table */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-extrabold text-white tracking-tight">Popular</h2>
+        <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Popular</h2>
 
         {/* Table Header */}
-        <div className="grid grid-cols-[36px_1fr_1fr_60px] md:grid-cols-[40px_4fr_3fr_1fr_100px] px-4 py-2 border-b border-white/10 text-xs font-semibold text-[#b3b3b3] uppercase tracking-wider">
+        <div className="grid grid-cols-[28px_1fr_auto] md:grid-cols-[40px_4fr_3fr_1fr_100px] px-3 sm:px-4 py-2 border-b border-white/10 text-xs font-semibold text-[#b3b3b3] uppercase tracking-wider">
           <span className="text-center">#</span>
           <span>Title</span>
           <span className="hidden md:block">Album</span>
@@ -246,7 +246,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
                     playSong(song, artistSongs);
                   }
                 }}
-                className={`group grid grid-cols-[36px_1fr_1fr_60px] md:grid-cols-[40px_4fr_3fr_1fr_100px] items-center px-4 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                className={`group grid grid-cols-[28px_1fr_auto] md:grid-cols-[40px_4fr_3fr_1fr_100px] items-center px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg cursor-pointer transition-colors ${
                   isSongCurrent ? 'bg-white/15' : 'hover:bg-white/10'
                 }`}
               >

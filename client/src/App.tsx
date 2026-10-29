@@ -316,11 +316,13 @@ export const App: React.FC = () => {
   };
 
   const handleSelectView = async (view: string, data?: any, fromNav = false) => {
-    setCurrentView(view);
+    let targetView = view;
+    if (view === 'liked') targetView = 'favourites';
+    setCurrentView(targetView);
 
-    if (view === 'artist' && data) {
+    if (targetView === 'artist' && data) {
       setSelectedArtist(data);
-    } else if (view === 'playlist' && data) {
+    } else if (targetView === 'playlist' && data) {
       const fullPlaylist = playlists.find(p => p.id === data.id) || PUBLIC_PLAYLISTS.find(p => p.id === data.id) || data;
       setSelectedPlaylist(fullPlaylist);
 
@@ -338,17 +340,17 @@ export const App: React.FC = () => {
       }).catch(() => {
         if (instant.length > 0) setPlaylistSongs(instant);
       });
-    } else if (view === 'favourites') {
+    } else if (targetView === 'favourites') {
       const favs = await fetchFavourites();
       setLikedSongsList(favs);
-    } else if (view === 'history') {
+    } else if (targetView === 'history') {
       const rec = await fetchRecentlyPlayed();
       setRecentSongs(rec);
     }
 
     if (!fromNav) {
       const newHistory = viewHistory.slice(0, historyIndex + 1);
-      newHistory.push({ view, data });
+      newHistory.push({ view: targetView, data });
       setViewHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
     }
@@ -425,11 +427,11 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-black text-white select-none">
+    <div className="flex flex-col h-[100dvh] w-full max-w-[100vw] overflow-hidden bg-black text-white select-none">
       {/* 0. Mobile Top Dismissible App Install Banner (Spotify mobile web pattern) */}
       {showMobileInstallBanner && (
-        <div className="md:hidden flex items-center justify-between px-3 py-2 bg-gradient-to-r from-purple-950 via-[#181818] to-neutral-900 border-b border-purple-500/20 text-white z-50 flex-shrink-0 animate-fade-in">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="md:hidden flex items-center justify-between px-3 py-1.5 bg-gradient-to-r from-purple-950 via-[#181818] to-neutral-900 border-b border-purple-500/20 text-white z-50 flex-shrink-0 animate-fade-in">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setShowMobileInstallBanner(false)}
               className="text-neutral-400 hover:text-white p-1 -ml-1 transition-colors flex-shrink-0"
@@ -440,20 +442,20 @@ export const App: React.FC = () => {
             <img
               src="/Melody-AppIcon-1024.png"
               alt="Melody App"
-              className="w-8 h-8 rounded-lg shadow-md border border-white/10 flex-shrink-0 object-cover"
+              className="w-7 h-7 rounded-lg shadow-md border border-white/10 flex-shrink-0 object-cover"
             />
             <div className="flex flex-col truncate">
-              <span className="text-xs font-bold text-white truncate flex items-center gap-1">
-                Melody Music App
-                <span className="px-1.5 py-0.2 text-[9px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.5</span>
+              <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
+                Melody Android App
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.6</span>
               </span>
-              <span className="text-[10px] text-purple-200/80 truncate">Free 320k streaming & offline mode</span>
+              <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
           </div>
           <a
-            href="/Melody-v1.0.5.apk"
+            href="/Melody-v1.0.6.apk"
             download
-            className="flex-shrink-0 ml-2 px-3 py-1.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1"
+            className="flex-shrink-0 ml-2 px-3 py-1 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1"
           >
             <ArrowDownCircle className="w-3.5 h-3.5 text-black" />
             <span>Install</span>
@@ -461,13 +463,13 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* 1. Spotify Modern Full-Width Top Header Bar (Exact match to official Spotify Desktop) */}
+      {/* 1. Spotify Modern Full-Width Top Header Bar (Clean & Responsive on Mobile) */}
       <header className="h-14 sm:h-16 px-3 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none">
-        {/* Left: Melody Circular Brand Icon */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        {/* Left: Melody Circular Brand Icon & Wordmark */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <div 
             onClick={() => handleSelectView('home')} 
-            className="flex items-center cursor-pointer group"
+            className="flex items-center gap-2 cursor-pointer group"
             title="Melody Home"
           >
             <img 
@@ -475,15 +477,18 @@ export const App: React.FC = () => {
               alt="Melody Logo" 
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-full shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform object-cover" 
             />
+            <span className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5 leading-none">
+              Melody
+            </span>
           </div>
         </div>
 
-        {/* Center: Circular Home Button + Capsule Pill Search Bar (Exact Spotify Design) */}
-        <div className="flex items-center gap-2 max-w-xl w-full justify-center px-1 sm:px-2">
+        {/* Center: Circular Home Button + Capsule Pill Search Bar (Desktop Only) */}
+        <div className="hidden sm:flex items-center gap-2 max-w-xl w-full justify-center px-1 sm:px-2">
           {/* Circular Home Button */}
           <button
             onClick={() => handleSelectView('home')}
-            className={`hidden sm:flex w-10 h-10 md:w-12 md:h-12 rounded-full items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
               currentView === 'home'
                 ? 'bg-[#2a2a2a] text-white scale-105 shadow-md shadow-black/40'
                 : 'bg-[#1f1f1f] text-[#b3b3b3] hover:text-white hover:bg-[#282828] hover:scale-105'
@@ -524,19 +529,19 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Section: Explore Premium, Install App, Bell, Users, Profile Avatar with Online Dot */}
-        <div className="flex items-center gap-2 sm:gap-3" ref={profileMenuRef}>
-          {/* White Pill Button: Explore Premium */}
+        {/* Right Section: Explore Premium, Install App, Bell, Users, Profile Avatar */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0" ref={profileMenuRef}>
+          {/* White Pill Button: Explore Premium (Desktop Only) */}
           <button
             onClick={userProfile ? () => setIsProfileModalOpen(true) : openLoginModal}
-            className="hidden sm:flex items-center px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-sm font-bold tracking-tight transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer whitespace-nowrap"
+            className="hidden md:flex items-center px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-sm font-bold tracking-tight transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer whitespace-nowrap"
           >
             Explore Premium
           </button>
 
           {/* Install App Pill Button (Prominently visible on mobile & desktop) */}
           <a
-            href="/Melody-v1.0.5.apk"
+            href="/Melody-v1.0.6.apk"
             download
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md transition-all whitespace-nowrap cursor-pointer"
             title="Download Android App APK"
@@ -549,7 +554,7 @@ export const App: React.FC = () => {
           {/* Notification Bell */}
           <button
             onClick={() => setIsHelpOpen(true)}
-            className="w-10 h-10 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white items-center justify-center transition-all cursor-pointer"
             title="Updates & Help"
           >
             <Bell className="w-5 h-5" />
@@ -701,9 +706,9 @@ export const App: React.FC = () => {
         />
 
         {/* Main Content Area with Spotify Dark Gradient */}
-        <main className="flex-1 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212] rounded-lg border border-white/5">
+        <main className="flex-1 min-h-0 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212] rounded-lg border border-white/5 overscroll-contain">
           {/* View Router */}
-          <div className="p-3 sm:p-6 flex-1">
+          <div className="p-3 sm:p-6 flex-1 pb-36 md:pb-24">
             {/* VIEW: HOME (Exact Spotify Dashboard) */}
             {currentView === 'home' && (
               <div className="space-y-6 sm:space-y-8">
@@ -712,14 +717,14 @@ export const App: React.FC = () => {
                   <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{getGreeting()}</h1>
                 </div>
 
-                {/* 1. Top 6 Spotify Quick-Picks Grid */}
+                {/* 1. Top 6 Spotify Quick-Picks Grid (2-cols on mobile, 3-cols on desktop) */}
                 {songs.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                     {songs.slice(0, 6).map((song) => (
                       <div
                         key={song.id}
                         onClick={() => playSong(song, songs)}
-                        className="group flex items-center gap-3 bg-white/5 hover:bg-white/15 rounded-md overflow-hidden cursor-pointer transition-all border border-white/5 shadow-sm pr-3"
+                        className="group flex items-center gap-2 sm:gap-3 bg-white/5 hover:bg-white/15 rounded-md overflow-hidden cursor-pointer transition-all border border-white/5 shadow-sm pr-2 sm:pr-3 h-14 sm:h-16"
                       >
                         <img
                           src={getFullCoverUrl(song.cover_url)}
@@ -727,33 +732,33 @@ export const App: React.FC = () => {
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
                           }}
-                          className="w-16 h-16 object-cover flex-shrink-0"
+                          className="w-14 h-14 sm:w-16 sm:h-16 object-cover flex-shrink-0"
                         />
-                        <span className="font-bold text-sm truncate flex-1">{song.title}</span>
-                        <div className="w-10 h-10 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white flex items-center justify-center shadow-xl shadow-purple-900/30 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all">
-                          <Play className="w-5 h-5 fill-white ml-0.5" />
+                        <span className="font-bold text-xs sm:text-sm truncate flex-1 leading-snug">{song.title}</span>
+                        <div className="hidden sm:flex w-9 h-9 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white items-center justify-center shadow-xl shadow-purple-900/30 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all flex-shrink-0">
+                          <Play className="w-4 h-4 fill-white ml-0.5" />
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                {/* 2. Popular Artists Section (Spotify Circular Avatars) */}
+                {/* 2. Popular Artists Section (Spotify Circular Avatars - Scaled for Mobile) */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-white tracking-tight">Popular Artists</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Popular Artists</h2>
                       <p className="text-xs text-[#b3b3b3] mt-0.5">Explore discographies and top hits</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
                     {/* Sidhu Moose Wala Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'Sidhu Moose Wala')}
-                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
                         <img
                           src="/covers/desi-295-mvs26s80.jpg"
                           alt="Sidhu Moose Wala"
@@ -763,19 +768,19 @@ export const App: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
-                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
                         Sidhu Moose Wala
-                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
                       </span>
-                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {sidhuSongs.length} Tracks</span>
+                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {sidhuSongs.length} Tracks</span>
                     </div>
 
                     {/* Yo Yo Honey Singh Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'Yo Yo Honey Singh')}
-                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
                         <img
                           src="/covers/desi-desi-kalakaar-mvs2csms.jpg"
                           alt="Yo Yo Honey Singh"
@@ -785,19 +790,19 @@ export const App: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
-                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
                         Yo Yo Honey Singh
-                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
                       </span>
-                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {honeySongs.length} Tracks</span>
+                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {honeySongs.length} Tracks</span>
                     </div>
 
                     {/* Ariana Grande Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'Ariana Grande')}
-                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
                         <img
                           src="/covers/ariana-positions-mvrzwtf6.jpg"
                           alt="Ariana Grande"
@@ -807,19 +812,19 @@ export const App: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
-                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
                         Ariana Grande
-                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
                       </span>
-                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {arianaSongs.length} Tracks</span>
+                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {arianaSongs.length} Tracks</span>
                     </div>
 
                     {/* The Weeknd Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'The Weeknd')}
-                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
                         <img
                           src="/covers/the-weeknd-avatar.jpg"
                           alt="The Weeknd"
@@ -829,19 +834,19 @@ export const App: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
-                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
                         The Weeknd
-                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
                       </span>
-                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {theWeekndSongs.length} Tracks</span>
+                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {theWeekndSongs.length} Tracks</span>
                     </div>
 
                     {/* Lana Del Rey Card */}
                     <div
                       onClick={() => handleSelectView('artist', 'Lana Del Rey')}
-                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
+                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
                     >
-                      <div className="relative w-36 h-36 rounded-full overflow-hidden bg-neutral-800 mb-4 shadow-xl">
+                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
                         <img
                           src="/covers/lana-collection.jpg"
                           alt="Lana Del Rey"
@@ -851,11 +856,11 @@ export const App: React.FC = () => {
                           className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
                         />
                       </div>
-                      <span className="font-bold text-base text-white truncate w-full flex items-center justify-center gap-1.5">
+                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
                         Lana Del Rey
-                        <CheckCircle2 className="w-4 h-4 fill-blue-500 text-white" />
+                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
                       </span>
-                      <span className="text-xs text-[#b3b3b3] mt-1 font-medium">Artist &bull; {lanaSongs.length} Tracks</span>
+                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {lanaSongs.length} Tracks</span>
                     </div>
                   </div>
                 </div>
@@ -1135,31 +1140,51 @@ export const App: React.FC = () => {
 
             {/* VIEW: SEARCH */}
             {currentView === 'search' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
+                {/* Mobile Search Bar */}
+                <div className="sm:hidden relative">
+                  <div className="flex items-center h-11 bg-[#242424] focus-within:bg-[#1f1f1f] border border-white/10 focus-within:border-purple-500/50 rounded-full px-3.5 shadow-lg">
+                    <Search className="w-4 h-4 text-neutral-400 mr-2 flex-shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="What do you want to play?"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                      className="w-full bg-transparent text-xs text-white placeholder:text-neutral-400 outline-none"
+                    />
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery('')} className="p-1 text-neutral-400 hover:text-white">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-white">Search Results</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">Search Results</h2>
                   <span className="text-xs text-[#b3b3b3]">{filteredSongs.length} matches</span>
                 </div>
 
                 {/* Artist Matches */}
                 {searchQuery && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-[#b3b3b3]">Artists</h3>
-                    <div className="flex flex-wrap gap-4">
+                  <div className="space-y-2 sm:space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#b3b3b3]">Artists</h3>
+                    <div className="flex flex-wrap gap-2.5 sm:gap-4">
                       {['Sidhu Moose Wala', 'Yo Yo Honey Singh', 'Ariana Grande', 'The Weeknd', 'Lana Del Rey']
                         .filter((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
                         .map((artistName) => (
                           <div
                             key={artistName}
                             onClick={() => handleSelectView('artist', artistName)}
-                            className="flex items-center gap-3 p-3 bg-[#181818] hover:bg-[#282828] rounded-md cursor-pointer transition-all"
+                            className="flex items-center gap-2.5 p-2 sm:p-3 bg-[#181818] hover:bg-[#282828] rounded-md cursor-pointer transition-all"
                           >
-                            <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold text-white">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-600 flex items-center justify-center font-bold text-xs sm:text-sm text-white">
                               {artistName[0]}
                             </div>
                             <div>
-                              <div className="text-sm font-bold text-white">{artistName}</div>
-                              <div className="text-xs text-[#b3b3b3]">Artist</div>
+                              <div className="text-xs sm:text-sm font-bold text-white">{artistName}</div>
+                              <div className="text-[10px] sm:text-xs text-[#b3b3b3]">Artist</div>
                             </div>
                           </div>
                         ))}
@@ -1168,7 +1193,7 @@ export const App: React.FC = () => {
                 )}
 
                 {/* Songs Table Header */}
-                <div className="grid grid-cols-[36px_1fr_1fr_80px] px-3.5 py-2 border-b border-white/10 text-xs font-semibold text-[#b3b3b3] uppercase tracking-wider">
+                <div className="grid grid-cols-[28px_1fr_auto] md:grid-cols-[36px_1fr_1fr_80px] px-2.5 sm:px-3.5 py-2 border-b border-white/10 text-xs font-semibold text-[#b3b3b3] uppercase tracking-wider">
                   <span className="text-center">#</span>
                   <span>Title</span>
                   <span className="hidden md:block">Album</span>
@@ -1189,23 +1214,124 @@ export const App: React.FC = () => {
                 </div>
 
                 {filteredSongs.length === 0 && (
-                  <div className="py-16 text-center text-[#b3b3b3]">
+                  <div className="py-16 text-center text-[#b3b3b3] text-sm">
                     No songs found matching "{searchQuery}".
                   </div>
                 )}
               </div>
             )}
 
+            {/* VIEW: YOUR LIBRARY */}
+            {currentView === 'library' && (
+              <div className="space-y-6">
+                {/* Library Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300">
+                      <Library className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Your Library</h1>
+                      <p className="text-xs text-[#b3b3b3]">Playlists, downloads, and favorites</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleCreatePlaylist}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create</span>
+                  </button>
+                </div>
+
+                {/* Quick Pinned Cards: Liked Songs & Downloaded */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Liked Songs Tile */}
+                  <div
+                    onClick={() => handleSelectView('favourites')}
+                    className="group flex items-center gap-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-purple-900/50 via-indigo-900/30 to-[#181818] border border-purple-500/20 hover:border-purple-500/50 cursor-pointer transition-all hover:scale-[1.01]"
+                  >
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                      <Heart className="w-6 h-6 sm:w-7 sm:h-7 fill-white text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base text-white truncate">Liked Songs</h3>
+                      <p className="text-xs text-neutral-400">{likedSongsList.length} tracks &bull; Auto-synced</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                  </div>
+
+                  {/* Downloaded Songs Tile */}
+                  <div
+                    onClick={() => handleSelectView('downloaded')}
+                    className="group flex items-center gap-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-cyan-950/50 via-blue-950/30 to-[#181818] border border-cyan-500/20 hover:border-cyan-500/50 cursor-pointer transition-all hover:scale-[1.01]"
+                  >
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center shadow-lg flex-shrink-0">
+                      <ArrowDownCircle className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base text-white truncate">Downloaded</h3>
+                      <p className="text-xs text-neutral-400">{offlineTracks.length} tracks &bull; Zero-data offline</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                </div>
+
+                {/* All Playlists Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">All Playlists ({playlists.length})</h2>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4">
+                    {playlists.map((pl) => {
+                      const songCount = pl.total_songs ?? pl.song_count ?? 0;
+                      return (
+                        <div
+                          key={pl.id}
+                          onClick={() => handleSelectView('playlist', pl)}
+                          className="group relative p-2.5 sm:p-3.5 bg-[#181818] hover:bg-[#282828] rounded-md transition-all duration-300 cursor-pointer shadow-md flex flex-col"
+                        >
+                          <div className="relative aspect-square w-full rounded-md overflow-hidden bg-gradient-to-br from-purple-900/60 via-indigo-950/80 to-neutral-900 mb-2.5 shadow-lg flex items-center justify-center border border-white/5">
+                            {pl.cover_url ? (
+                              <img
+                                src={pl.cover_url}
+                                alt={pl.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Disc className="w-12 h-12 text-purple-400/60" />
+                            )}
+                            <div className="absolute bottom-2 right-2 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#a855f7] hover:bg-[#9333ea] active:scale-95 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all">
+                              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
+                            </div>
+                          </div>
+                          <span className="font-bold text-xs sm:text-sm text-white truncate w-full" title={pl.name}>{pl.name}</span>
+                          <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium flex items-center gap-1">
+                            <Disc className="w-3 h-3 text-purple-400" />
+                            <span>{songCount} tracks</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* VIEW: LIKED SONGS */}
             {currentView === 'favourites' && (
               <div className="space-y-6">
-                <div className="flex items-end gap-6 bg-gradient-to-t from-transparent to-blue-900/30 p-8 rounded-xl border border-white/5">
-                  <div className="w-44 h-44 rounded-md bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center shadow-2xl">
-                    <Heart className="w-20 h-20 fill-white text-white" />
+                <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 bg-gradient-to-t from-transparent to-blue-900/30 p-4 sm:p-8 rounded-xl border border-white/5">
+                  <div className="w-28 h-28 sm:w-44 sm:h-44 rounded-md bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-2xl flex-shrink-0">
+                    <Heart className="w-14 h-14 sm:w-20 sm:h-20 fill-white text-white" />
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-blue-400">Playlist</span>
-                    <h1 className="text-5xl font-black text-white">Liked Songs</h1>
+                  <div className="space-y-1 sm:space-y-2">
+                    <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-blue-400">Playlist</span>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white">Liked Songs</h1>
                     <p className="text-xs text-[#b3b3b3]">{likedSongsList.length} favourite tracks</p>
                   </div>
                 </div>
@@ -1222,7 +1348,7 @@ export const App: React.FC = () => {
                     />
                   ))}
                   {likedSongsList.length === 0 && (
-                    <div className="py-12 text-center text-[#b3b3b3]">
+                    <div className="py-12 text-center text-[#b3b3b3] text-sm">
                       No liked songs yet. Tap the heart icon on any song!
                     </div>
                   )}
@@ -1233,13 +1359,13 @@ export const App: React.FC = () => {
             {/* VIEW: DOWNLOADED (SAVED ON THIS DEVICE FOR OFFLINE PLAY) */}
             {currentView === 'downloaded' && (
               <div className="space-y-6">
-                <div className="flex items-end gap-6 p-8 rounded-xl bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent border border-purple-500/20 shadow-xl">
-                  <div className="w-40 h-40 rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-900 flex items-center justify-center shadow-2xl shadow-purple-900/50 flex-shrink-0">
-                    <ArrowDownCircle className="w-20 h-20 text-white" />
+                <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 p-4 sm:p-8 rounded-xl bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent border border-purple-500/20 shadow-xl">
+                  <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-900 flex items-center justify-center shadow-2xl shadow-purple-900/50 flex-shrink-0">
+                    <ArrowDownCircle className="w-14 h-14 sm:w-20 sm:h-20 text-white" />
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-purple-400">Local Device Storage</span>
-                    <h1 className="text-4xl md:text-5xl font-black text-white">Downloaded</h1>
+                  <div className="space-y-1 sm:space-y-2">
+                    <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-purple-400">Local Device Storage</span>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white">Downloaded</h1>
                     <p className="text-xs text-[#b3b3b3]">
                       Saved on this device for zero-data offline playback &bull; {offlineTracks.length} tracks ({offlineTracksTotalMb} MB)
                     </p>
@@ -1258,7 +1384,7 @@ export const App: React.FC = () => {
                     />
                   ))}
                   {offlineTracks.length === 0 && (
-                    <div className="py-16 text-center text-[#b3b3b3] space-y-2">
+                    <div className="py-16 text-center text-[#b3b3b3] space-y-2 text-sm">
                       <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-[#a855f7]">
                         <ArrowDownCircle className="w-6 h-6" />
                       </div>
@@ -1399,7 +1525,7 @@ export const App: React.FC = () => {
       <PlayerBar onSelectArtist={(artist) => handleSelectView('artist', artist)} />
 
       {/* Spotify Mobile Bottom Navigation Bar (md:hidden) */}
-      <nav className="md:hidden flex items-center justify-around bg-[#121212] border-t border-white/10 py-1.5 px-2 z-40 select-none flex-shrink-0">
+      <nav className="md:hidden flex items-center justify-around bg-[#121212]/95 backdrop-blur-xl border-t border-white/10 py-1.5 px-2 z-40 select-none flex-shrink-0 pb-[max(8px,env(safe-area-inset-bottom))]">
         <button
           onClick={() => handleSelectView('home')}
           className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg transition-all ${
@@ -1431,7 +1557,7 @@ export const App: React.FC = () => {
         </button>
 
         <a
-          href="/Melody-v1.0.5.apk"
+          href="/Melody-v1.0.6.apk"
           download
           className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-purple-400 hover:text-purple-300 transition-all active:scale-95"
           title="Download Android App APK"

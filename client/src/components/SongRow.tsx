@@ -66,11 +66,11 @@ export const SongRow: React.FC<SongRowProps> = ({
   return (
     <div
       onClick={handleRowClick}
-      className={`group flex items-center justify-between px-3.5 py-2.5 rounded-md cursor-pointer transition-colors ${
+      className={`group flex items-center justify-between px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-md cursor-pointer transition-colors ${
         isCurrent ? 'bg-white/10' : 'hover:bg-white/5'
       }`}
     >
-      <div className="flex items-center gap-3.5 flex-1 min-w-0">
+      <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
         {/* Track # or Play Button or Loading Spinner or Animated Purple Equalizer */}
         <div className="w-6 flex items-center justify-center text-xs font-mono text-[#b3b3b3]">
           {isCurrent && isLoadingTrack ? (
@@ -131,7 +131,7 @@ export const SongRow: React.FC<SongRowProps> = ({
       </div>
 
       {/* Actions: Download Offline, Heart Like, & Duration */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         {/* Offline Download Button */}
         <button
           onClick={handleToggleDownload}

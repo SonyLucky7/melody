@@ -27,6 +27,8 @@ import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.DownloadedSong
 import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Playlist
+import com.melody.music.data.model.PUBLIC_PLAYLISTS
+import com.melody.music.data.model.getPlaylistSongsFallback
 import com.melody.music.data.model.Song
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
@@ -51,7 +53,7 @@ fun LibraryScreen(
 
     var activeSubView by remember { mutableStateOf<String?>(null) } // "LIKED" or "DOWNLOADED"
     var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
-    var playlists by remember { mutableStateOf<List<Playlist>>(emptyList()) }
+    var playlists by remember { mutableStateOf<List<Playlist>>(PUBLIC_PLAYLISTS) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
@@ -60,8 +62,14 @@ fun LibraryScreen(
         coroutineScope.launch {
             try {
                 val res = ApiClient.apiService.getPlaylists()
-                if (res.success) {
-                    playlists = res.data
+                if (res.success && res.data.isNotEmpty()) {
+                    val map = LinkedHashMap<Long, Playlist>()
+                    PUBLIC_PLAYLISTS.forEach { map[it.id] = it }
+                    res.data.forEach {
+                        val existing = map[it.id]
+                        map[it.id] = it.copy(coverUrl = it.coverUrl ?: existing?.coverUrl)
+                    }
+                    playlists = map.values.toList()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -94,6 +102,7 @@ fun LibraryScreen(
     if (selectedPlaylist != null) {
         CustomPlaylistScreen(
             playlist = selectedPlaylist!!,
+            allSongs = songs,
             onBack = {
                 selectedPlaylist = null
                 refreshPlaylists()
@@ -467,25 +476,40 @@ fun LibraryScreen(
 @Composable
 fun CustomPlaylistScreen(
     playlist: Playlist,
+    allSongs: List<Song> = emptyList(),
     onBack: () -> Unit,
     onSongClick: (Song, List<Song>) -> Unit,
     onPlaylistDeleted: () -> Unit
 ) {
-    var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val fallbackSongs = remember(playlist, allSongs) {
+        getPlaylistSongsFallback(playlist, allSongs)
+    }
+    var songs by remember { mutableStateOf(fallbackSongs) }
+    var isLoading by remember { mutableStateOf(fallbackSongs.isEmpty()) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(fallbackSongs) {
+        if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
+            songs = fallbackSongs
+            isLoading = false
+        }
+    }
+
     fun loadSongs() {
         coroutineScope.launch {
-            isLoading = true
+            if (songs.isEmpty()) isLoading = true
             try {
                 val res = ApiClient.apiService.getPlaylistSongs(playlist.id)
-                if (res.success) {
+                if (res.success && res.songs.isNotEmpty()) {
                     songs = res.songs
+                } else if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
+                    songs = fallbackSongs
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
+                    songs = fallbackSongs
+                }
             } finally {
                 isLoading = false
             }
@@ -536,10 +560,10 @@ fun CustomPlaylistScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
+                    .height(260.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color(0xFF0D9488), Color(0xFF0F766E), MelodyBg)
+                            listOf(Color(0xFF4A148C), Color(0xFF1E0A3C), MelodyBg)
                         )
                     )
                     .statusBarsPadding()
@@ -559,28 +583,55 @@ fun CustomPlaylistScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
 
-                    IconButton(
-                        onClick = { showDeleteConfirm = true },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(Color(0x66000000), CircleShape)
-                    ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Playlist", tint = Color.White)
+                    if (playlist.id > 11L) {
+                        IconButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0x66000000), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Playlist", tint = Color.White)
+                        }
                     }
                 }
 
-                Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                    Text(
-                        text = playlist.name,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    AsyncImage(
+                        model = playlist.coverUrl ?: "https://melody-chi-nine.vercel.app/Melody-Logo-512.png",
+                        contentDescription = playlist.name,
+                        modifier = Modifier
+                            .size(110.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
                     )
-                    Text(
-                        text = "${songs.size} songs • Synced to Cloud",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
+
+                    Column {
+                        Text(
+                            text = if (playlist.id <= 11L) "CURATED PLAYLIST" else "PLAYLIST",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MelodyPrimary
+                        )
+                        Text(
+                            text = playlist.name,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${songs.size} songs • 320k Studio Free",
+                            fontSize = 12.sp,
+                            color = MelodyTextSecondary
+                        )
+                    }
                 }
             }
         }
