@@ -71,54 +71,17 @@ export class TelegramMultiBotService {
   }
 
   /**
-   * Fetch file download URL with User Priority bot allocation
-   * - Lifetime VIP: Bot 1 primary dedicated lane with instant zero-congestion access
-   * - Annual VIP: Bot 2 primary lane
-   * - Free Guest: Bot 3 lane
+   * Race all Telegram bots in parallel simultaneously - fastest bot wins immediately with minimum latency!
+   * File download URL is cached in memory for 50 minutes.
    */
-  async getFileDownloadUrl(
-    fileId: string,
-    priority: 'lifetime' | 'annual' | 'free' = 'free'
-  ): Promise<{ downloadUrl: string; botIndex: number }> {
+  async getFileDownloadUrl(fileId: string): Promise<{ downloadUrl: string; botIndex: number }> {
     const cached = this.urlCache.get(fileId);
     if (cached && cached.expiresAt > Date.now()) {
       return { downloadUrl: cached.downloadUrl, botIndex: cached.botIndex };
     }
 
-    // Determine bot priority order based on user plan
-    let preferredIndices: number[];
-    if (priority === 'lifetime') {
-      // Lifetime VIP: Bot 1 first, then Bot 2, then Bot 3
-      preferredIndices = [0, 1, 2].filter((i) => i < this.botTokens.length);
-    } else if (priority === 'annual') {
-      // Annual VIP: Bot 2 first, then Bot 3, then Bot 1
-      preferredIndices = [1, 2, 0].filter((i) => i < this.botTokens.length);
-    } else {
-      // Free Guest: Bot 3 first, then Bot 2, then Bot 1
-      preferredIndices = [2, 1, 0].filter((i) => i < this.botTokens.length);
-    }
-
-    // Try preferred bot first for dedicated lane routing
-    const primaryIdx = preferredIndices[0];
-    const primaryToken = this.botTokens[primaryIdx];
-    try {
-      const res = await this.fetchJson(
-        `https://api.telegram.org/bot${primaryToken}/getFile?file_id=${encodeURIComponent(fileId)}`
-      );
-      if (res && res.ok && res.result?.file_path) {
-        const downloadUrl = `https://api.telegram.org/file/bot${primaryToken}/${res.result.file_path}`;
-        this.urlCache.set(fileId, {
-          downloadUrl,
-          botIndex: primaryIdx,
-          expiresAt: Date.now() + 50 * 60 * 1000,
-        });
-        return { downloadUrl, botIndex: primaryIdx };
-      }
-    } catch {}
-
-    // Fallback: Race remaining bots in parallel
-    const promises = preferredIndices.map(async (idx) => {
-      const token = this.botTokens[idx];
+    // Race ALL bots in parallel simultaneously - whichever bot responds first wins!
+    const promises = this.botTokens.map(async (token, idx) => {
       const res = await this.fetchJson(
         `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
       );
@@ -132,7 +95,6 @@ export class TelegramMultiBotService {
     });
 
     try {
-      // Whichever bot responds fastest with a valid file path wins!
       const result = await Promise.any(promises);
       this.urlCache.set(fileId, {
         downloadUrl: result.downloadUrl,
@@ -148,18 +110,18 @@ export class TelegramMultiBotService {
   /**
    * Background pre-warmup: Resolves download URLs ahead of time so playback starts instantly in 0ms!
    */
-  warmupFiles(fileIds: string[], priority: 'lifetime' | 'annual' | 'free' = 'lifetime'): void {
-    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 10);
+  warmupFiles(fileIds: string[]): void {
+    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 30);
     if (unCached.length === 0) return;
 
     // Run non-blocking in background
     setTimeout(async () => {
       for (const id of unCached) {
         try {
-          await this.getFileDownloadUrl(id, priority);
+          await this.getFileDownloadUrl(id);
         } catch {}
       }
-    }, 100);
+    }, 50);
   }
 
   /**

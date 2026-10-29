@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.melody.music.ads.MelodyLaunchAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
 import com.melody.music.player.MelodyPlaybackService
@@ -54,6 +55,10 @@ class MainActivity : ComponentActivity() {
         // Initialize persistent API & Device ID session
         ApiClient.init(applicationContext)
         MelodyPlayerManager.refreshFavourites()
+
+        // 1 Full Ad on Application Launch/Open Only
+        MelodyLaunchAdManager.init(applicationContext)
+        MelodyLaunchAdManager.showLaunchAdIfFirstOpen(this)
 
         // Start & bind playback foreground service
         val serviceIntent = Intent(this, MelodyPlaybackService::class.java)

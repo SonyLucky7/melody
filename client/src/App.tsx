@@ -11,6 +11,7 @@ import { NowPlayingView } from './components/NowPlayingView';
 import { HelpModal } from './components/HelpModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
+import { LaunchAdModal } from './components/LaunchAdModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -94,6 +95,22 @@ export const App: React.FC = () => {
 
   const { playSong, offlineTracks, refreshFavourites } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
+
+  // Launch Ad State: Plays 1 full ad only when the user opens the application or website
+  const [isLaunchAdOpen, setIsLaunchAdOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('melody_launch_ad_viewed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleCloseLaunchAd = () => {
+    try {
+      sessionStorage.setItem('melody_launch_ad_viewed', 'true');
+    } catch {}
+    setIsLaunchAdOpen(false);
+  };
 
   useEffect(() => {
     loadCatalog();
@@ -475,22 +492,13 @@ export const App: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                /* Guest / Non-Activated Header Buttons */
+                /* Guest Header: Clean Log In Button for Profile & Cloud Sync */
                 <div className="flex items-center gap-2.5">
                   <button
-                    onClick={openVipModal}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-purple-600/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                    <span>Get VIP</span>
-                    <span className="bg-black/30 px-1.5 py-0.5 rounded text-[10px] font-black">₹49</span>
-                  </button>
-
-                  <button
                     onClick={openLoginModal}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-bold transition-all hover:scale-105 shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 px-5 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-extrabold tracking-wide transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer"
                   >
-                    <Key className="w-3.5 h-3.5 text-black" />
+                    <User className="w-3.5 h-3.5 text-black" />
                     <span>Log In</span>
                   </button>
                 </div>
@@ -1164,6 +1172,12 @@ export const App: React.FC = () => {
         song={songToAddToPlaylist}
         playlists={playlists}
         onPlaylistUpdated={() => loadCatalog()}
+      />
+
+      {/* 1 Full Ad on Application Launch/Open Only */}
+      <LaunchAdModal
+        isOpen={isLaunchAdOpen}
+        onClose={handleCloseLaunchAd}
       />
     </div>
   );

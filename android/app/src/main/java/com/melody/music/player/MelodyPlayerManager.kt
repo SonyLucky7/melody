@@ -229,13 +229,12 @@ object MelodyPlayerManager {
         playJob = scope.launch {
             try {
                 // Check if song is downloaded locally first!
-                val priority = ApiClient.currentUser?.plan ?: "free"
                 val localFile = MelodyDownloadManager.getLocalFile(song.id)
                 val mediaUri: Uri = if (localFile != null && localFile.exists()) {
                     Uri.fromFile(localFile)
                 } else {
-                    // Fast direct streaming from Render backend with priority routing
-                    val streamUrl = "https://melody-mzsm.onrender.com/api/stream/${song.id}?priority=$priority"
+                    // Fast direct streaming from Render backend
+                    val streamUrl = "https://melody-mzsm.onrender.com/api/stream/${song.id}"
                     Uri.parse(streamUrl)
                 }
 
@@ -265,7 +264,7 @@ object MelodyPlayerManager {
                         val nextUri = if (nextLocal != null && nextLocal.exists()) {
                             Uri.fromFile(nextLocal)
                         } else {
-                            Uri.parse("https://melody-mzsm.onrender.com/api/stream/${nextSong.id}?priority=$priority")
+                            Uri.parse("https://melody-mzsm.onrender.com/api/stream/${nextSong.id}")
                         }
                         val nextItem = MediaItem.Builder()
                             .setUri(nextUri)

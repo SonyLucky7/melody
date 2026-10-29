@@ -253,15 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {userProfile.formattedKey}
             </div>
           </div>
-        ) : (
-          <button
-            onClick={onOpenActivation}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-600/30 transition-all hover:scale-[1.02]"
-          >
-            <Crown className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-            <span>Get VIP Access (₹49)</span>
-          </button>
-        )}
+        ) : null}
 
         <div className="flex gap-1.5">
           {userProfile ? (

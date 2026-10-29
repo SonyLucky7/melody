@@ -430,9 +430,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audioContextRef.current.resume().catch(() => {});
       }
 
-      // Resolve user VIP priority ('lifetime' | 'annual' | 'free') for dedicated Bot routing
-      const userPlan = getUserProfile()?.plan || 'free';
-      const streamUrl = `${STREAM_BASE}/api/stream/${song.id}?priority=${userPlan}`;
+      // Direct high-speed streaming URL for all users (no priority delays)
+      const streamUrl = `${STREAM_BASE}/api/stream/${song.id}`;
 
       // Check offline IndexedDB ONLY if downloaded on this device (eliminates async lag for 99% of plays)
       let targetSrc: string;
@@ -455,13 +454,13 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       audio.preload = 'auto';
       audio.src = targetSrc;
 
-      // Auto-fallback: If primary stream ever errors, fallback directly to Render backend
+      // Auto-fallback: If primary Render stream ever errors, fallback smoothly to Vercel Edge proxy
       audio.onerror = () => {
         const err = audio.error;
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
-        if (!audio.src.includes('onrender.com')) {
-          console.warn('[Melody Stream Notice] Retrying directly from Render backend...');
-          audio.src = `https://melody-mzsm.onrender.com/api/stream/${song.id}?priority=${userPlan}`;
+        if (audio.src.includes('onrender.com') && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          console.warn('[Melody Stream Notice] Falling back to Vercel Edge...');
+          audio.src = `/api/stream/${song.id}`;
           audio.play().catch(() => {});
         }
       };
@@ -497,7 +496,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           preloadAudioRef.current = new Audio();
           preloadAudioRef.current.preload = 'auto';
         }
-        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}?priority=${userPlan}`;
+        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
       }
     } catch (err) {
       console.error('[Playback Start Error]:', err);
