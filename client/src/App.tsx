@@ -310,39 +310,20 @@ export const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-black text-white select-none">
-      {/* 1. Spotify Modern Full-Width Top Header Bar */}
-      <header className="h-16 px-4 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none border-b border-white/5">
-        {/* Left: Spotify-style Circular Brand Icon + History < > */}
+      {/* 1. Spotify Modern Full-Width Top Header Bar (Exact match to official Spotify Desktop) */}
+      <header className="h-16 px-4 md:px-6 bg-black flex items-center justify-between z-40 flex-shrink-0 select-none">
+        {/* Left: Spotify Circular Brand Icon */}
         <div className="flex items-center gap-3">
           <div 
             onClick={() => handleSelectView('home')} 
-            className="flex items-center gap-2 cursor-pointer group"
-            title="Melody Home"
+            className="flex items-center cursor-pointer group"
+            title="Melody - Spotify Experience"
           >
-            <img 
-              src="/Melody-AppIcon-1024.png" 
-              alt="Melody Logo" 
-              className="w-9 h-9 rounded-full shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform" 
-            />
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 ml-1">
-            <button
-              onClick={handleBack}
-              disabled={historyIndex === 0}
-              className="w-8 h-8 rounded-full bg-[#181818] hover:bg-[#282828] text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-[#181818] cursor-pointer"
-              title="Go back"
-            >
-              <ChevronLeft className="w-5 h-5 ml-[-1px]" />
-            </button>
-            <button
-              onClick={handleForward}
-              disabled={historyIndex >= viewHistory.length - 1}
-              className="w-8 h-8 rounded-full bg-[#181818] hover:bg-[#282828] text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:bg-[#181818] cursor-pointer"
-              title="Go forward"
-            >
-              <ChevronRight className="w-5 h-5 mr-[-1px]" />
-            </button>
+            <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center group-hover:scale-105 transition-transform shadow-md">
+              <svg className="w-6 h-6 text-black fill-current" viewBox="0 0 24 24">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.508 17.308c-.216.353-.675.467-1.028.25-2.813-1.718-6.353-2.107-10.523-1.155-.403.093-.805-.16-.897-.563-.093-.404.16-.806.563-.898 4.567-1.043 8.49-.603 11.635 1.338.353.217.467.676.25 1.028zm1.47-3.267c-.272.443-.854.586-1.297.314-3.22-1.979-8.128-2.551-11.936-1.394-.499.151-1.03-.133-1.182-.632-.151-.499.133-1.03.632-1.182 4.354-1.321 9.774-.684 13.469 1.597.443.272.586.854.314 1.297zm.126-3.41c-3.861-2.293-10.229-2.504-13.896-1.391-.591.18-1.223-.153-1.402-.744-.18-.591.153-1.223.744-1.402 4.215-1.28 11.252-1.033 15.696 1.604.53.315.703 1.002.388 1.532-.315.53-1.002.703-1.53.401z"/>
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -351,7 +332,7 @@ export const App: React.FC = () => {
           {/* Circular Home Button */}
           <button
             onClick={() => handleSelectView('home')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
               currentView === 'home'
                 ? 'bg-[#2a2a2a] text-white scale-105 shadow-md shadow-black/40'
                 : 'bg-[#1f1f1f] text-[#b3b3b3] hover:text-white hover:bg-[#282828] hover:scale-105'
@@ -362,9 +343,9 @@ export const App: React.FC = () => {
           </button>
 
           {/* Spotify Capsule Pill Search Bar */}
-          <div className="relative flex-1 max-w-lg group">
-            <div className="flex items-center bg-[#1f1f1f] hover:bg-[#282828] focus-within:bg-[#1f1f1f] border border-transparent focus-within:border-white/20 rounded-full px-3.5 py-2.5 transition-all shadow-inner">
-              <Search className="w-5 h-5 text-[#b3b3b3] group-hover:text-white flex-shrink-0 mr-2.5 transition-colors" />
+          <div className="relative flex-1 max-w-[474px] group">
+            <div className="flex items-center h-12 bg-[#1f1f1f] hover:bg-[#282828] focus-within:bg-[#1f1f1f] border border-transparent focus-within:border-white/20 rounded-full px-4 transition-all shadow-inner">
+              <Search className="w-5 h-5 text-[#b3b3b3] group-hover:text-white flex-shrink-0 mr-3 transition-colors" />
               <input
                 type="text"
                 placeholder="What do you want to play?"
@@ -376,37 +357,37 @@ export const App: React.FC = () => {
                   setSearchQuery(e.target.value);
                   if (currentView !== 'search') handleSelectView('search');
                 }}
-                className="w-full bg-transparent text-sm text-white placeholder:text-[#b3b3b3] placeholder:font-medium outline-none"
+                className="w-full bg-transparent text-sm text-white placeholder:text-[#b3b3b3] placeholder:font-normal outline-none"
               />
               {/* Divider */}
-              <div className="h-4 w-[1px] bg-white/20 mx-2.5 flex-shrink-0" />
+              <div className="h-5 w-[1px] bg-white/20 mx-3 flex-shrink-0" />
               {/* Browse Library Drawer Icon */}
               <button
                 onClick={() => handleSelectView('library')}
                 title="Browse Your Library"
-                className="text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0 p-0.5 cursor-pointer"
+                className="text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0 p-1 cursor-pointer"
               >
-                <FolderArchive className="w-4 h-4" />
+                <FolderArchive className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right Section: Explore Free, Install App, Bell, Users, Profile Avatar with Online Dot */}
-        <div className="flex items-center gap-2.5" ref={profileMenuRef}>
-          {/* White Pill Button */}
+        {/* Right Section: Explore Premium, Install App, Bell, Users, Profile Avatar with Online Dot */}
+        <div className="flex items-center gap-3" ref={profileMenuRef}>
+          {/* White Pill Button: Explore Premium */}
           <button
             onClick={userProfile ? () => setIsProfileModalOpen(true) : openLoginModal}
-            className="hidden sm:flex items-center px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-black tracking-tight transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer whitespace-nowrap"
+            className="hidden sm:flex items-center px-4 py-2 rounded-full bg-white text-black hover:bg-neutral-200 text-sm font-bold tracking-tight transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer whitespace-nowrap"
           >
-            {userProfile ? 'Master Audio' : 'Explore Free'}
+            Explore Premium
           </button>
 
           {/* Install App Pill Button */}
           <a
             href="/Melody-v1.0.5.apk"
             download
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black hover:bg-white/10 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-white/10 text-white text-sm font-bold transition-all hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer"
             title="Download Android App APK"
           >
             <ArrowDownCircle className="w-4 h-4 text-white" />
@@ -416,7 +397,7 @@ export const App: React.FC = () => {
           {/* Notification Bell */}
           <button
             onClick={() => setIsHelpOpen(true)}
-            className="w-9 h-9 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            className="w-10 h-10 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white flex items-center justify-center transition-all cursor-pointer"
             title="Updates & Help"
           >
             <Bell className="w-5 h-5" />
@@ -425,7 +406,7 @@ export const App: React.FC = () => {
           {/* Friends / Devices Activity */}
           <button
             onClick={() => setIsDevicesOpen(true)}
-            className="hidden md:flex w-9 h-9 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white items-center justify-center transition-all cursor-pointer"
+            className="hidden md:flex w-10 h-10 rounded-full hover:bg-white/10 text-[#b3b3b3] hover:text-white items-center justify-center transition-all cursor-pointer"
             title="Active Devices & Sessions"
           >
             <Users className="w-5 h-5" />
@@ -444,7 +425,7 @@ export const App: React.FC = () => {
                 <User className="w-4 h-4 text-[#b3b3b3]" />
               )}
               {/* Online indicator dot */}
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-black" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#3d91f4] border-2 border-black" />
             </button>
 
             {/* Profile Dropdown Menu */}

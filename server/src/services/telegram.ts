@@ -75,6 +75,10 @@ export class TelegramMultiBotService {
    * File download URL is cached in memory for 50 minutes.
    */
   async getFileDownloadUrl(fileId: string): Promise<{ downloadUrl: string; botIndex: number }> {
+    if (fileId.startsWith('http://') || fileId.startsWith('https://')) {
+      return { downloadUrl: fileId, botIndex: -1 };
+    }
+
     const cached = this.urlCache.get(fileId);
     if (cached && cached.expiresAt > Date.now()) {
       return { downloadUrl: cached.downloadUrl, botIndex: cached.botIndex };
@@ -111,7 +115,9 @@ export class TelegramMultiBotService {
    * Background pre-warmup: Resolves download URLs ahead of time so playback starts instantly in 0ms!
    */
   warmupFiles(fileIds: string[]): void {
-    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 50);
+    const unCached = fileIds
+      .filter((id) => !id.startsWith('http') && !this.urlCache.has(id))
+      .slice(0, 50);
     if (unCached.length === 0) return;
 
     // Run non-blocking in background in concurrent batches of 6
@@ -131,7 +137,11 @@ export class TelegramMultiBotService {
   async downloadToFile(fileId: string, destPath: string): Promise<number> {
     const { downloadUrl, botIndex } = await this.getFileDownloadUrl(fileId);
     const tmpPath = `${destPath}.tmp.${Date.now()}`;
-    console.log(`[Telegram Streaming] Bot ${botIndex + 1} downloading to ${tmpPath}...`);
+    if (botIndex === -1) {
+      console.log(`[Direct Streaming] Downloading ${fileId.slice(0, 40)}... to ${tmpPath}`);
+    } else {
+      console.log(`[Telegram Streaming] Bot ${botIndex + 1} downloading to ${tmpPath}...`);
+    }
 
     await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
 
@@ -140,10 +150,16 @@ export class TelegramMultiBotService {
       const protocol = downloadUrl.startsWith('https') ? https : http;
 
       const req = protocol.get(downloadUrl, { agent: telegramAgent, timeout: 45000 }, (res) => {
+        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          fileStream.close();
+          fs.unlink(tmpPath, () => {});
+          return this.downloadToFile(res.headers.location, destPath).then(resolve).catch(reject);
+        }
+
         if (res.statusCode !== 200) {
           fileStream.close();
           fs.unlink(tmpPath, () => {});
-          return reject(new Error(`Telegram download returned status ${res.statusCode}`));
+          return reject(new Error(`Download returned status ${res.statusCode}`));
         }
 
         let totalBytes = 0;
