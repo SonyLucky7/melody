@@ -12,6 +12,8 @@ import { spoolManager } from './services/stream';
 import { botAdminListener } from './services/botListener';
 import { warmSpoolCache } from './services/cacheWarmer';
 import { startKeepAliveRobot } from './services/keepAliveRobot';
+import { telegramService } from './services/telegram';
+import { query } from './db/client';
 
 import deviceRoutes from './routes/device.routes';
 import apiRoutes from './routes/api.routes';
@@ -180,6 +182,15 @@ export const server = app.listen(config.port, async () => {
       await runMigrations();
       // Auto-warm high-speed NVMe audio spool cache
       warmSpoolCache().catch(() => {});
+
+      // Auto-warm Telegram download URLs for top 40 tracks on boot for sub-second start
+      query('SELECT telegram_file_id FROM songs ORDER BY id DESC LIMIT 40')
+        .then((res) => {
+          const ids = res.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
+          telegramService.warmupFiles(ids);
+          console.log(`[Startup Warmup] Pre-warming ${ids.length} top tracks for sub-second streaming.`);
+        })
+        .catch(() => {});
     } else {
       console.warn('[PostgreSQL] Database unreachable at startup. Will reconnect on demand.');
     }

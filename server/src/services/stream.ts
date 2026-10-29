@@ -84,28 +84,46 @@ export function verifySignedStreamToken(token: string, expectedSongId: number): 
   }
 }
 
+// In-memory song metadata cache to eliminate redundant PostgreSQL queries on every Range request
+const songMetadataCache = new Map<number, { id: number; title: string; artist: string; file_size_bytes: string; telegram_file_id: string }>();
+
+// Set of files currently downloading to disk in background to avoid duplicate downloads
+const activeBackgroundDownloads = new Set<string>();
+
 /**
  * Handle Ultra-Fast Sub-50ms Range Stream for an audio track
  */
 export async function handleAudioStream(req: Request, res: Response, songId: number): Promise<void> {
-  // 1. Fetch song metadata & telegram_file_id from PostgreSQL
-  const songRes = await query(
-    `SELECT id, title, artist, file_size_bytes, telegram_file_id 
-     FROM songs 
-     WHERE id = $1`,
-    [songId]
-  );
+  // 1. Fetch song metadata from in-memory cache or PostgreSQL
+  let song = songMetadataCache.get(songId);
+  if (!song) {
+    const songRes = await query(
+      `SELECT id, title, artist, file_size_bytes, telegram_file_id 
+       FROM songs 
+       WHERE id = $1`,
+      [songId]
+    );
 
-  if (songRes.rows.length === 0) {
+    if (songRes.rows.length === 0) {
+      res.status(404).json({ error: 'SONG_NOT_FOUND', message: 'Song not found.' });
+      return;
+    }
+
+    song = songRes.rows[0];
+    if (song) {
+      songMetadataCache.set(songId, song);
+    }
+  }
+
+  if (!song) {
     res.status(404).json({ error: 'SONG_NOT_FOUND', message: 'Song not found.' });
     return;
   }
 
-  const song = songRes.rows[0];
   const expectedTotalBytes = parseInt(song.file_size_bytes || '0', 10);
   const spoolPath = path.join(config.tempDir, `song-${songId}.mp3`);
 
-  // Fast Path 1: Instant Local Spool Stream (only when 100% downloaded)
+  // Fast Path 1: Instant Local Spool Stream (when downloaded)
   if (fs.existsSync(spoolPath)) {
     try {
       const stat = fs.statSync(spoolPath);
@@ -116,6 +134,18 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
         return;
       }
     } catch {}
+  }
+
+  // Trigger non-blocking detached background download so full file is cached on local NVMe disk
+  if (!fs.existsSync(spoolPath) && !activeBackgroundDownloads.has(spoolPath)) {
+    activeBackgroundDownloads.add(spoolPath);
+    telegramService.downloadToFile(song.telegram_file_id, spoolPath)
+      .catch((err) => {
+        console.warn(`[Background Spool Failed for Song ${songId}]:`, err.message);
+      })
+      .finally(() => {
+        activeBackgroundDownloads.delete(spoolPath);
+      });
   }
 
   // Direct High-Speed Streaming: Resolve Telegram file URL (racing all bots concurrently)

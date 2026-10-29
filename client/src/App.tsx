@@ -11,7 +11,6 @@ import { NowPlayingView } from './components/NowPlayingView';
 import { HelpModal } from './components/HelpModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
-import { LaunchAdModal } from './components/LaunchAdModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -50,6 +49,8 @@ import {
   User,
   ShieldCheck,
   HelpCircle,
+  Plus,
+  PlusSquare,
 } from 'lucide-react';
 
 function getGreeting(): string {
@@ -69,9 +70,30 @@ export const App: React.FC = () => {
   const [viewHistory, setViewHistory] = useState<Array<{ view: string; data?: any }>>([{ view: 'home' }]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [recentSongs, setRecentSongs] = useState<Song[]>([]);
+  const [songs, setSongs] = useState<Song[]>(() => {
+    try {
+      const cached = localStorage.getItem('melody_cached_songs');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
+    try {
+      const cached = localStorage.getItem('melody_cached_playlists');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [recentSongs, setRecentSongs] = useState<Song[]>(() => {
+    try {
+      const cached = localStorage.getItem('melody_cached_recents');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [likedSongsList, setLikedSongsList] = useState<Song[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,22 +117,6 @@ export const App: React.FC = () => {
 
   const { playSong, offlineTracks, refreshFavourites } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
-
-  // Launch Ad State: Plays 1 full ad only when the user opens the application or website
-  const [isLaunchAdOpen, setIsLaunchAdOpen] = useState<boolean>(() => {
-    try {
-      return sessionStorage.getItem('melody_launch_ad_viewed') !== 'true';
-    } catch {
-      return true;
-    }
-  });
-
-  const handleCloseLaunchAd = () => {
-    try {
-      sessionStorage.setItem('melody_launch_ad_viewed', 'true');
-    } catch {}
-    setIsLaunchAdOpen(false);
-  };
 
   useEffect(() => {
     loadCatalog();
@@ -164,6 +170,12 @@ export const App: React.FC = () => {
     setPlaylists(fetchedPlaylists);
     setRecentSongs(fetchedRecent);
     setLikedSongsList(fetchedFavs);
+
+    try {
+      if (fetchedSongs.length > 0) localStorage.setItem('melody_cached_songs', JSON.stringify(fetchedSongs));
+      if (fetchedPlaylists.length > 0) localStorage.setItem('melody_cached_playlists', JSON.stringify(fetchedPlaylists));
+      if (fetchedRecent.length > 0) localStorage.setItem('melody_cached_recents', JSON.stringify(fetchedRecent));
+    } catch {}
 
     if (devicesData.user) {
       setUserProfileState(devicesData.user);
@@ -673,7 +685,59 @@ export const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 3. Sidhu Moose Wala Curated Section */}
+                {/* 3. Featured Playlists & Collections Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white tracking-tight">Playlists & Collections</h2>
+                      <p className="text-xs text-[#b3b3b3] mt-0.5">Explore your curated mixes and uploaded playlists</p>
+                    </div>
+                    <button
+                      onClick={handleCreatePlaylist}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>New Playlist</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {/* Create New Playlist Card */}
+                    <div
+                      onClick={handleCreatePlaylist}
+                      className="group p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center justify-center text-center aspect-square border-2 border-dashed border-white/10 hover:border-purple-500/50"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-purple-600 group-hover:text-white transition-all shadow-lg">
+                        <PlusSquare className="w-7 h-7" />
+                      </div>
+                      <span className="font-bold text-sm text-white">Create Playlist</span>
+                      <span className="text-[11px] text-[#b3b3b3] mt-0.5">Add your favorite tracks</span>
+                    </div>
+
+                    {/* All User & Uploaded Playlists */}
+                    {playlists.map((pl) => (
+                      <div
+                        key={pl.id}
+                        onClick={() => handleSelectView('playlist', pl)}
+                        className="group relative p-3.5 bg-[#181818] hover:bg-[#282828] rounded-md transition-all duration-300 cursor-pointer shadow-md flex flex-col"
+                      >
+                        <div className="relative aspect-square w-full rounded-md overflow-hidden bg-gradient-to-br from-purple-900/60 via-indigo-950/80 to-neutral-900 mb-3 shadow-lg flex items-center justify-center border border-white/5">
+                          <Disc className="w-16 h-16 text-purple-400/60 group-hover:scale-110 group-hover:text-purple-300 transition-all duration-300" />
+                          <div className="absolute bottom-2 right-2 w-11 h-11 rounded-full bg-[#a855f7] hover:bg-[#9333ea] active:scale-95 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover:opacity-100 group-hover:scale-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                        <span className="font-bold text-sm text-white truncate w-full">{pl.name}</span>
+                        <span className="text-xs text-[#b3b3b3] mt-1 font-medium flex items-center gap-1">
+                          <Disc className="w-3 h-3 text-purple-400" />
+                          <span>{pl.song_count || 0} songs</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Sidhu Moose Wala Curated Section */}
                 {sidhuSongs.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1172,12 +1236,6 @@ export const App: React.FC = () => {
         song={songToAddToPlaylist}
         playlists={playlists}
         onPlaylistUpdated={() => loadCatalog()}
-      />
-
-      {/* 1 Full Ad on Application Launch/Open Only */}
-      <LaunchAdModal
-        isOpen={isLaunchAdOpen}
-        onClose={handleCloseLaunchAd}
       />
     </div>
   );

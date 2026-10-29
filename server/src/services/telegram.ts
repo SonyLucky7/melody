@@ -111,15 +111,15 @@ export class TelegramMultiBotService {
    * Background pre-warmup: Resolves download URLs ahead of time so playback starts instantly in 0ms!
    */
   warmupFiles(fileIds: string[]): void {
-    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 30);
+    const unCached = fileIds.filter((id) => !this.urlCache.has(id)).slice(0, 50);
     if (unCached.length === 0) return;
 
-    // Run non-blocking in background
+    // Run non-blocking in background in concurrent batches of 6
     setTimeout(async () => {
-      for (const id of unCached) {
-        try {
-          await this.getFileDownloadUrl(id);
-        } catch {}
+      const batchSize = 6;
+      for (let i = 0; i < unCached.length; i += batchSize) {
+        const batch = unCached.slice(i, i + batchSize);
+        await Promise.allSettled(batch.map((id) => this.getFileDownloadUrl(id)));
       }
     }, 50);
   }

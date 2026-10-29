@@ -50,12 +50,18 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
       onClick={handleCardClick}
       className="group relative p-3.5 bg-[#181818] hover:bg-[#282828] rounded-md transition-all duration-300 cursor-pointer shadow-md flex flex-col"
     >
-      <div className="relative aspect-square w-full rounded-md overflow-hidden bg-[#242424] mb-3 shadow-lg">
+      <div className="relative aspect-square w-full rounded-md overflow-hidden bg-gradient-to-br from-neutral-800 to-neutral-900 mb-3 shadow-lg">
         <img
           src={getFullCoverUrl(song.cover_url)}
           alt={song.title}
+          loading="lazy"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+            const target = e.target as HTMLImageElement;
+            if (!target.src.includes('melody-chi-nine.vercel.app')) {
+              target.src = `https://melody-chi-nine.vercel.app${song.cover_url?.startsWith('/') ? '' : '/'}${song.cover_url}`;
+            } else {
+              target.src = '/Melody-Logo-512.png';
+            }
           }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />

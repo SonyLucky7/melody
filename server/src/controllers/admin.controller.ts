@@ -80,6 +80,35 @@ export async function handleAdminUpload(req: Request, res: Response): Promise<vo
 
     const song = insertRes.rows[0];
 
+    // Optional Playlist Linking: If admin provided a playlist name, automatically link song
+    const playlistName = (req.body.playlist || req.body.playlist_name || '').trim();
+    if (playlistName) {
+      try {
+        let plRes = await query(`SELECT id FROM playlists WHERE LOWER(name) = LOWER($1)`, [playlistName]);
+        let plId: number;
+        if (plRes.rows.length > 0) {
+          plId = plRes.rows[0].id;
+        } else {
+          const newPl = await query(
+            `INSERT INTO playlists (name, description, is_public, created_at, updated_at)
+             VALUES ($1, $2, true, NOW(), NOW())
+             RETURNING id`,
+            [playlistName, `Curated playlist for ${playlistName}`]
+          );
+          plId = newPl.rows[0].id;
+        }
+        await query(
+          `INSERT INTO playlist_songs (playlist_id, song_id, position)
+           VALUES ($1, $2, (SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_songs WHERE playlist_id = $1))
+           ON CONFLICT DO NOTHING`,
+          [plId, song.id]
+        );
+        console.log(`[Admin Upload] Added song "${song.title}" to playlist "${playlistName}" (ID: ${plId})`);
+      } catch (plErr: any) {
+        console.warn('[Admin Upload Playlist Link Warning]:', plErr.message);
+      }
+    }
+
     console.log(`[Admin Upload Success] Song "${song.title}" by ${song.artist} uploaded. ID: ${song.id}`);
 
     res.status(201).json({

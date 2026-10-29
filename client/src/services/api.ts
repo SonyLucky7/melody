@@ -17,11 +17,10 @@ export function getFullCoverUrl(coverUrl?: string | null): string {
     return coverUrl;
   }
   const cleanCover = coverUrl.startsWith('/') ? coverUrl : `/${coverUrl}`;
-  // In the browser, relative URLs resolve cleanly to current domain (Vercel CDN or localhost)
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && window.location.hostname === 'melody-chi-nine.vercel.app') {
     return cleanCover;
   }
-  return `${API_BASE}${cleanCover}`;
+  return `https://melody-chi-nine.vercel.app${cleanCover}`;
 }
 
 export function getDeviceId(): string {

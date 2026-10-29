@@ -425,6 +425,10 @@
             <input type="text" id="album" placeholder="e.g. Starboy">
           </div>
           <div class="input-group">
+            <label for="playlist">Playlist (Optional - Shows on Home)</label>
+            <input type="text" id="playlist" placeholder="e.g. Sidhu Moose Wala, Top Hits">
+          </div>
+          <div class="input-group">
             <label for="language">Language</label>
             <select id="language">
               <option value="english">English</option>
@@ -435,10 +439,11 @@
               <option value="instrumental">Instrumental</option>
             </select>
           </div>
-          <div class="input-group">
-            <label for="coverFile">Cover Art (Optional)</label>
-            <input type="file" id="coverFile" accept="image/jpeg,image/png" style="padding: 8px 10px; background:#0d0e15; border:1px solid #26293a; border-radius:10px;">
-          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="coverFile" style="font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; margin-bottom: 6px; display: block;">Cover Art (Optional JPEG / PNG)</label>
+          <input type="file" id="coverFile" accept="image/jpeg,image/png" style="width: 100%; padding: 8px 10px; background:#0d0e15; border:1px solid #26293a; border-radius:10px; color:#e5e7eb;">
         </div>
 
         <button id="uploadBtn" type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 14px;">
@@ -648,6 +653,7 @@
       formData.append('title', document.getElementById('title').value);
       formData.append('artist', document.getElementById('artist').value);
       formData.append('album', document.getElementById('album').value);
+      formData.append('playlist', document.getElementById('playlist').value);
       formData.append('language', document.getElementById('language').value);
       formData.append('audio', audioFileInput.files[0]);
 
