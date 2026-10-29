@@ -8,5 +8,6 @@ Thumbs.db
 /tmp/
 org/
 *.apk
+!client/public/*.apk
 *.exe
 scripts/
