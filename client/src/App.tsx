@@ -174,7 +174,7 @@ export const App: React.FC = () => {
 
     // Curated Public Playlists that must always show for everyone
     const PUBLIC_PLAYLISTS: Playlist[] = [
-      { id: 9, name: 'TikTok Phonk', total_songs: 75, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
+      { id: 9, name: 'TikTok Phonk', total_songs: 51, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
       { id: 3, name: 'Slowed + Reverb Essentials', total_songs: 95, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg' },
       { id: 4, name: 'Sidhu Moose Wala Legends', total_songs: 9, cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg' },
       { id: 5, name: 'Yo Yo Honey Singh Blockbusters', total_songs: 10, cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg' },
