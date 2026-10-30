@@ -8,9 +8,9 @@ import { config } from '../config';
 // High-performance persistent keep-alive agent to eliminate TLS handshake latency
 export const telegramAgent = new https.Agent({
   keepAlive: true,
-  maxSockets: 50,
-  maxFreeSockets: 20,
-  keepAliveMsecs: 60000,
+  maxSockets: 100,
+  maxFreeSockets: 30,
+  keepAliveMsecs: 120000,
   timeout: 60000,
 });
 
@@ -26,6 +26,7 @@ export class TelegramMultiBotService {
   private channelId: string;
   private currentBotIndex = 0;
   private urlCache = new Map<string, { downloadUrl: string; botIndex: number; expiresAt: number }>();
+  private inFlightUrlResolutions = new Map<string, Promise<{ downloadUrl: string; botIndex: number }>>();
 
   constructor(botTokens: string[], channelId: string) {
     this.botTokens = botTokens.length > 0 ? botTokens : ['MOCK_BOT_TOKEN_1', 'MOCK_BOT_TOKEN_2'];
@@ -107,31 +108,44 @@ export class TelegramMultiBotService {
       return { downloadUrl: cached.downloadUrl, botIndex: cached.botIndex };
     }
 
-    // Race ALL bots in parallel simultaneously - whichever bot responds first wins!
-    const promises = this.botTokens.map(async (token, idx) => {
-      const res = await this.fetchJson(
-        `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
-      );
-      if (res && res.ok && res.result?.file_path) {
-        return {
-          downloadUrl: `https://api.telegram.org/file/bot${token}/${res.result.file_path}`,
-          botIndex: idx,
-        };
+    // In-flight deduplication: Piggyback on ongoing resolution to prevent Telegram rate-limit stampedes
+    const existingPromise = this.inFlightUrlResolutions.get(fileId);
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    const resolutionPromise = (async () => {
+      // Race ALL bots in parallel simultaneously - whichever bot responds first wins!
+      const promises = this.botTokens.map(async (token, idx) => {
+        const res = await this.fetchJson(
+          `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
+        );
+        if (res && res.ok && res.result?.file_path) {
+          return {
+            downloadUrl: `https://api.telegram.org/file/bot${token}/${res.result.file_path}`,
+            botIndex: idx,
+          };
+        }
+        throw new Error(`Bot ${idx + 1} getFile failed`);
+      });
+
+      try {
+        const result = await Promise.any(promises);
+        this.urlCache.set(fileId, {
+          downloadUrl: result.downloadUrl,
+          botIndex: result.botIndex,
+          expiresAt: Date.now() + 50 * 60 * 1000,
+        });
+        return result;
+      } catch (err: any) {
+        throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message}`);
       }
-      throw new Error(`Bot ${idx + 1} getFile failed`);
+    })().finally(() => {
+      this.inFlightUrlResolutions.delete(fileId);
     });
 
-    try {
-      const result = await Promise.any(promises);
-      this.urlCache.set(fileId, {
-        downloadUrl: result.downloadUrl,
-        botIndex: result.botIndex,
-        expiresAt: Date.now() + 50 * 60 * 1000,
-      });
-      return result;
-    } catch (err: any) {
-      throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message}`);
-    }
+    this.inFlightUrlResolutions.set(fileId, resolutionPromise);
+    return resolutionPromise;
   }
 
   /**

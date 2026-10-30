@@ -28,6 +28,9 @@ interface MelodyApiService {
     @GET("api/songs/{id}/play")
     suspend fun requestPlayUrl(@Path("id") id: Long): PlayUrlResponse
 
+    @GET("api/stream/{id}/prewarm")
+    suspend fun prewarmStream(@Path("id") id: Long): Response<Map<String, Any>>
+
     @POST("api/songs/{id}/played")
     suspend fun recordPlayed(@Path("id") id: Long): Response<Unit>
 

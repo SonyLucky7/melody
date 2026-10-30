@@ -187,6 +187,41 @@ object MelodyPlayerManager {
         } else {
             _queue.value = originalQueue
         }
+
+        // Instantly pre-buffer and pre-warm upcoming shuffled track in ExoPlayer
+        val q = _queue.value
+        val curIdx = if (cur != null) q.indexOfFirst { it.id == cur.id } else -1
+        if (curIdx != -1 && curIdx + 1 < q.size) {
+            val nextSong = q[curIdx + 1]
+            service?.player?.let { player ->
+                if (player.mediaItemCount > 1) {
+                    player.removeMediaItem(1)
+                }
+                val nextLocal = MelodyDownloadManager.getLocalFile(nextSong.id)
+                val nextUri = if (nextLocal != null && nextLocal.exists()) {
+                    Uri.fromFile(nextLocal)
+                } else {
+                    Uri.parse("https://melody-mzsm.onrender.com/api/stream/${nextSong.id}")
+                }
+                val nextItem = MediaItem.Builder()
+                    .setUri(nextUri)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(nextSong.title)
+                            .setArtist(nextSong.artist)
+                            .setAlbumTitle(nextSong.album ?: "Melody")
+                            .setArtworkUri(Uri.parse(nextSong.getFullCoverUrl()))
+                            .build()
+                    )
+                    .build()
+                player.addMediaItem(nextItem)
+            }
+            scope.launch(Dispatchers.IO) {
+                try {
+                    ApiClient.service.prewarmStream(nextSong.id)
+                } catch (e: Exception) {}
+            }
+        }
     }
 
     fun cycleRepeat() {
@@ -278,6 +313,13 @@ object MelodyPlayerManager {
                             )
                             .build()
                         addMediaItem(nextItem)
+
+                        // Pre-warm next track on the server so its Telegram URL and spool are hot
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                ApiClient.service.prewarmStream(nextSong.id)
+                            } catch (e: Exception) {}
+                        }
                     }
                 }
 
@@ -309,8 +351,47 @@ object MelodyPlayerManager {
         if (q.isEmpty()) return
 
         val curIdx = q.indexOfFirst { it.id == cur.id }
+        val player = service?.player
         if (curIdx != -1 && curIdx + 1 < q.size) {
-            playSong(q[curIdx + 1])
+            val nextSong = q[curIdx + 1]
+            // If ExoPlayer has already buffered the upcoming track at index 1, seek instantly with 0ms delay!
+            if (player != null && player.mediaItemCount > 1 && player.currentMediaItemIndex == 0) {
+                _currentSong.value = nextSong
+                _progressMs.value = 0L
+                player.seekToNextMediaItem()
+                player.play()
+
+                // Chain-enqueue the track after nextSong so the queue stays perpetually pre-buffered
+                val nextNextIdx = curIdx + 2
+                if (nextNextIdx < q.size) {
+                    val futureSong = q[nextNextIdx]
+                    val futureLocal = MelodyDownloadManager.getLocalFile(futureSong.id)
+                    val futureUri = if (futureLocal != null && futureLocal.exists()) {
+                        Uri.fromFile(futureLocal)
+                    } else {
+                        Uri.parse("https://melody-mzsm.onrender.com/api/stream/${futureSong.id}")
+                    }
+                    val futureItem = MediaItem.Builder()
+                        .setUri(futureUri)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(futureSong.title)
+                                .setArtist(futureSong.artist)
+                                .setAlbumTitle(futureSong.album ?: "Melody")
+                                .setArtworkUri(Uri.parse(futureSong.getFullCoverUrl()))
+                                .build()
+                        )
+                        .build()
+                    player.addMediaItem(futureItem)
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            ApiClient.service.prewarmStream(futureSong.id)
+                        } catch (e: Exception) {}
+                    }
+                }
+            } else {
+                playSong(nextSong)
+            }
         } else if (forceLoop || _repeatState.value == RepeatState.ALL) {
             playSong(q[0])
         }

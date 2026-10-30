@@ -497,6 +497,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           preloadAudioRef.current.preload = 'auto';
         }
         preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
+        // Pre-warm the next track's download URL on the server so playback starts in <100ms
+        fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
       }
     } catch (err) {
       console.error('[Playback Start Error]:', err);
@@ -743,15 +745,40 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   };
 
-  // Toggle Shuffle: Generates or clears shuffled queue
+  // Toggle Shuffle: Generates or clears shuffled queue and immediately pre-buffers upcoming track
   const toggleShuffle = () => {
     setIsShuffle((prev) => {
       const next = !prev;
       isShuffleRef.current = next;
       if (next && queueRef.current.length > 0) {
-        shuffledQueueRef.current = createShuffledOrder(queueRef.current, currentSongRef.current || undefined);
+        const shuffled = createShuffledOrder(queueRef.current, currentSongRef.current || undefined);
+        shuffledQueueRef.current = shuffled;
+        // Immediately pre-buffer and pre-warm upcoming shuffled track for 0ms transition
+        if (shuffled.length > 1) {
+          const nextSong = shuffled[1];
+          if (!preloadAudioRef.current) {
+            preloadAudioRef.current = new Audio();
+          }
+          preloadAudioRef.current.preload = 'auto';
+          preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
+          fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
+        }
       } else {
         shuffledQueueRef.current = [];
+        // Sequential next song pre-buffer
+        const q = queueRef.current;
+        const cur = currentSongRef.current;
+        if (q.length > 1 && cur) {
+          const curIdx = q.findIndex((s) => s.id === cur.id);
+          const nextIdx = (curIdx + 1) % q.length;
+          const nextSong = q[nextIdx];
+          if (!preloadAudioRef.current) {
+            preloadAudioRef.current = new Audio();
+          }
+          preloadAudioRef.current.preload = 'auto';
+          preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
+          fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
+        }
       }
       return next;
     });

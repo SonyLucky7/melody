@@ -122,12 +122,13 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
 
   const expectedTotalBytes = parseInt(song.file_size_bytes || '0', 10);
   const spoolPath = path.join(config.tempDir, `song-${songId}.mp3`);
+  const tmpSpoolPath = path.join(config.tempDir, `song-${songId}.mp3.tmp`);
 
   // Fast Path 1: Instant Local Spool Stream (when downloaded)
   if (fs.existsSync(spoolPath)) {
     try {
       const stat = fs.statSync(spoolPath);
-      if (stat.size > 0 && (expectedTotalBytes === 0 || stat.size >= expectedTotalBytes - 2048)) {
+      if (stat.size > 500000 && (expectedTotalBytes === 0 || stat.size >= expectedTotalBytes - 4096)) {
         // Touch access time to keep cache hot
         fs.utimes(spoolPath, new Date(), new Date(), () => {});
         serveFromDisk(req, res, spoolPath, stat.size);
@@ -136,19 +137,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     } catch {}
   }
 
-  // Trigger non-blocking detached background download so full file is cached on local NVMe disk
-  if (!fs.existsSync(spoolPath) && !activeBackgroundDownloads.has(spoolPath)) {
-    activeBackgroundDownloads.add(spoolPath);
-    telegramService.downloadToFile(song.telegram_file_id, spoolPath)
-      .catch((err) => {
-        console.warn(`[Background Spool Failed for Song ${songId}]:`, err.message);
-      })
-      .finally(() => {
-        activeBackgroundDownloads.delete(spoolPath);
-      });
-  }
-
-  // Direct High-Speed Streaming: Resolve Telegram file URL (racing all bots concurrently)
+  // Direct High-Speed Streaming: Resolve Telegram file URL (racing all bots concurrently with in-flight deduplication)
   try {
     const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id);
 
@@ -186,13 +175,22 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       res.writeHead(statusCode, responseHeaders);
       tgRes.pipe(res);
 
-      // Local spool caching: save stream to disk for instant 0ms seeking & replays
+      // Local spool caching: save stream to disk atomically for instant 0ms seeking & replays
       if (!rangeHeader || rangeHeader === 'bytes=0-') {
-        try {
-          const fileOut = fs.createWriteStream(spoolPath);
-          tgRes.pipe(fileOut);
-          fileOut.on('error', () => {});
-        } catch {}
+        if (!fs.existsSync(spoolPath) && !fs.existsSync(tmpSpoolPath)) {
+          try {
+            const fileOut = fs.createWriteStream(tmpSpoolPath);
+            tgRes.pipe(fileOut);
+            fileOut.on('finish', async () => {
+              try {
+                await fs.promises.rename(tmpSpoolPath, spoolPath);
+              } catch {}
+            });
+            fileOut.on('error', () => {
+              fs.unlink(tmpSpoolPath, () => {});
+            });
+          } catch {}
+        }
       }
     });
 

@@ -1,8 +1,8 @@
 # 🎵 Melody — Production-Grade Music Streaming Ecosystem
 
 [![Web Player](https://img.shields.io/badge/Web_Player-Live_on_Vercel-success?style=for-the-badge&logo=vercel)](https://melody-chi-nine.vercel.app)
-[![Android APK](https://img.shields.io/badge/Android_App-v1.0.7_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.0.7.apk)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.0.7-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases/tag/v1.0.7)
+[![Android APK](https://img.shields.io/badge/Android_App-v1.0.8_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.0.8-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases/tag/v1.0.8)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material_3-4285F4?style=for-the-badge&logo=android)](https://developer.android.com/jetpack/compose)
 [![React 18](https://img.shields.io/badge/React_18-TypeScript-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
@@ -16,7 +16,7 @@
 | Platform | Link | Description |
 | :--- | :--- | :--- |
 | 🌍 **Web Player** | [melody-chi-nine.vercel.app](https://melody-chi-nine.vercel.app) | Responsive Spotify-grade Web Application (Mobile + Desktop). |
-| 📱 **Android App (APK)** | [Download Melody v1.0.7 APK](https://melody-chi-nine.vercel.app/Melody-v1.0.7.apk) | Direct production APK with offline storage, background audio, and lock-screen widget. |
+| 📱 **Android App (APK)** | [Download Melody v1.0.8 APK](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk) | Direct production APK with offline storage, background audio, and lock-screen widget. |
 | 🏷️ **GitHub Releases** | [Releases & Changelog](https://github.com/SonyLucky7/melody/releases) | Versioned release tags, compilation artifacts, and changelog history. |
 
 ---

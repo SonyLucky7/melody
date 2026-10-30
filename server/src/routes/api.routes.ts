@@ -4,6 +4,7 @@ import {
   getSongById,
   getSongPlayUrl,
   streamAudio,
+  prewarmStream,
   recordSongPlay,
   getRecentlyPlayed,
 } from '../controllers/song.controller';
@@ -37,6 +38,7 @@ router.get('/songs/:id', verifyDeviceSession, getSongById);
 router.get('/songs/:id/play', verifyDeviceSession, getSongPlayUrl);
 router.get('/stream/:id', streamAudio); // Stream verified via 10-minute signed token
 router.head('/stream/:id', streamAudio);
+router.get('/stream/:id/prewarm', prewarmStream);
 
 // --- Spotify-Style Playback History ---
 router.post('/songs/:id/played', verifyDeviceSession, recordSongPlay);

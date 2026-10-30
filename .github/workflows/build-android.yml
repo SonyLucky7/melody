@@ -34,37 +34,35 @@ jobs:
       - name: Rename APK
         working-directory: android/app/build/outputs/apk/debug
         run: |
-          cp app-debug.apk Melody-v1.0.7.apk
+          cp app-debug.apk Melody-v1.0.8.apk
 
       - name: Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.0.7
-          path: android/app/build/outputs/apk/debug/Melody-v1.0.7.apk
+          name: Melody-Android-v1.0.8
+          path: android/app/build/outputs/apk/debug/Melody-v1.0.8.apk
           retention-days: 30
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.7
-          name: Melody Android App v1.0.7
+          tag_name: v1.0.8
+          name: Melody Android App v1.0.8
           body: |
-            ### 🎵 Melody Android v1.0.7
-            - Spotify-grade mobile layout & full public playlist carousel (Motivation Vol. 1 & 2, TikTok Phonk, Slowed Reverb, Sidhu Moose Wala, Honey Singh, Weeknd, Lana, Ariana)
-            - Full 552-track high-speed parallel pagination & persistent SharedPreferences instant caching
-            - Popular Artists carousel and Library screen with all 7 featured artists & verified discographies
-            - Curated Public Playlists with rich cover art and description previews in both Home and Library
-            - Direct scoped offline storage on device with zero-data playback
-            - Pinned bottom mini player and seamless back-navigation
-          files: android/app/build/outputs/apk/debug/Melody-v1.0.7.apk
+            ### 🎵 Melody Android v1.0.8
+            - Instant zero-delay playback engine with atomic streaming and in-flight deduplication
+            - Next track pre-buffering and pre-warming in ExoPlayer for 0ms transitions on skip and shuffle
+            - Multi-bot Telegram concurrency scaling and connection pool optimization
+            - 552-track high-speed parallel pagination and persistent 0ms cold-start cache
+          files: android/app/build/outputs/apk/debug/Melody-v1.0.8.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy APK to client/public
         run: |
-          cp android/app/build/outputs/apk/debug/Melody-v1.0.7.apk client/public/Melody-v1.0.7.apk
+          cp android/app/build/outputs/apk/debug/Melody-v1.0.8.apk client/public/Melody-v1.0.8.apk
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add client/public/Melody-v1.0.7.apk
-          git diff --staged --quiet || git commit -m "Auto-deploy Melody-v1.0.7.apk [skip ci]"
+          git add client/public/Melody-v1.0.8.apk
+          git diff --staged --quiet || git commit -m "Auto-deploy Melody-v1.0.8.apk [skip ci]"
           git push
