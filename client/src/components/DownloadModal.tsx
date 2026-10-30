@@ -220,6 +220,27 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
           {/* 2. GOOGLE & ANDROID TV */}
           {activeTab === 'tv' && (
             <div className="space-y-4">
+              {/* Living Room TV Mockup Banner */}
+              <div className="relative w-full h-44 sm:h-52 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                <img
+                  src="/Melody-Android-TV-Preview.jpg"
+                  alt="Melody on Google TV and Android TV"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/20 pointer-events-none" />
+                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-600/80 text-white">
+                      10-Foot Leanback Experience
+                    </span>
+                    <h3 className="text-sm font-bold text-white mt-1">Melody for Smart TVs</h3>
+                  </div>
+                  <span className="text-xs font-mono text-purple-300 bg-black/60 px-2 py-1 rounded border border-white/10">
+                    4K HDR 320k
+                  </span>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
