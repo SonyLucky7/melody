@@ -1,5 +1,6 @@
 package com.melody.music.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -79,6 +80,18 @@ fun LibraryScreen(
 
     LaunchedEffect(Unit) {
         refreshPlaylists()
+    }
+
+    BackHandler(enabled = activeSubView != null || selectedPlaylist != null || showCreateDialog) {
+        if (showCreateDialog) {
+            showCreateDialog = false
+            newPlaylistName = ""
+        } else if (activeSubView != null) {
+            activeSubView = null
+        } else if (selectedPlaylist != null) {
+            selectedPlaylist = null
+            refreshPlaylists()
+        }
     }
 
     if (activeSubView == "LIKED") {
@@ -530,6 +543,9 @@ fun CustomPlaylistScreen(
     onSongClick: (Song, List<Song>) -> Unit,
     onPlaylistDeleted: () -> Unit
 ) {
+    BackHandler {
+        onBack()
+    }
     val fallbackSongs = remember(playlist, allSongs) {
         getPlaylistSongsFallback(playlist, allSongs)
     }
@@ -782,6 +798,9 @@ fun LikedSongsScreen(
     onBack: () -> Unit,
     onSongClick: (Song) -> Unit
 ) {
+    BackHandler {
+        onBack()
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -887,6 +906,9 @@ fun DownloadedSongsScreen(
     onBack: () -> Unit,
     onSongClick: (Song) -> Unit
 ) {
+    BackHandler {
+        onBack()
+    }
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()

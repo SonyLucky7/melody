@@ -11,3 +11,6 @@ org/
 !client/public/*.apk
 *.exe
 scripts/
+Udyam_Registration_Certificate.*
+*.pem
+*.key

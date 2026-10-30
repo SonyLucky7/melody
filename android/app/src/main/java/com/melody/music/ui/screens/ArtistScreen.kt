@@ -1,5 +1,6 @@
 package com.melody.music.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -104,6 +105,9 @@ fun ArtistScreen(
     onSongClick: (Song, List<Song>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    BackHandler {
+        onBack()
+    }
     val profile = ARTIST_PROFILES[artistName] ?: ArtistProfile(
         name = artistName,
         imageUrl = "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&auto=format&fit=crop&q=80",

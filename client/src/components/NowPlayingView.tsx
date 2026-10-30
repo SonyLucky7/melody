@@ -182,6 +182,7 @@ export const NowPlayingView: React.FC = () => {
               {/* Album Sleeve / Jacket (slid slightly to the left) */}
               <div className="relative w-56 h-56 sm:w-72 sm:h-72 rounded-xl overflow-hidden shadow-2xl -mr-16 sm:-mr-24 z-10 border border-white/10 rotate-[-4deg] transition-transform hover:rotate-0 duration-500 flex-shrink-0">
                 <img
+                  key={`cover-${currentSong.id}`}
                   src={getFullCoverUrl(currentSong.cover_url)}
                   alt={currentSong.title}
                   onError={(e) => {
@@ -222,6 +223,7 @@ export const NowPlayingView: React.FC = () => {
                 {/* Center Record Label */}
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#a855f7] border-4 border-[#121212] overflow-hidden flex flex-col items-center justify-center p-2 text-center shadow-inner">
                   <img
+                    key={`label-${currentSong.id}`}
                     src={getFullCoverUrl(currentSong.cover_url)}
                     alt="Center label"
                     onError={(e) => {
@@ -297,6 +299,7 @@ export const NowPlayingView: React.FC = () => {
             {/* Center Circular Artist/Album Artwork */}
             <div className="relative w-56 h-56 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.35)] border-4 border-[#a855f7]/60 z-10">
               <img
+                key={`radial-${currentSong.id}`}
                 src={getFullCoverUrl(currentSong.cover_url)}
                 alt={currentSong.title}
                 onError={(e) => {

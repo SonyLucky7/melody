@@ -144,7 +144,7 @@ melody/
 │   └── build.gradle
 ├── client/                     # React 18 + TypeScript Web Application
 │   ├── public/                 # Static assets & compiled Android APK binaries
-│   │   ├── Melody-v1.0.7.apk   # Authentic production Android binary
+│   │   ├── Melody-v1.0.8.apk   # Authentic production Android binary
 │   │   └── covers/             # Album artwork & artist profile images
 │   ├── src/
 │   │   ├── components/         # Sidebar, PlayerBar, SongRow, Modals

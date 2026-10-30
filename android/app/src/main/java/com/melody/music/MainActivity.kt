@@ -116,13 +116,15 @@ fun MelodyApp() {
     }
 
     // Handle Android hardware back button
-    BackHandler(enabled = selectedArtist != null || selectedPlaylist != null || isFullPlayerVisible) {
+    BackHandler(enabled = isFullPlayerVisible || selectedArtist != null || selectedPlaylist != null || selectedTab != 0) {
         if (isFullPlayerVisible) {
             isFullPlayerVisible = false
         } else if (selectedArtist != null) {
             selectedArtist = null
         } else if (selectedPlaylist != null) {
             selectedPlaylist = null
+        } else if (selectedTab != 0) {
+            selectedTab = 0
         }
     }
 

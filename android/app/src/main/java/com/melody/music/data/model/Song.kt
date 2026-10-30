@@ -13,16 +13,36 @@ data class Song(
     @SerializedName("created_at") val createdAt: String?
 ) {
     fun getFullCoverUrl(): String {
-        if (coverUrl.isNullOrBlank() || coverUrl == "/Melody-Logo-512.png") {
+        if (coverUrl.isNullOrBlank() || coverUrl.contains("Melody-Logo")) {
             val alb = album?.lowercase() ?: ""
+            val art = artist.lowercase()
+            val tit = title.lowercase()
             if (alb.contains("motivation vol. 1") || alb == "motivation 1") {
                 return "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80"
             }
             if (alb.contains("motivation vol. 2") || alb == "motivation 2") {
                 return "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80"
             }
-            if (alb.contains("phonk")) {
+            if (alb.contains("phonk") || tit.contains("phonk") || tit.contains("montagem")) {
                 return "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23"
+            }
+            if (art.contains("weeknd")) {
+                return "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg"
+            }
+            if (art.contains("moose wala")) {
+                return "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg"
+            }
+            if (art.contains("honey singh")) {
+                return "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg"
+            }
+            if (art.contains("lana")) {
+                return "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg"
+            }
+            if (art.contains("ariana")) {
+                return "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg"
+            }
+            if (alb.contains("slowed") || tit.contains("slowed") || tit.contains("reverb")) {
+                return "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg"
             }
             return "https://melody-chi-nine.vercel.app/Melody-Logo-512.png"
         }

@@ -11,6 +11,8 @@ import { NowPlayingView } from './components/NowPlayingView';
 import { HelpModal } from './components/HelpModal';
 import { ProfileModal } from './components/ProfileModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
+import { DownloadModal } from './components/DownloadModal';
+import { SupportModal } from './components/SupportModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -57,6 +59,7 @@ import {
   FolderArchive,
   Library,
   X,
+  Headphones,
 } from 'lucide-react';
 
 function getGreeting(): string {
@@ -248,6 +251,8 @@ export const App: React.FC = () => {
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
   const [showMobileInstallBanner, setShowMobileInstallBanner] = useState(true);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   const { playSong, offlineTracks, refreshFavourites } = usePlayer();
   const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
@@ -506,14 +511,13 @@ export const App: React.FC = () => {
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
           </div>
-          <a
-            href="/Melody-v1.0.8.apk"
-            download
-            className="flex-shrink-0 ml-2 px-3 py-1 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1"
+          <button
+            onClick={() => setIsDownloadModalOpen(true)}
+            className="flex-shrink-0 ml-2 px-3 py-1 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1 cursor-pointer"
           >
             <ArrowDownCircle className="w-3.5 h-3.5 text-black" />
             <span>Install</span>
-          </a>
+          </button>
         </div>
       )}
 
@@ -593,17 +597,26 @@ export const App: React.FC = () => {
             Explore Premium
           </button>
 
-          {/* Install App Pill Button (Prominently visible on mobile & desktop) */}
-          <a
-            href="/Melody-v1.0.6.apk"
-            download
+          {/* Install App Pill Button (Prominently visible on mobile & desktop - opens multi-platform modal) */}
+          <button
+            onClick={() => setIsDownloadModalOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md transition-all whitespace-nowrap cursor-pointer"
-            title="Download Android App APK"
+            title="Download Melody for Android, TV, Windows, Mac & iOS"
           >
             <ArrowDownCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             <span className="hidden sm:inline">Install App</span>
             <span className="sm:hidden">Install</span>
-          </a>
+          </button>
+
+          {/* 24/7 Customer Support Button */}
+          <button
+            onClick={() => setIsSupportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-md transition-all whitespace-nowrap cursor-pointer border border-white/5"
+            title="Customer Support & Help"
+          >
+            <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+            <span className="hidden md:inline">Support</span>
+          </button>
 
           {/* Notification Bell */}
           <button
@@ -756,13 +769,15 @@ export const App: React.FC = () => {
           onOpenDevices={() => setIsDevicesOpen(true)}
           onOpenHelp={() => setIsHelpOpen(true)}
           onOpenProfile={() => setIsProfileModalOpen(true)}
+          onOpenDownload={() => setIsDownloadModalOpen(true)}
+          onOpenSupport={() => setIsSupportModalOpen(true)}
           userProfile={userProfile}
         />
 
         {/* Main Content Area with Spotify Dark Gradient */}
         <main className="flex-1 min-h-0 flex flex-col overflow-y-auto bg-gradient-to-b from-[#20202b] via-[#121212] to-[#121212] rounded-lg border border-white/5 overscroll-contain">
           {/* View Router */}
-          <div className="p-3 sm:p-6 flex-1 pb-36 md:pb-24">
+          <div className="p-3 sm:p-6 flex-1 pb-44 md:pb-24 overflow-x-hidden">
             {/* VIEW: HOME (Exact Spotify Dashboard) */}
             {currentView === 'home' && (
               <div className="space-y-6 sm:space-y-8">
@@ -1619,18 +1634,17 @@ export const App: React.FC = () => {
           <span className="text-[10px] font-bold">Your Library</span>
         </button>
 
-        <a
-          href="/Melody-v1.0.6.apk"
-          download
-          className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-purple-400 hover:text-purple-300 transition-all active:scale-95"
-          title="Download Android App APK"
+        <button
+          onClick={() => setIsDownloadModalOpen(true)}
+          className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-purple-400 hover:text-purple-300 transition-all active:scale-95 cursor-pointer"
+          title="Download Melody App for All Devices"
         >
           <div className="relative">
             <ArrowDownCircle className="w-5 h-5 text-[#a855f7]" />
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           </div>
-          <span className="text-[10px] font-extrabold text-white">Install App</span>
-        </a>
+          <span className="text-[10px] font-extrabold text-white">Download</span>
+        </button>
       </nav>
 
       {/* Interactive Modals */}
@@ -1691,6 +1705,19 @@ export const App: React.FC = () => {
         song={songToAddToPlaylist}
         playlists={playlists}
         onPlaylistUpdated={() => loadCatalog()}
+      />
+
+      {/* Multi-Platform Download Selector Modal (Android, TV, Windows, Mac, iOS) */}
+      <DownloadModal
+        isOpen={isDownloadModalOpen}
+        onClose={() => setIsDownloadModalOpen(false)}
+      />
+
+      {/* 24/7 Customer Support & Help Desk Modal */}
+      <SupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+        onResync={() => loadCatalog()}
       />
     </div>
   );

@@ -192,6 +192,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const isEqEnabledRef = useRef<boolean>(isEqEnabled);
   const eqBandsRef = useRef<number[]>(eqBands);
   const downloadedSongIdsRef = useRef<Set<number>>(new Set());
+  const playRequestIdRef = useRef<number>(0);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -393,6 +394,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Core Play Function: checks local device storage first for true offline playback
   const playSong = useCallback(async (song: Song, queueList?: Song[]) => {
     if (!song) return;
+    const requestId = ++playRequestIdRef.current;
 
     // Update Queue
     if (queueList && queueList.length > 0) {
@@ -437,6 +439,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       let targetSrc: string;
       if (downloadedSongIdsRef.current.has(song.id)) {
         const offline = await getOfflineSong(song.id);
+        if (requestId !== playRequestIdRef.current) return;
         if (offline && offline.audioBlob) {
           targetSrc = URL.createObjectURL(offline.audioBlob);
           console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
@@ -447,6 +450,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         targetSrc = streamUrl;
       }
 
+      if (requestId !== playRequestIdRef.current) return;
+
       // Sub-second instant playback: Pause old audio and immediately assign new src without redundant load() cycle
       if (!audio.paused) {
         audio.pause();
@@ -456,10 +461,12 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
       // Auto-fallback: If primary Render stream ever errors, fallback smoothly to Vercel Edge proxy
       audio.onerror = () => {
+        if (requestId !== playRequestIdRef.current) return;
         const err = audio.error;
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
         if (audio.src.includes('onrender.com') && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
           console.warn('[Melody Stream Notice] Falling back to Vercel Edge...');
+          if (requestId !== playRequestIdRef.current) return;
           audio.src = `/api/stream/${song.id}`;
           audio.play().catch(() => {});
         }
@@ -469,11 +476,12 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            if (requestId !== playRequestIdRef.current) return;
             setIsPlaying(true);
             setIsLoadingTrack(false);
           })
           .catch((err) => {
-            // Ignore intentional aborts from rapidly switching tracks
+            if (requestId !== playRequestIdRef.current) return;
             if (err.name === 'AbortError' || err.code === 20) {
               return;
             }
@@ -501,16 +509,19 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
       }
     } catch (err) {
+      if (requestId !== playRequestIdRef.current) return;
       console.error('[Playback Start Error]:', err);
       // Fallback
       try {
         const fallbackUrl = await requestPlayUrl(song.id);
+        if (requestId !== playRequestIdRef.current) return;
         if (fallbackUrl) {
           audio.src = fallbackUrl;
           await audio.play();
           setIsPlaying(true);
         }
       } catch (e) {
+        if (requestId !== playRequestIdRef.current) return;
         setIsPlaying(false);
       }
     }

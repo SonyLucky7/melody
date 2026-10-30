@@ -2,6 +2,81 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db/client';
 
+export const CURATED_PLAYLISTS = [
+  {
+    id: 10,
+    name: 'Motivation Vol. 1',
+    description: 'Drake, Lil Wayne, 50 Cent, Eminem & high-energy workout bangers.',
+    total_songs: 92,
+    cover_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE album = 'Motivation Vol. 1' ORDER BY id DESC`,
+  },
+  {
+    id: 11,
+    name: 'Motivation Vol. 2',
+    description: 'Trophies, Steady Mobbin, We Dem Boyz, Black and Yellow workout power.',
+    total_songs: 91,
+    cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE album = 'Motivation Vol. 2' ORDER BY id DESC`,
+  },
+  {
+    id: 9,
+    name: 'TikTok Phonk',
+    description: 'Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks.',
+    total_songs: 51,
+    cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(album) LIKE '%phonk%' OR LOWER(language) = 'phonk' OR LOWER(title) LIKE '%phonk%' OR LOWER(title) LIKE '%montagem%' ORDER BY id DESC`,
+  },
+  {
+    id: 3,
+    name: 'Slowed + Reverb Essentials',
+    description: 'Late night slowed and reverbed vibes, lofi & atmospheric chill.',
+    total_songs: 95,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(title) LIKE '%slowed%' OR LOWER(title) LIKE '%reverb%' OR LOWER(album) LIKE '%slowed%' ORDER BY id DESC`,
+  },
+  {
+    id: 4,
+    name: 'Sidhu Moose Wala Legends',
+    description: '295, The Last Ride, Legend, Levels, So High & all iconic anthems.',
+    total_songs: 9,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%moose wala%' ORDER BY id DESC`,
+  },
+  {
+    id: 5,
+    name: 'Yo Yo Honey Singh Blockbusters',
+    description: 'Dope Shope, Blue Eyes, Desi Kalakaar, Love Dose & legendary Punjabi hits.',
+    total_songs: 10,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%honey singh%' ORDER BY id DESC`,
+  },
+  {
+    id: 6,
+    name: 'The Weeknd Master Collection',
+    description: 'Blinding Lights, Starboy, After Hours, Die For You & Abel classics.',
+    total_songs: 54,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%weeknd%' ORDER BY id DESC`,
+  },
+  {
+    id: 7,
+    name: 'Lana Del Rey Aesthetics',
+    description: 'Summertime Sadness, Video Games, Young and Beautiful, Born to Die.',
+    total_songs: 31,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%lana%' ORDER BY id DESC`,
+  },
+  {
+    id: 8,
+    name: 'Ariana Grande Top Hits',
+    description: '7 rings, thank u next, Dangerous Woman, positions & pop royalty.',
+    total_songs: 60,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg',
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%ariana%' ORDER BY id DESC`,
+  },
+];
+
 export async function getPlaylists(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
   const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
@@ -22,9 +97,23 @@ export async function getPlaylists(req: AuthenticatedRequest, res: Response): Pr
       [licenceId, deviceId]
     );
 
+    const curatedList = CURATED_PLAYLISTS.map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      cover_url: c.cover_url,
+      total_songs: c.total_songs,
+      is_public: true,
+      created_at: new Date().toISOString(),
+    }));
+
+    const userPlaylists = playlistsRes.rows.filter(
+      (r: any) => !CURATED_PLAYLISTS.some((c) => c.id === r.id)
+    );
+
     res.status(200).json({
       success: true,
-      data: playlistsRes.rows,
+      data: [...curatedList, ...userPlaylists],
     });
   } catch (err: any) {
     console.error('[Get Playlists Error]:', err);
@@ -71,6 +160,29 @@ export async function getPlaylistSongs(req: AuthenticatedRequest, res: Response)
   if (isNaN(playlistId)) {
     res.status(400).json({ error: 'INVALID_ID', message: 'Playlist ID must be an integer.' });
     return;
+  }
+
+  // 1. Instant resolution for Curated Public Playlists (Motivation 1 & 2, Phonk, Slowed, Weeknd, Sidhu, Honey Singh, Lana, Ariana)
+  const curated = CURATED_PLAYLISTS.find((p) => p.id === playlistId);
+  if (curated) {
+    try {
+      const songsRes = await query(curated.query);
+      res.status(200).json({
+        success: true,
+        playlist: {
+          id: curated.id,
+          name: curated.name,
+          description: curated.description,
+          cover_url: curated.cover_url,
+          total_songs: songsRes.rows.length,
+          is_public: true,
+        },
+        songs: songsRes.rows,
+      });
+      return;
+    } catch (err: any) {
+      console.error(`[Curated Playlist ${playlistId} Error]:`, err);
+    }
   }
 
   try {

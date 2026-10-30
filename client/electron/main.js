@@ -28,10 +28,14 @@ function createWindow() {
   mainWindow.setMenuBarVisibility(false);
 
   // In development, load local Vite dev server; in production, load built static files
-  const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000';
-  mainWindow.loadURL(startUrl).catch(() => {
+  if (process.env.NODE_ENV === 'development' || process.env.ELECTRON_START_URL) {
+    const startUrl = process.env.ELECTRON_START_URL || 'http://localhost:5173';
+    mainWindow.loadURL(startUrl).catch(() => {
+      mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    });
+  } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  });
+  }
 
   // Register Global Media Keys
   globalShortcut.register('MediaPlayPause', () => {

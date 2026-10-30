@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, HelpCircle, User } from 'lucide-react';
+import { Home, Search, Library, PlusSquare, Heart, Clock, Key, Laptop, ArrowDownCircle, HelpCircle, User, Headphones } from 'lucide-react';
 import { Playlist } from '../types';
 import { UserProfile } from '../services/api';
 
@@ -13,6 +13,8 @@ interface SidebarProps {
   onOpenDevices: () => void;
   onOpenHelp?: () => void;
   onOpenProfile?: () => void;
+  onOpenDownload?: () => void;
+  onOpenSupport?: () => void;
   userProfile?: UserProfile | null;
 }
 
@@ -26,6 +28,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenDevices,
   onOpenHelp,
   onOpenProfile,
+  onOpenDownload,
+  onOpenSupport,
   userProfile,
 }) => {
   return (
@@ -285,27 +289,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Download Android App Button */}
-        <a
-          href="/Melody-v1.0.8.apk"
-          download
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
-          title="Download Melody Android APK (v1.0.8)"
-        >
-          <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
-          <span>Download Android App</span>
-        </a>
-
-        {onOpenHelp && (
+        {/* Download App Button (Opens Multi-Platform Modal) */}
+        {onOpenDownload ? (
           <button
-            onClick={onOpenHelp}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all"
-            title="Help & Discord"
+            onClick={onOpenDownload}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30 cursor-pointer"
+            title="Download Melody for Android, TV, Windows, Mac & iOS"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-blue-400" />
-            <span>Help, Discord & FAQ</span>
+            <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
+            <span>Download Melody App</span>
           </button>
+        ) : (
+          <a
+            href="/Melody-v1.0.8.apk"
+            download
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
+            title="Download Melody Android APK (v1.0.8)"
+          >
+            <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
+            <span>Download Android App</span>
+          </a>
         )}
+
+        {/* 24/7 Customer Support & Help */}
+        <button
+          onClick={onOpenSupport ? onOpenSupport : onOpenHelp}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all cursor-pointer"
+          title="24/7 Customer Support & FAQ"
+        >
+          <Headphones className="w-3.5 h-3.5 text-purple-400" />
+          <span>Support & Help Desk</span>
+        </button>
       </div>
     </aside>
   );
