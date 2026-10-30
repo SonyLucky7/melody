@@ -13,6 +13,7 @@ export interface Song {
 export interface Playlist {
   id: number;
   name: string;
+  description?: string;
   total_songs?: number;
   song_count?: number;
   cover_url?: string;

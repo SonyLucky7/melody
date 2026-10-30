@@ -68,15 +68,69 @@ function getGreeting(): string {
 
 // Curated Public Playlists always available across mobile and desktop
 export const PUBLIC_PLAYLISTS: Playlist[] = [
-  { id: 10, name: 'Motivation Vol. 1', total_songs: 92, cover_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80' },
-  { id: 11, name: 'Motivation Vol. 2', total_songs: 91, cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80' },
-  { id: 9, name: 'TikTok Phonk', total_songs: 51, cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23' },
-  { id: 3, name: 'Slowed + Reverb Essentials', total_songs: 95, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg' },
-  { id: 4, name: 'Sidhu Moose Wala Legends', total_songs: 9, cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg' },
-  { id: 5, name: 'Yo Yo Honey Singh Blockbusters', total_songs: 10, cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg' },
-  { id: 6, name: 'The Weeknd Master Collection', total_songs: 54, cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg' },
-  { id: 7, name: 'Lana Del Rey Aesthetics', total_songs: 31, cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg' },
-  { id: 8, name: 'Ariana Grande Top Hits', total_songs: 60, cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg' },
+  {
+    id: 10,
+    name: 'Motivation Vol. 1',
+    description: 'Drake, Lil Wayne, 50 Cent, Eminem & high-energy workout bangers.',
+    total_songs: 92,
+    cover_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 11,
+    name: 'Motivation Vol. 2',
+    description: 'Trophies, Steady Mobbin, We Dem Boyz, Black and Yellow workout power.',
+    total_songs: 91,
+    cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 9,
+    name: 'TikTok Phonk',
+    description: 'Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks.',
+    total_songs: 51,
+    cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
+  },
+  {
+    id: 3,
+    name: 'Slowed + Reverb Essentials',
+    description: 'Late night slowed and reverbed vibes, lofi & atmospheric chill.',
+    total_songs: 95,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg'
+  },
+  {
+    id: 4,
+    name: 'Sidhu Moose Wala Legends',
+    description: '295, The Last Ride, Legend, Levels, So High & all iconic anthems.',
+    total_songs: 9,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg'
+  },
+  {
+    id: 5,
+    name: 'Yo Yo Honey Singh Blockbusters',
+    description: 'Dope Shope, Blue Eyes, Desi Kalakaar, Love Dose & legendary Punjabi hits.',
+    total_songs: 10,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg'
+  },
+  {
+    id: 6,
+    name: 'The Weeknd Master Collection',
+    description: 'Blinding Lights, Starboy, After Hours, Die For You & Abel classics.',
+    total_songs: 54,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg'
+  },
+  {
+    id: 7,
+    name: 'Lana Del Rey Aesthetics',
+    description: 'Summertime Sadness, Video Games, Young and Beautiful, Born to Die.',
+    total_songs: 31,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg'
+  },
+  {
+    id: 8,
+    name: 'Ariana Grande Top Hits',
+    description: '7 rings, thank u next, Dangerous Woman, positions & pop royalty.',
+    total_songs: 60,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg'
+  },
 ];
 
 export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song[] {
@@ -447,13 +501,13 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.6</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.7</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
           </div>
           <a
-            href="/Melody-v1.0.6.apk"
+            href="/Melody-v1.0.7.apk"
             download
             className="flex-shrink-0 ml-2 px-3 py-1 rounded-full bg-white hover:bg-neutral-200 text-black text-xs font-black active:scale-95 transition-all shadow-lg flex items-center gap-1"
           >
@@ -921,10 +975,9 @@ export const App: React.FC = () => {
                             </div>
                           </div>
                           <span className="font-bold text-sm text-white truncate w-full" title={pl.name}>{pl.name}</span>
-                          <span className="text-xs text-[#b3b3b3] mt-1 font-medium flex items-center gap-1">
-                            <Disc className="w-3 h-3 text-purple-400" />
-                            <span>{songCount} songs</span>
-                          </span>
+                          <p className="text-xs text-[#b3b3b3] mt-1 line-clamp-2 leading-relaxed">
+                            {pl.description || `${songCount} songs • High Quality Audio`}
+                          </p>
                         </div>
                       );
                     })}
@@ -1310,10 +1363,9 @@ export const App: React.FC = () => {
                             </div>
                           </div>
                           <span className="font-bold text-xs sm:text-sm text-white truncate w-full" title={pl.name}>{pl.name}</span>
-                          <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium flex items-center gap-1">
-                            <Disc className="w-3 h-3 text-purple-400" />
-                            <span>{songCount} tracks</span>
-                          </span>
+                          <p className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 line-clamp-2 leading-relaxed">
+                            {pl.description || `${songCount} tracks • Studio 320k`}
+                          </p>
                         </div>
                       );
                     })}
@@ -1460,6 +1512,12 @@ export const App: React.FC = () => {
                       {selectedPlaylist.name}
                     </h1>
 
+                    {selectedPlaylist.description && (
+                      <p className="text-xs sm:text-sm text-neutral-300 max-w-xl line-clamp-2">
+                        {selectedPlaylist.description}
+                      </p>
+                    )}
+
                     <p className="text-xs text-neutral-400 flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
                       <span>Melody Music</span>
                       <span>•</span>
@@ -1507,13 +1565,18 @@ export const App: React.FC = () => {
                       onRemoveFromPlaylist={() => handleRemoveSongFromCurrentPlaylist(song.id)}
                     />
                   ))}
-                  {playlistSongs.length === 0 && (
+                  {loading && playlistSongs.length === 0 ? (
+                    <div className="py-20 flex flex-col items-center justify-center space-y-3">
+                      <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-neutral-400 font-medium">Loading tracks...</p>
+                    </div>
+                  ) : playlistSongs.length === 0 ? (
                     <div className="py-16 text-center text-neutral-400 space-y-2">
                       <Disc className="w-12 h-12 mx-auto text-purple-400/40" />
                       <p className="text-sm font-medium">This playlist is currently empty.</p>
                       <p className="text-xs text-neutral-500">Click the '+' button on any track in your library to add it here!</p>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

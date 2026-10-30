@@ -18,7 +18,8 @@ interface MelodyApiService {
     suspend fun getSongs(
         @Query("search") search: String? = null,
         @Query("language") language: String? = null,
-        @Query("limit") limit: Int = 100
+        @Query("limit") limit: Int = 100,
+        @Query("offset") offset: Int = 0
     ): SongResponse
 
     @GET("api/songs/{id}")

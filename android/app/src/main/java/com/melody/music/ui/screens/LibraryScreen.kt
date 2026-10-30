@@ -368,6 +368,47 @@ fun LibraryScreen(
                     }
                 }
             }
+
+            // Public Curated Playlists (Spotify-grade)
+            items(com.melody.music.data.model.PUBLIC_PLAYLISTS) { pl ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { selectedPlaylist = pl }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = pl.coverUrl ?: "https://melody-chi-nine.vercel.app/Melody-Logo-512.png",
+                        contentDescription = pl.name,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = pl.name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = pl.description ?: "Curated Playlist • ${pl.totalSongs ?: 0} tracks",
+                            fontSize = 12.sp,
+                            color = MelodyTextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
 
         // Section: Downloaded Songs Card
@@ -428,8 +469,16 @@ fun LibraryScreen(
                 )
             }
 
-            val artists = listOf("The Weeknd", "Lana Del Rey")
-            items(artists) { artistName ->
+            val allFeaturedArtists = listOf(
+                "Sidhu Moose Wala",
+                "Yo Yo Honey Singh",
+                "The Weeknd",
+                "Lana Del Rey",
+                "Ariana Grande",
+                "2Pac",
+                "50 Cent"
+            )
+            items(allFeaturedArtists) { artistName ->
                 val profile = ARTIST_PROFILES[artistName]
                 Row(
                     modifier = Modifier
@@ -492,6 +541,14 @@ fun CustomPlaylistScreen(
     LaunchedEffect(fallbackSongs) {
         if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
             songs = fallbackSongs
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(allSongs) {
+        val recomputed = getPlaylistSongsFallback(playlist, allSongs)
+        if (recomputed.isNotEmpty() && (songs.isEmpty() || songs.size < recomputed.size)) {
+            songs = recomputed
             isLoading = false
         }
     }

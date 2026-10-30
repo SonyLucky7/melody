@@ -396,10 +396,11 @@ fun PlaylistCard(
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = "${playlist.totalSongs ?: 0} tracks • 320k Free",
+            text = playlist.description ?: "${playlist.totalSongs ?: 0} tracks • 320k Free",
             color = MelodyTextSecondary,
             fontSize = 11.sp,
-            maxLines = 1,
+            lineHeight = 14.sp,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }

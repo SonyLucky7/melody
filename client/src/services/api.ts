@@ -57,7 +57,7 @@ function authHeaders(): HeadersInit {
 
 // --- Music Catalog API ---
 
-export async function fetchSongs(search = '', language = '', limit = 500, offset = 0): Promise<Song[]> {
+export async function fetchSongs(search = '', language = '', limit = 1000, offset = 0): Promise<Song[]> {
   try {
     // If specific search, fetch single page directly
     if (search || limit <= 100) {
@@ -75,31 +75,37 @@ export async function fetchSongs(search = '', language = '', limit = 500, offset
       return data.data || [];
     }
 
-    // Auto-paginating catalog fetcher: fetches full catalog in chunks of 100
-    const allSongs: Song[] = [];
-    let currentOffset = offset;
-    const pageSize = 100;
+    // High-speed parallel page fetcher: retrieves entire 550+ track catalog concurrently
+    const pageOffsets = [0, 100, 200, 300, 400, 500, 600];
+    const pagePromises = pageOffsets.map(async (pageOff) => {
+      try {
+        const params = new URLSearchParams();
+        if (language) params.set('language', language);
+        params.set('limit', '100');
+        params.set('offset', pageOff.toString());
 
-    while (allSongs.length < limit) {
-      const params = new URLSearchParams();
-      if (language) params.set('language', language);
-      params.set('limit', pageSize.toString());
-      params.set('offset', currentOffset.toString());
+        const res = await fetch(`${API_BASE}/api/songs?${params.toString()}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.data || []) as Song[];
+      } catch {
+        return [] as Song[];
+      }
+    });
 
-      const res = await fetch(`${API_BASE}/api/songs?${params.toString()}`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) break;
-      const data = await res.json();
-      const pageSongs: Song[] = data.data || [];
-      if (pageSongs.length === 0) break;
-
-      allSongs.push(...pageSongs);
-      if (pageSongs.length < pageSize) break; // Reached end of catalog
-      currentOffset += pageSize;
+    const pages = await Promise.all(pagePromises);
+    const map = new Map<number, Song>();
+    for (const page of pages) {
+      for (const song of page) {
+        if (!map.has(song.id)) {
+          map.set(song.id, song);
+        }
+      }
     }
 
-    return allSongs;
+    return Array.from(map.values());
   } catch (err) {
     console.warn('[API fetchSongs Error]:', err);
     return [];

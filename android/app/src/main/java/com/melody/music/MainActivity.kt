@@ -41,6 +41,9 @@ import com.melody.music.ui.theme.MelodyBg
 import com.melody.music.ui.theme.MelodyColorScheme
 import com.melody.music.ui.theme.MelodyPrimary
 import com.melody.music.ui.theme.MelodyTextSecondary
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -125,17 +128,56 @@ fun MelodyApp() {
 
     fun loadCatalog() {
         scope.launch {
-            for (attempt in 1..4) {
+            // 1. Immediate restore from persistent cache for 0ms initial load
+            val prefs = context.getSharedPreferences("melody_catalog_cache", Context.MODE_PRIVATE)
+            val cachedJson = prefs.getString("songs_json", null)
+            if (!cachedJson.isNullOrBlank() && songs.isEmpty()) {
                 try {
-                    val res = ApiClient.service.getSongs(limit = 1000)
-                    if (res.success && res.data.isNotEmpty()) {
-                        songs = res.data
-                        break
+                    val listType = object : com.google.gson.reflect.TypeToken<List<Song>>() {}.type
+                    val cached: List<Song> = com.google.gson.Gson().fromJson(cachedJson, listType)
+                    if (cached.isNotEmpty()) {
+                        songs = cached
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    kotlinx.coroutines.delay(1500L * attempt)
                 }
+            }
+
+            // 2. Parallel pagination across all offsets (0..600) to fetch all 552 songs
+            val offsets = listOf(0, 100, 200, 300, 400, 500, 600)
+            try {
+                val deferredList = offsets.map { offset ->
+                    async(Dispatchers.IO) {
+                        try {
+                            ApiClient.service.getSongs(limit = 100, offset = offset)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                }
+                val responses = deferredList.awaitAll()
+                val allFetched = mutableListOf<Song>()
+                val seenIds = mutableSetOf<Long>()
+                for (resp in responses) {
+                    if (resp != null && resp.success) {
+                        for (song in resp.data) {
+                            if (seenIds.add(song.id)) {
+                                allFetched.add(song)
+                            }
+                        }
+                    }
+                }
+                if (allFetched.isNotEmpty()) {
+                    songs = allFetched
+                    try {
+                        val json = com.google.gson.Gson().toJson(allFetched)
+                        prefs.edit().putString("songs_json", json).apply()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
