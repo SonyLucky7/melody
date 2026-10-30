@@ -50,10 +50,10 @@ export async function getSongs(req: AuthenticatedRequest, res: Response): Promis
       query(countSql, params.slice(0, pIdx - 1)),
     ]);
 
-    // Pre-warm download URLs for top tracks in the background so playback starts in < 1 second!
+    // Gently pre-warm only the very top 3 trending tracks on initial home load (never on pagination/search)
     const fileIds = dataRes.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
-    if (fileIds.length > 0) {
-      telegramService.warmupFiles(fileIds.slice(0, 10));
+    if (offset === 0 && !search && fileIds.length > 0) {
+      telegramService.warmupFiles(fileIds.slice(0, 3));
     }
 
     // Strip telegram_file_id before sending to client

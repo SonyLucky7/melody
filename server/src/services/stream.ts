@@ -94,6 +94,8 @@ const activeBackgroundDownloads = new Set<string>();
  * Handle Ultra-Fast Sub-50ms Range Stream for an audio track
  */
 export async function handleAudioStream(req: Request, res: Response, songId: number): Promise<void> {
+  const isHead = req.method === 'HEAD';
+
   // 1. Fetch song metadata from in-memory cache or PostgreSQL
   let song = songMetadataCache.get(songId);
   if (!song) {
@@ -124,6 +126,37 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
   const spoolPath = path.join(config.tempDir, `song-${songId}.mp3`);
   const tmpSpoolPath = path.join(config.tempDir, `song-${songId}.mp3.tmp`);
 
+  // Fast Path 0: Instant 0ms response for HTTP HEAD requests (probed by ExoPlayer & Chrome)
+  if (isHead && expectedTotalBytes > 0) {
+    const rangeHeader = req.headers.range;
+    if (rangeHeader) {
+      const parts = rangeHeader.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] ? parseInt(parts[1], 10) : expectedTotalBytes - 1;
+      const chunkSize = Math.max(0, end - start + 1);
+      res.writeHead(206, {
+        'Content-Type': 'audio/mpeg',
+        'Accept-Ranges': 'bytes',
+        'Content-Range': `bytes ${start}-${end}/${expectedTotalBytes}`,
+        'Content-Length': chunkSize,
+        'Cache-Control': 'public, max-age=604800, immutable',
+        'X-Accel-Buffering': 'no',
+      });
+      res.end();
+      return;
+    } else {
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Accept-Ranges': 'bytes',
+        'Content-Length': expectedTotalBytes,
+        'Cache-Control': 'public, max-age=604800, immutable',
+        'X-Accel-Buffering': 'no',
+      });
+      res.end();
+      return;
+    }
+  }
+
   // Fast Path 1: Instant Local Spool Stream (when downloaded)
   if (fs.existsSync(spoolPath)) {
     try {
@@ -137,7 +170,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     } catch {}
   }
 
-  // Direct High-Speed Streaming: Resolve Telegram file URL (racing all bots concurrently with in-flight deduplication)
+  // Direct High-Speed Streaming: Resolve Telegram file URL
   try {
     const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id);
 
@@ -173,6 +206,13 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       }
 
       res.writeHead(statusCode, responseHeaders);
+
+      if (isHead) {
+        res.end();
+        tgReq.destroy();
+        return;
+      }
+
       tgRes.pipe(res);
 
       // Local spool caching: save stream to disk atomically for instant 0ms seeking & replays
@@ -192,6 +232,10 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
           } catch {}
         }
       }
+    });
+
+    tgReq.setTimeout(25000, () => {
+      tgReq.destroy(new Error('Telegram streaming request timed out'));
     });
 
     tgReq.on('error', (err) => {
@@ -216,6 +260,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
  * Serve audio range from local spool disk in 1 - 2 ms
  */
 function serveFromDisk(req: Request, res: Response, filePath: string, totalSize: number): void {
+  const isHead = req.method === 'HEAD';
   const range = req.headers.range;
 
   if (range) {
@@ -238,6 +283,11 @@ function serveFromDisk(req: Request, res: Response, filePath: string, totalSize:
       'Cache-Control': 'public, max-age=1800',
     });
 
+    if (isHead) {
+      res.end();
+      return;
+    }
+
     const stream = fs.createReadStream(filePath, {
       start,
       end,
@@ -252,6 +302,11 @@ function serveFromDisk(req: Request, res: Response, filePath: string, totalSize:
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'public, max-age=1800',
     });
+
+    if (isHead) {
+      res.end();
+      return;
+    }
 
     const stream = fs.createReadStream(filePath, {
       highWaterMark: 64 * 1024,

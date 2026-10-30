@@ -244,6 +244,10 @@ object MelodyPlayerManager {
             } else {
                 _queue.value = queueList
             }
+        } else if (_queue.value.none { it.id == song.id }) {
+            val updated = listOf(song) + _queue.value
+            originalQueue = updated
+            _queue.value = updated
         }
 
         // 1. Immediately cancel any prior in-flight song request

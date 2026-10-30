@@ -25,6 +25,7 @@ export class TelegramMultiBotService {
   private botTokens: string[];
   private channelId: string;
   private currentBotIndex = 0;
+  private fileBotMap = new Map<string, number>();
   private urlCache = new Map<string, { downloadUrl: string; botIndex: number; expiresAt: number }>();
   private inFlightUrlResolutions = new Map<string, Promise<{ downloadUrl: string; botIndex: number }>>();
 
@@ -95,7 +96,7 @@ export class TelegramMultiBotService {
   }
 
   /**
-   * Race all Telegram bots in parallel simultaneously - fastest bot wins immediately with minimum latency!
+   * Race Telegram bots with affinity caching - winning bot is remembered per fileId.
    * File download URL is cached in memory for 50 minutes.
    */
   async getFileDownloadUrl(fileId: string): Promise<{ downloadUrl: string; botIndex: number }> {
@@ -115,8 +116,53 @@ export class TelegramMultiBotService {
     }
 
     const resolutionPromise = (async () => {
-      // Race ALL bots in parallel simultaneously - whichever bot responds first wins!
-      const promises = this.botTokens.map(async (token, idx) => {
+      // 1. Fast Path: If we already know which bot uploaded this file, query that bot first directly!
+      const knownBotIndex = this.fileBotMap.get(fileId);
+      if (knownBotIndex !== undefined && knownBotIndex >= 0 && knownBotIndex < this.botTokens.length) {
+        const token = this.botTokens[knownBotIndex];
+        try {
+          const res = await this.fetchJson(
+            `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
+          );
+          if (res && res.ok && res.result?.file_path) {
+            const downloadUrl = `https://api.telegram.org/file/bot${token}/${res.result.file_path}`;
+            const result = { downloadUrl, botIndex: knownBotIndex };
+            this.urlCache.set(fileId, {
+              downloadUrl: result.downloadUrl,
+              botIndex: result.botIndex,
+              expiresAt: Date.now() + 50 * 60 * 1000,
+            });
+            return result;
+          }
+        } catch {
+          // Fall through to multi-bot race
+        }
+      }
+
+      // 2. Optimized Tier: Try primary bot (Bot 1) first as 95% of catalog was uploaded there
+      if (this.botTokens.length > 0 && knownBotIndex !== 0) {
+        const token0 = this.botTokens[0];
+        try {
+          const res0 = await this.fetchJson(
+            `https://api.telegram.org/bot${token0}/getFile?file_id=${encodeURIComponent(fileId)}`
+          );
+          if (res0 && res0.ok && res0.result?.file_path) {
+            const downloadUrl = `https://api.telegram.org/file/bot${token0}/${res0.result.file_path}`;
+            const result = { downloadUrl, botIndex: 0 };
+            this.fileBotMap.set(fileId, 0);
+            this.urlCache.set(fileId, {
+              downloadUrl: result.downloadUrl,
+              botIndex: result.botIndex,
+              expiresAt: Date.now() + 50 * 60 * 1000,
+            });
+            return result;
+          }
+        } catch {}
+      }
+
+      // 3. Fallback: Race remaining bots in parallel simultaneously
+      const candidateTokens = this.botTokens.map((token, idx) => ({ token, idx }));
+      const promises = candidateTokens.map(async ({ token, idx }) => {
         const res = await this.fetchJson(
           `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
         );
@@ -131,6 +177,7 @@ export class TelegramMultiBotService {
 
       try {
         const result = await Promise.any(promises);
+        this.fileBotMap.set(fileId, result.botIndex);
         this.urlCache.set(fileId, {
           downloadUrl: result.downloadUrl,
           botIndex: result.botIndex,
@@ -321,8 +368,8 @@ export class TelegramMultiBotService {
 
   private fetchJson(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      https
-        .get(url, { agent: telegramAgent, timeout: 5000 }, (res) => {
+      const req = https
+        .get(url, { agent: telegramAgent, timeout: 4000 }, (res) => {
           let data = '';
           res.on('data', (c) => (data += c));
           res.on('end', () => {
@@ -334,6 +381,11 @@ export class TelegramMultiBotService {
           });
         })
         .on('error', reject);
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Telegram API request timed out'));
+      });
     });
   }
 }
