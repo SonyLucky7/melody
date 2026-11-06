@@ -189,6 +189,9 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     res.socket?.setNoDelay(true);
 
     const tgReq = protocol.get(downloadUrl, { agent: telegramAgent, headers: requestHeaders }, (tgRes) => {
+      // Clear connect timeout now that streaming has begun so audio streams fully
+      tgReq.setTimeout(0);
+
       const statusCode = tgRes.statusCode || (rangeHeader ? 206 : 200);
 
       const responseHeaders: Record<string, any> = {
@@ -234,8 +237,10 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       }
     });
 
-    tgReq.setTimeout(25000, () => {
-      tgReq.destroy(new Error('Telegram streaming request timed out'));
+    tgReq.setTimeout(15000, () => {
+      if (!res.headersSent) {
+        tgReq.destroy(new Error('Telegram streaming connect timeout'));
+      }
     });
 
     tgReq.on('error', (err) => {

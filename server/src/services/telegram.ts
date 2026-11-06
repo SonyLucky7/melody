@@ -11,7 +11,7 @@ export const telegramAgent = new https.Agent({
   maxSockets: 100,
   maxFreeSockets: 30,
   keepAliveMsecs: 120000,
-  timeout: 60000,
+  timeout: 300000,
 });
 
 export interface TelegramUploadResult {
@@ -139,30 +139,9 @@ export class TelegramMultiBotService {
         }
       }
 
-      // 2. Optimized Tier: Try primary bot (Bot 1) first as 95% of catalog was uploaded there
-      if (this.botTokens.length > 0 && knownBotIndex !== 0) {
-        const token0 = this.botTokens[0];
-        try {
-          const res0 = await this.fetchJson(
-            `https://api.telegram.org/bot${token0}/getFile?file_id=${encodeURIComponent(fileId)}`
-          );
-          if (res0 && res0.ok && res0.result?.file_path) {
-            const downloadUrl = `https://api.telegram.org/file/bot${token0}/${res0.result.file_path}`;
-            const result = { downloadUrl, botIndex: 0 };
-            this.fileBotMap.set(fileId, 0);
-            this.urlCache.set(fileId, {
-              downloadUrl: result.downloadUrl,
-              botIndex: result.botIndex,
-              expiresAt: Date.now() + 50 * 60 * 1000,
-            });
-            return result;
-          }
-        } catch {}
-      }
-
-      // 3. Fallback: Race remaining bots in parallel simultaneously
-      const candidateTokens = this.botTokens.map((token, idx) => ({ token, idx }));
-      const promises = candidateTokens.map(async ({ token, idx }) => {
+      // 2. High-Speed Concurrent Race: Query ALL bots in parallel simultaneously with Promise.any
+      // The fastest bot that holds this file ID will resolve in ~100ms; others returning 400 are ignored by Promise.any
+      const promises = this.botTokens.map(async (token, idx) => {
         const res = await this.fetchJson(
           `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
         );

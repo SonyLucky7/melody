@@ -32,7 +32,7 @@ export const CURATED_PLAYLISTS = [
     name: 'Slowed + Reverb Essentials',
     description: 'Late night slowed and reverbed vibes, lofi & atmospheric chill.',
     total_songs: 95,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(title) LIKE '%slowed%' OR LOWER(title) LIKE '%reverb%' OR LOWER(album) LIKE '%slowed%' ORDER BY id DESC`,
   },
   {
@@ -40,7 +40,7 @@ export const CURATED_PLAYLISTS = [
     name: 'Sidhu Moose Wala Legends',
     description: '295, The Last Ride, Legend, Levels, So High & all iconic anthems.',
     total_songs: 9,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/desi-295-mvs26s80.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%moose wala%' ORDER BY id DESC`,
   },
   {
@@ -48,7 +48,7 @@ export const CURATED_PLAYLISTS = [
     name: 'Yo Yo Honey Singh Blockbusters',
     description: 'Dope Shope, Blue Eyes, Desi Kalakaar, Love Dose & legendary Punjabi hits.',
     total_songs: 10,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/desi-dope-shope-mvs2dv2r.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%honey singh%' ORDER BY id DESC`,
   },
   {
@@ -56,7 +56,7 @@ export const CURATED_PLAYLISTS = [
     name: 'The Weeknd Master Collection',
     description: 'Blinding Lights, Starboy, After Hours, Die For You & Abel classics.',
     total_songs: 54,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%weeknd%' ORDER BY id DESC`,
   },
   {
@@ -64,7 +64,7 @@ export const CURATED_PLAYLISTS = [
     name: 'Lana Del Rey Aesthetics',
     description: 'Summertime Sadness, Video Games, Young and Beautiful, Born to Die.',
     total_songs: 31,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/lana-collection.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%lana%' ORDER BY id DESC`,
   },
   {
@@ -72,7 +72,7 @@ export const CURATED_PLAYLISTS = [
     name: 'Ariana Grande Top Hits',
     description: '7 rings, thank u next, Dangerous Woman, positions & pop royalty.',
     total_songs: 60,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg',
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/ariana-7-rings-mvrzjch5.jpg',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(artist) LIKE '%ariana%' ORDER BY id DESC`,
   },
 ];

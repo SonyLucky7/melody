@@ -27,22 +27,22 @@ data class Song(
                 return "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23"
             }
             if (art.contains("weeknd")) {
-                return "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg"
             }
             if (art.contains("moose wala")) {
-                return "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/desi-295-mvs26s80.jpg"
             }
             if (art.contains("honey singh")) {
-                return "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/desi-dope-shope-mvs2dv2r.jpg"
             }
             if (art.contains("lana")) {
-                return "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/lana-collection.jpg"
             }
             if (art.contains("ariana")) {
-                return "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/ariana-7-rings-mvrzjch5.jpg"
             }
             if (alb.contains("slowed") || tit.contains("slowed") || tit.contains("reverb")) {
-                return "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg"
+                return "https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg"
             }
             return "https://melody-chi-nine.vercel.app/Melody-Logo-512.png"
         }
@@ -50,7 +50,7 @@ data class Song(
             return coverUrl
         }
         // Resolves relative cover paths to high-speed global Vercel CDN
-        val clean = coverUrl.removePrefix("/")
+        val clean = coverUrl.removePrefix("/").replace(" ", "%20")
         return "https://melody-chi-nine.vercel.app/$clean"
     }
 
@@ -108,42 +108,42 @@ val PUBLIC_PLAYLISTS = listOf(
         3L,
         "Slowed + Reverb Essentials",
         95,
-        "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg",
+        "https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg",
         "Late night slowed and reverbed vibes, lofi & atmospheric chill."
     ),
     Playlist(
         4L,
         "Sidhu Moose Wala Legends",
         9,
-        "https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg",
+        "https://melody-chi-nine.vercel.app/covers/desi-295-mvs26s80.jpg",
         "295, The Last Ride, Legend, Levels, So High & all iconic anthems."
     ),
     Playlist(
         5L,
         "Yo Yo Honey Singh Blockbusters",
         10,
-        "https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg",
+        "https://melody-chi-nine.vercel.app/covers/desi-dope-shope-mvs2dv2r.jpg",
         "Dope Shope, Blue Eyes, Desi Kalakaar, Love Dose & legendary Punjabi hits."
     ),
     Playlist(
         6L,
         "The Weeknd Master Collection",
         54,
-        "https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg",
+        "https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg",
         "Blinding Lights, Starboy, After Hours, Die For You & Abel classics."
     ),
     Playlist(
         7L,
         "Lana Del Rey Aesthetics",
         31,
-        "https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg",
+        "https://melody-chi-nine.vercel.app/covers/lana-collection.jpg",
         "Summertime Sadness, Video Games, Young and Beautiful, Born to Die."
     ),
     Playlist(
         8L,
         "Ariana Grande Top Hits",
         60,
-        "https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg",
+        "https://melody-chi-nine.vercel.app/covers/ariana-7-rings-mvrzjch5.jpg",
         "7 rings, thank u next, Dangerous Woman, positions & pop royalty."
     )
 )

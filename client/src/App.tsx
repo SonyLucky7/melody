@@ -97,42 +97,42 @@ export const PUBLIC_PLAYLISTS: Playlist[] = [
     name: 'Slowed + Reverb Essentials',
     description: 'Late night slowed and reverbed vibes, lofi & atmospheric chill.',
     total_songs: 95,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Blinding%20Lights.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg'
   },
   {
     id: 4,
     name: 'Sidhu Moose Wala Legends',
     description: '295, The Last Ride, Legend, Levels, So High & all iconic anthems.',
     total_songs: 9,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Sidhu%20Moose%20Wala%20-%20295.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/desi-295-mvs26s80.jpg'
   },
   {
     id: 5,
     name: 'Yo Yo Honey Singh Blockbusters',
     description: 'Dope Shope, Blue Eyes, Desi Kalakaar, Love Dose & legendary Punjabi hits.',
     total_songs: 10,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Yo%20Yo%20Honey%20Singh%20-%20Dope%20Shope.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/desi-dope-shope-mvs2dv2r.jpg'
   },
   {
     id: 6,
     name: 'The Weeknd Master Collection',
     description: 'Blinding Lights, Starboy, After Hours, Die For You & Abel classics.',
     total_songs: 54,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/The%20Weeknd%20-%20Starboy.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg'
   },
   {
     id: 7,
     name: 'Lana Del Rey Aesthetics',
     description: 'Summertime Sadness, Video Games, Young and Beautiful, Born to Die.',
     total_songs: 31,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Lana%20Del%20Rey%20-%20Summertime%20Sadness.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/lana-collection.jpg'
   },
   {
     id: 8,
     name: 'Ariana Grande Top Hits',
     description: '7 rings, thank u next, Dangerous Woman, positions & pop royalty.',
     total_songs: 60,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/Ariana%20Grande%20-%207%20rings.jpg'
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/ariana-7-rings-mvrzjch5.jpg'
   },
 ];
 
@@ -506,7 +506,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.8</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.9</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
