@@ -89,7 +89,7 @@ export const PUBLIC_PLAYLISTS: Playlist[] = [
     id: 12,
     name: 'Brazil Phonk Essentials',
     description: 'Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts.',
-    total_songs: 35,
+    total_songs: 312,
     cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
   },
   {

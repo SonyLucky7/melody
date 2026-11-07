@@ -100,7 +100,7 @@ val PUBLIC_PLAYLISTS = listOf(
     Playlist(
         12L,
         "Brazil Phonk Essentials",
-        35,
+        312,
         "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23",
         "Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts."
     ),

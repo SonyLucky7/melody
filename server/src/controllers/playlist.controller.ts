@@ -23,9 +23,9 @@ export const CURATED_PLAYLISTS = [
     id: 12,
     name: 'Brazil Phonk Essentials',
     description: 'Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts.',
-    total_songs: 35,
+    total_songs: 312,
     cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23',
-    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(album) LIKE '%brazil%' OR LOWER(title) LIKE '%montagem%' OR LOWER(title) LIKE '%automotivo%' ORDER BY id DESC`,
+    query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE LOWER(album) LIKE '%brazil%' OR LOWER(title) LIKE '%montagem%' OR LOWER(title) LIKE '%automotivo%' OR id IN (SELECT song_id FROM playlist_songs WHERE playlist_id = 12) ORDER BY id DESC`,
   },
   {
     id: 9,

@@ -182,15 +182,19 @@ fun TvPlayerScreen(
                         color = Color.White,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Black,
+                        lineHeight = 32.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = song.artist,
                         color = Color(0xFFD8B4FE),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
+                        lineHeight = 24.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

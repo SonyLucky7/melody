@@ -102,11 +102,11 @@ fun TvMainScreen(
             // ==========================================
             Column(
                 modifier = Modifier
-                    .width(220.dp)
+                    .width(224.dp)
                     .fillMaxHeight()
                     .background(Color(0xFF101017))
                     .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.05f)))
-                    .padding(vertical = 20.dp, horizontal = 12.dp),
+                    .padding(top = 28.dp, bottom = 24.dp, start = 14.dp, end = 14.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 // Top: Melody TV Branding
@@ -284,7 +284,7 @@ fun TvMainScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(horizontal = 32.dp, vertical = 20.dp)
+                    .padding(start = 28.dp, end = 36.dp, top = 26.dp, bottom = 24.dp)
             ) {
                 when (selectedTab) {
                     0 -> {
@@ -434,7 +434,7 @@ fun TvMainScreen(
                             }
 
                             item {
-                                Spacer(modifier = Modifier.height(40.dp))
+                                Spacer(modifier = Modifier.height(90.dp))
                             }
                         }
                     }

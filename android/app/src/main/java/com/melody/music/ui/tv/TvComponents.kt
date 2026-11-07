@@ -46,7 +46,7 @@ fun TvFocusableItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(12.dp),
-    focusedScale: Float = 1.06f,
+    focusedScale: Float = 1.04f,
     content: @Composable (isFocused: Boolean) -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -66,7 +66,7 @@ fun TvFocusableItem(
         modifier = modifier
             .scale(scale)
             .shadow(
-                elevation = if (isFocused) 16.dp else 4.dp,
+                elevation = if (isFocused) 14.dp else 4.dp,
                 shape = shape,
                 ambientColor = if (isFocused) MelodyPrimary else Color.Black,
                 spotColor = if (isFocused) MelodyPrimary else Color.Black
@@ -163,14 +163,18 @@ fun TvSongCard(
                 color = if (isFocused) Color.White else Color(0xFFE5E7EB),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
+                lineHeight = 19.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = song.artist,
                 color = if (isFocused) Color(0xFFD8B4FE) else MelodyTextSecondary,
                 fontSize = 12.sp,
+                lineHeight = 16.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -243,14 +247,18 @@ fun TvPlaylistCard(
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
+                lineHeight = 19.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = playlist.description ?: "${playlist.totalSongs ?: 0} tracks • Lossless",
                 color = if (isFocused) Color(0xFFD8B4FE) else MelodyTextSecondary,
                 fontSize = 11.sp,
+                lineHeight = 15.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -331,8 +339,8 @@ fun TvBillboardBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(240.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .heightIn(min = 270.dp)
+            .clip(RoundedCornerShape(22.dp))
             .background(Color(0xFF161622))
     ) {
         // Backdrop Image
@@ -350,9 +358,9 @@ fun TvBillboardBanner(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF09090E).copy(alpha = 0.95f),
-                            Color(0xFF09090E).copy(alpha = 0.85f),
-                            Color(0xFF09090E).copy(alpha = 0.4f),
+                            Color(0xFF09090E).copy(alpha = 0.96f),
+                            Color(0xFF09090E).copy(alpha = 0.88f),
+                            Color(0xFF09090E).copy(alpha = 0.45f),
                             Color.Transparent
                         )
                     )
@@ -372,11 +380,11 @@ fun TvBillboardBanner(
                 )
         )
 
-        // Banner Content
+        // Banner Content with Safe Anti-Clipping Padding
         Column(
             modifier = Modifier
-                .fillMaxHeight()
-                .padding(24.dp),
+                .fillMaxWidth()
+                .padding(vertical = 24.dp, horizontal = 28.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Row(
@@ -419,14 +427,20 @@ fun TvBillboardBanner(
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = (-0.5).sp
+                letterSpacing = (-0.5).sp,
+                lineHeight = 36.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(
                 text = subtitle,
                 color = Color(0xFFD8B4FE),
                 fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 20.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -435,41 +449,74 @@ fun TvBillboardBanner(
                 text = description,
                 color = Color(0xFF9CA3AF),
                 fontSize = 12.sp,
+                lineHeight = 18.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 500.dp)
+                modifier = Modifier.widthIn(max = 520.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Play Now Action Button
-            TvFocusableItem(
-                onClick = onPlayClick,
-                shape = RoundedCornerShape(30.dp),
-                focusedScale = 1.08f
-            ) { isFocused ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .background(
-                            if (isFocused) Color.White else MelodyPrimary,
-                            RoundedCornerShape(30.dp)
+            // Action Buttons Row: Play Collection + Save to Library (No-wrap Pills)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TvFocusableItem(
+                    onClick = onPlayClick,
+                    shape = RoundedCornerShape(30.dp),
+                    focusedScale = 1.05f
+                ) { isFocused ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .background(
+                                if (isFocused) Color.White else MelodyPrimary,
+                                RoundedCornerShape(30.dp)
+                            )
+                            .padding(horizontal = 24.dp, vertical = 11.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play",
+                            tint = if (isFocused) Color.Black else Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
-                        .padding(horizontal = 24.dp, vertical = 10.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
-                        tint = if (isFocused) Color.Black else Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Play Collection",
-                        color = if (isFocused) Color.Black else Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 13.sp
-                    )
+                        Text(
+                            text = "Play Collection",
+                            color = if (isFocused) Color.Black else Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                TvFocusableItem(
+                    onClick = { /* Save to Library */ },
+                    shape = RoundedCornerShape(30.dp),
+                    focusedScale = 1.05f
+                ) { isFocused ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .background(
+                                if (isFocused) Color(0xFF323242) else Color.White.copy(alpha = 0.08f),
+                                RoundedCornerShape(30.dp)
+                            )
+                            .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)), RoundedCornerShape(30.dp))
+                            .padding(horizontal = 20.dp, vertical = 11.dp)
+                    ) {
+                        Text(
+                            text = "Save to Library",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
