@@ -35,6 +35,7 @@ fun HomeScreen(
     onArtistClick: (String) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     onRefresh: (() -> Unit)? = null,
+    onSwitchToTvMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf("") }
@@ -135,9 +136,16 @@ fun HomeScreen(
                     color = Color.White
                 )
 
-                if (onRefresh != null) {
-                    IconButton(onClick = onRefresh) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MelodyTextSecondary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onSwitchToTvMode != null) {
+                        IconButton(onClick = onSwitchToTvMode) {
+                            Icon(Icons.Default.Tv, contentDescription = "Spotify TV Mode", tint = MelodyPrimary)
+                        }
+                    }
+                    if (onRefresh != null) {
+                        IconButton(onClick = onRefresh) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MelodyTextSecondary)
+                        }
                     }
                 }
             }

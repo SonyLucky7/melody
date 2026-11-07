@@ -39,14 +39,9 @@ const adminPasswordHash = rawPasswordHash
   ? hashPasswordSync(rawPassword)
   : '';
 
-// Securely decode UPI ID from environment or obfuscated hash
+// Securely read UPI ID from environment
 function getSecureUpiId(): string {
-  if (process.env.UPI_ID && process.env.UPI_ID.trim()) {
-    return process.env.UPI_ID.trim();
-  }
-  // Fallback obfuscated payload
-  const encoded = 'YW5hbnRha3Jpc2hpN0BheGw=';
-  return Buffer.from(encoded, 'base64').toString('utf8');
+  return (process.env.UPI_ID && process.env.UPI_ID.trim()) || '';
 }
 
 export const config: Config = {

@@ -37,6 +37,7 @@ import com.melody.music.ui.screens.LibraryScreen
 import com.melody.music.ui.screens.CustomPlaylistScreen
 import com.melody.music.ui.screens.ProfileScreen
 import com.melody.music.ui.screens.SearchScreen
+import com.melody.music.ui.tv.TvMainScreen
 import com.melody.music.ui.theme.MelodyBg
 import com.melody.music.ui.theme.MelodyColorScheme
 import com.melody.music.ui.theme.MelodyPrimary
@@ -83,6 +84,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun isTvDevice(context: Context): Boolean {
+    val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+    if (uiModeManager?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) {
+        return true
+    }
+    val pm = context.packageManager
+    return pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) ||
+           pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEVISION)
+}
+
 @Composable
 fun MelodyApp() {
     var selectedTab by remember { mutableStateOf(0) }
@@ -99,6 +110,26 @@ fun MelodyApp() {
 
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val isHardwareTv = remember { isTvDevice(context) }
+    val tvPrefs = remember { context.getSharedPreferences("melody_tv_prefs", Context.MODE_PRIVATE) }
+    var isTvMode by remember {
+        mutableStateOf(tvPrefs.getBoolean("tv_mode_active", isHardwareTv))
+    }
+
+    if (isTvMode) {
+        TvMainScreen(
+            songs = songs,
+            onSongClick = { song, queue ->
+                MelodyPlayerManager.playSong(song, queue)
+            },
+            onSwitchToMobileMode = {
+                isTvMode = false
+                tvPrefs.edit().putBoolean("tv_mode_active", false).apply()
+            }
+        )
+        return
+    }
 
     // Request notification permission on Android 13+ so Lock Screen & System Controls appear
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -323,7 +354,11 @@ fun MelodyApp() {
                         onPlaylistClick = { playlist ->
                             selectedPlaylist = playlist
                         },
-                        onRefresh = { loadCatalog() }
+                        onRefresh = { loadCatalog() },
+                        onSwitchToTvMode = {
+                            isTvMode = true
+                            tvPrefs.edit().putBoolean("tv_mode_active", true).apply()
+                        }
                     )
                     1 -> SearchScreen(
                         songs = songs,

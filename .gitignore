@@ -2,6 +2,8 @@ node_modules/
 dist/
 build/
 .env
+.env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
@@ -14,3 +16,8 @@ scripts/
 Udyam_Registration_Certificate.*
 *.pem
 *.key
+*.jks
+*.keystore
+local.properties
+.gradle/
+.idea/

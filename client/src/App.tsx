@@ -86,10 +86,17 @@ export const PUBLIC_PLAYLISTS: Playlist[] = [
     cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80'
   },
   {
+    id: 12,
+    name: 'Brazil Phonk Essentials',
+    description: 'Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts.',
+    total_songs: 35,
+    cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
+  },
+  {
     id: 9,
     name: 'TikTok Phonk',
     description: 'Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks.',
-    total_songs: 51,
+    total_songs: 60,
     cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
   },
   {
@@ -149,6 +156,15 @@ export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song
   }
   if (nameLower.includes('motivation')) {
     return songCatalog.filter((x) => x.album?.toLowerCase().includes('motivation'));
+  }
+  if (id === 12 || nameLower.includes('brazil phonk')) {
+    return songCatalog.filter(
+      (x) =>
+        x.album?.toLowerCase().includes('brazil') ||
+        x.title.toLowerCase().includes('montagem') ||
+        x.title.toLowerCase().includes('automotivo') ||
+        x.album?.toLowerCase().includes('phonk')
+    );
   }
   if (id === 9 || nameLower.includes('phonk')) {
     return songCatalog.filter(
@@ -506,7 +522,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.0.9</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.1.0</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>

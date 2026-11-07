@@ -23,7 +23,7 @@ data class Song(
             if (alb.contains("motivation vol. 2") || alb == "motivation 2") {
                 return "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80"
             }
-            if (alb.contains("phonk") || tit.contains("phonk") || tit.contains("montagem")) {
+            if (alb.contains("phonk") || alb.contains("brazil") || tit.contains("phonk") || tit.contains("montagem") || tit.contains("automotivo")) {
                 return "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23"
             }
             if (art.contains("weeknd")) {
@@ -98,9 +98,16 @@ val PUBLIC_PLAYLISTS = listOf(
         "Trophies, Steady Mobbin, We Dem Boyz, Black and Yellow workout power."
     ),
     Playlist(
+        12L,
+        "Brazil Phonk Essentials",
+        35,
+        "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23",
+        "Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts."
+    ),
+    Playlist(
         9L,
         "TikTok Phonk",
-        51,
+        60,
         "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23",
         "Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks."
     ),
@@ -158,6 +165,13 @@ fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Son
             allSongs.filter { it.album?.equals("Motivation Vol. 2", ignoreCase = true) == true }
         nameLower.contains("motivation") ->
             allSongs.filter { it.album?.contains("motivation", ignoreCase = true) == true }
+        id == 12L || nameLower.contains("brazil") ->
+            allSongs.filter {
+                it.album?.contains("brazil", ignoreCase = true) == true ||
+                it.title.contains("montagem", ignoreCase = true) ||
+                it.title.contains("automotivo", ignoreCase = true) ||
+                it.album?.contains("phonk", ignoreCase = true) == true
+            }
         id == 9L || nameLower.contains("phonk") ->
             allSongs.filter {
                 it.album?.contains("phonk", ignoreCase = true) == true ||
