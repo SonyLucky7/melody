@@ -89,21 +89,21 @@ export const PUBLIC_PLAYLISTS: Playlist[] = [
     id: 12,
     name: 'Brazil Phonk Essentials',
     description: 'Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts.',
-    total_songs: 312,
+    total_songs: 327,
     cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
   },
   {
     id: 9,
     name: 'TikTok Phonk',
     description: 'Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks.',
-    total_songs: 60,
+    total_songs: 323,
     cover_url: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23'
   },
   {
     id: 3,
     name: 'Slowed + Reverb Essentials',
     description: 'Late night slowed and reverbed vibes, lofi & atmospheric chill.',
-    total_songs: 95,
+    total_songs: 137,
     cover_url: 'https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg'
   },
   {
@@ -143,6 +143,41 @@ export const PUBLIC_PLAYLISTS: Playlist[] = [
   },
 ];
 
+export function isArtistMatch(songArtist: string, targetArtist: string): boolean {
+  if (!songArtist || !targetArtist) return false;
+  const s = songArtist.toLowerCase().trim();
+  const t = targetArtist.toLowerCase().trim();
+  if (s === t) return true;
+  if (s.includes(t) || t.includes(s)) return true;
+
+  // Normalized alphanumeric match (removes spaces, dots, dashes, punctuation)
+  const sClean = s.replace(/[^a-z0-9]/g, '');
+  const tClean = t.replace(/[^a-z0-9]/g, '');
+  if (sClean && tClean && (sClean.includes(tClean) || tClean.includes(sClean))) return true;
+
+  // Well-known artist aliases & shortened names
+  const aliases: Record<string, string[]> = {
+    'the weeknd': ['weeknd', 'abel tesfaye', 'the weekend'],
+    'yo yo honey singh': ['honey singh', 'yo yo', 'honeysingh'],
+    'sidhu moose wala': ['sidhu', 'moose wala', 'moosewala'],
+    'lana del rey': ['lana', 'del rey', 'elizabeth grant'],
+    'ariana grande': ['ariana'],
+    '2pac': ['tupac', 'makaveli'],
+    '50 cent': ['50cent', 'curtis jackson'],
+    'eminem': ['slim shady', 'marshall mathers'],
+  };
+
+  for (const [canonical, aliasList] of Object.entries(aliases)) {
+    const isTarget = t.includes(canonical) || aliasList.some((a) => t.includes(a));
+    const isSong = s.includes(canonical) || aliasList.some((a) => s.includes(a));
+    if (isTarget && isSong) return true;
+  }
+
+  // Tokenize multi-artist strings (comma, slash, &, feat, ft)
+  const tokens = songArtist.split(/[,/&|;]|(?:\s+ft\.?\s+)|\s+feat\.?\s+/i).map((tok) => tok.trim().toLowerCase());
+  return tokens.some((tok) => tok === t || tok.includes(t) || t.includes(tok));
+}
+
 export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song[] {
   if (!playlist || !songCatalog || songCatalog.length === 0) return [];
   const nameLower = (playlist.name || '').toLowerCase();
@@ -157,13 +192,15 @@ export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song
   if (nameLower.includes('motivation')) {
     return songCatalog.filter((x) => x.album?.toLowerCase().includes('motivation'));
   }
-  if (id === 12 || nameLower.includes('brazil phonk')) {
+  if (id === 12 || nameLower.includes('brazil')) {
     return songCatalog.filter(
       (x) =>
         x.album?.toLowerCase().includes('brazil') ||
         x.title.toLowerCase().includes('montagem') ||
         x.title.toLowerCase().includes('automotivo') ||
-        x.album?.toLowerCase().includes('phonk')
+        x.album?.toLowerCase().includes('phonk') ||
+        x.language?.toLowerCase() === 'phonk' ||
+        x.title.toLowerCase().includes('phonk')
     );
   }
   if (id === 9 || nameLower.includes('phonk')) {
@@ -172,7 +209,8 @@ export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song
         x.album?.toLowerCase().includes('phonk') ||
         x.language?.toLowerCase() === 'phonk' ||
         x.title.toLowerCase().includes('phonk') ||
-        x.title.toLowerCase().includes('montagem')
+        x.title.toLowerCase().includes('montagem') ||
+        x.album?.toLowerCase().includes('brazil')
     );
   }
   if (id === 3 || nameLower.includes('slowed') || nameLower.includes('reverb')) {
@@ -184,19 +222,19 @@ export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song
     );
   }
   if (id === 4 || nameLower.includes('sidhu') || nameLower.includes('moose')) {
-    return songCatalog.filter((x) => x.artist.toLowerCase().includes('moose wala'));
+    return songCatalog.filter((x) => isArtistMatch(x.artist, 'Sidhu Moose Wala'));
   }
   if (id === 5 || nameLower.includes('honey') || nameLower.includes('yo yo')) {
-    return songCatalog.filter((x) => x.artist.toLowerCase().includes('honey singh'));
+    return songCatalog.filter((x) => isArtistMatch(x.artist, 'Yo Yo Honey Singh'));
   }
   if (id === 6 || nameLower.includes('weeknd')) {
-    return songCatalog.filter((x) => x.artist.toLowerCase().includes('weeknd'));
+    return songCatalog.filter((x) => isArtistMatch(x.artist, 'The Weeknd'));
   }
   if (id === 7 || nameLower.includes('lana')) {
-    return songCatalog.filter((x) => x.artist.toLowerCase().includes('lana'));
+    return songCatalog.filter((x) => isArtistMatch(x.artist, 'Lana Del Rey'));
   }
   if (id === 8 || nameLower.includes('ariana')) {
-    return songCatalog.filter((x) => x.artist.toLowerCase().includes('ariana'));
+    return songCatalog.filter((x) => isArtistMatch(x.artist, 'Ariana Grande'));
   }
 
   const byAlbum = songCatalog.filter((x) => x.album && x.album.toLowerCase() === nameLower);

@@ -75,8 +75,8 @@ export async function fetchSongs(search = '', language = '', limit = 1000, offse
       return data.data || [];
     }
 
-    // High-speed parallel page fetcher: retrieves entire 550+ track catalog concurrently
-    const pageOffsets = [0, 100, 200, 300, 400, 500, 600];
+    // High-speed parallel page fetcher: retrieves entire 825+ track catalog concurrently
+    const pageOffsets = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
     const pagePromises = pageOffsets.map(async (pageOff) => {
       try {
         const params = new URLSearchParams();

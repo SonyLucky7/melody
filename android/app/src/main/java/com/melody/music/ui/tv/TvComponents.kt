@@ -352,7 +352,7 @@ fun TvBillboardBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 285.dp)
+            .heightIn(min = 320.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Color(0xFF161622))
     ) {
@@ -397,8 +397,8 @@ fun TvBillboardBanner(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 28.dp, horizontal = 32.dp),
-            verticalArrangement = Arrangement.Center
+                .padding(top = 32.dp, bottom = 28.dp, start = 32.dp, end = 32.dp),
+            verticalArrangement = Arrangement.Top
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,

@@ -25,7 +25,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
+import com.melody.music.data.model.isArtistMatch
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
 
@@ -118,8 +120,30 @@ fun ArtistScreen(
     )
 
     var isFollowing by remember { mutableStateOf(false) }
-    val artistSongs = remember(songs, artistName) {
-        songs.filter { it.artist.contains(artistName, ignoreCase = true) }
+    var fetchedSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(artistName) {
+        isLoading = true
+        try {
+            val resp = ApiClient.service.getSongs(search = artistName, limit = 500)
+            if (resp.success && resp.data.isNotEmpty()) {
+                fetchedSongs = resp.data
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    val artistSongs = remember(songs, fetchedSongs, artistName) {
+        val map = linkedMapOf<Long, Song>()
+        songs.filter { isArtistMatch(it.artist, artistName) || isArtistMatch(it.title, artistName) }
+            .forEach { map[it.id] = it }
+        fetchedSongs.filter { isArtistMatch(it.artist, artistName) || isArtistMatch(it.title, artistName) }
+            .forEach { map[it.id] = it }
+        map.values.toList()
     }
 
     val currentSong by MelodyPlayerManager.currentSong.collectAsState()
@@ -320,24 +344,67 @@ fun ArtistScreen(
 
         // Popular Section Title
         item {
-            Text(
-                text = "Popular",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Popular Tracks",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                if (artistSongs.isNotEmpty()) {
+                    Text(
+                        text = "${artistSongs.size} Songs",
+                        fontSize = 12.sp,
+                        color = MelodyPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         // Artist's Popular Tracks
-        itemsIndexed(artistSongs.ifEmpty { songs.take(5) }) { index, song ->
-            val isThisPlaying = currentSong?.id == song.id
-            ArtistTrackRow(
-                index = index + 1,
-                song = song,
-                isPlaying = isThisPlaying && isPlaying,
-                onClick = { onSongClick(song, artistSongs.ifEmpty { songs }) }
-            )
+        if (artistSongs.isNotEmpty()) {
+            itemsIndexed(artistSongs) { index, song ->
+                val isThisPlaying = currentSong?.id == song.id
+                ArtistTrackRow(
+                    index = index + 1,
+                    song = song,
+                    isPlaying = isThisPlaying && isPlaying,
+                    onClick = { onSongClick(song, artistSongs) }
+                )
+            }
+        } else if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MelodyPrimary, modifier = Modifier.size(32.dp))
+                }
+            }
+        } else {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No songs found for $artistName",
+                        color = MelodyTextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+            }
         }
 
         // Discography / Releases Section

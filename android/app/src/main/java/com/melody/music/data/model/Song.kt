@@ -100,21 +100,21 @@ val PUBLIC_PLAYLISTS = listOf(
     Playlist(
         12L,
         "Brazil Phonk Essentials",
-        312,
+        327,
         "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23",
         "Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts."
     ),
     Playlist(
         9L,
         "TikTok Phonk",
-        60,
+        323,
         "https://image-cdn-ak.spotifycdn.com/image/ab67706c0000d72c469ab8293c7d2056b6c9df23",
         "Kordhell, DVRST, Hensonn, phonk drift and bass heavy tracks."
     ),
     Playlist(
         3L,
         "Slowed + Reverb Essentials",
-        95,
+        137,
         "https://melody-chi-nine.vercel.app/covers/weeknd-song-7.jpg",
         "Late night slowed and reverbed vibes, lofi & atmospheric chill."
     ),
@@ -155,6 +155,39 @@ val PUBLIC_PLAYLISTS = listOf(
     )
 )
 
+fun isArtistMatch(songArtist: String?, targetArtist: String?): Boolean {
+    if (songArtist.isNullOrBlank() || targetArtist.isNullOrBlank()) return false
+    val s = songArtist.lowercase().trim()
+    val t = targetArtist.lowercase().trim()
+    if (s == t) return true
+    if (s.contains(t) || t.contains(s)) return true
+
+    val sClean = s.replace(Regex("[^a-z0-9]"), "")
+    val tClean = t.replace(Regex("[^a-z0-9]"), "")
+    if (sClean.isNotEmpty() && tClean.isNotEmpty() && (sClean.contains(tClean) || tClean.contains(sClean))) return true
+
+    val aliases = mapOf(
+        "the weeknd" to listOf("weeknd", "abel tesfaye", "the weekend"),
+        "yo yo honey singh" to listOf("honey singh", "yo yo", "honeysingh"),
+        "sidhu moose wala" to listOf("sidhu", "moose wala", "moosewala"),
+        "lana del rey" to listOf("lana", "del rey", "elizabeth grant"),
+        "ariana grande" to listOf("ariana"),
+        "2pac" to listOf("tupac", "makaveli"),
+        "50 cent" to listOf("50cent", "curtis jackson"),
+        "eminem" to listOf("slim shady", "marshall mathers")
+    )
+
+    for ((canonical, aliasList) in aliases) {
+        val isTarget = t.contains(canonical) || aliasList.any { t.contains(it) }
+        val isSong = s.contains(canonical) || aliasList.any { s.contains(it) }
+        if (isTarget && isSong) return true
+    }
+
+    val tokens = songArtist.split(Regex("[,/&|;]|(?:\\s+ft\\.?\\s+)|\\s+feat\\.?\\s+", RegexOption.IGNORE_CASE))
+        .map { it.trim().lowercase() }
+    return tokens.any { it == t || it.contains(t) || t.contains(it) }
+}
+
 fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Song> {
     val nameLower = playlist.name.lowercase()
     val id = playlist.id
@@ -170,14 +203,17 @@ fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Son
                 it.album?.contains("brazil", ignoreCase = true) == true ||
                 it.title.contains("montagem", ignoreCase = true) ||
                 it.title.contains("automotivo", ignoreCase = true) ||
-                it.album?.contains("phonk", ignoreCase = true) == true
+                it.album?.contains("phonk", ignoreCase = true) == true ||
+                it.language?.equals("phonk", ignoreCase = true) == true ||
+                it.title.contains("phonk", ignoreCase = true)
             }
         id == 9L || nameLower.contains("phonk") ->
             allSongs.filter {
                 it.album?.contains("phonk", ignoreCase = true) == true ||
                 it.language?.equals("phonk", ignoreCase = true) == true ||
                 it.title.contains("phonk", ignoreCase = true) ||
-                it.title.contains("montagem", ignoreCase = true)
+                it.title.contains("montagem", ignoreCase = true) ||
+                it.album?.contains("brazil", ignoreCase = true) == true
             }
         id == 3L || nameLower.contains("slowed") || nameLower.contains("reverb") ->
             allSongs.filter {
@@ -186,15 +222,15 @@ fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Son
                 it.album?.contains("slowed", ignoreCase = true) == true
             }
         id == 4L || nameLower.contains("sidhu") || nameLower.contains("moose") ->
-            allSongs.filter { it.artist.contains("moose wala", ignoreCase = true) }
+            allSongs.filter { isArtistMatch(it.artist, "Sidhu Moose Wala") }
         id == 5L || nameLower.contains("honey") || nameLower.contains("yo yo") ->
-            allSongs.filter { it.artist.contains("honey singh", ignoreCase = true) }
+            allSongs.filter { isArtistMatch(it.artist, "Yo Yo Honey Singh") }
         id == 6L || nameLower.contains("weeknd") ->
-            allSongs.filter { it.artist.contains("weeknd", ignoreCase = true) }
+            allSongs.filter { isArtistMatch(it.artist, "The Weeknd") }
         id == 7L || nameLower.contains("lana") ->
-            allSongs.filter { it.artist.contains("lana", ignoreCase = true) }
+            allSongs.filter { isArtistMatch(it.artist, "Lana Del Rey") }
         id == 8L || nameLower.contains("ariana") ->
-            allSongs.filter { it.artist.contains("ariana", ignoreCase = true) }
+            allSongs.filter { isArtistMatch(it.artist, "Ariana Grande") }
         else -> {
             val byAlbum = allSongs.filter { it.album?.equals(nameLower, ignoreCase = true) == true }
             if (byAlbum.isNotEmpty()) byAlbum else emptyList()

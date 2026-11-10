@@ -38,8 +38,10 @@ import com.melody.music.data.model.Playlist
 import com.melody.music.data.model.PUBLIC_PLAYLISTS
 import com.melody.music.data.model.Song
 import com.melody.music.data.model.getPlaylistSongsFallback
+import com.melody.music.data.model.isArtistMatch
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.screens.ARTIST_PROFILES
+import com.melody.music.ui.screens.ArtistProfile
 import com.melody.music.ui.theme.MelodyCard
 import com.melody.music.ui.theme.MelodyPrimary
 import com.melody.music.ui.theme.MelodyTextSecondary
@@ -59,6 +61,7 @@ fun TvMainScreen(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedPlaylistInTv by remember { mutableStateOf<Playlist?>(null) }
+    var selectedArtistInTv by remember { mutableStateOf<ArtistProfile?>(null) }
     var isFullPlayerVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -102,10 +105,11 @@ fun TvMainScreen(
     }
 
     // Hardware remote back button interceptor for Android TV
-    BackHandler(enabled = isFullPlayerVisible || selectedPlaylistInTv != null || selectedTab != 0) {
+    BackHandler(enabled = isFullPlayerVisible || selectedPlaylistInTv != null || selectedArtistInTv != null || selectedTab != 0) {
         when {
             isFullPlayerVisible -> isFullPlayerVisible = false
             selectedPlaylistInTv != null -> selectedPlaylistInTv = null
+            selectedArtistInTv != null -> selectedArtistInTv = null
             selectedTab != 0 -> selectedTab = 0
         }
     }
@@ -330,6 +334,14 @@ fun TvMainScreen(
                         onBack = { selectedPlaylistInTv = null },
                         onSongClick = playSongAndOpenPlayer
                     )
+                } else if (selectedArtistInTv != null) {
+                    // ARTIST DRILLDOWN DETAIL SCREEN
+                    TvArtistDetailView(
+                        artist = selectedArtistInTv!!,
+                        allSongs = songs,
+                        onBack = { selectedArtistInTv = null },
+                        onSongClick = playSongAndOpenPlayer
+                    )
                 } else {
                     when (selectedTab) {
                         0 -> {
@@ -424,12 +436,7 @@ fun TvMainScreen(
                                                     imageUrl = artist.imageUrl,
                                                     rank = artist.rank,
                                                     onClick = {
-                                                        val artistSongs = songs.filter {
-                                                            it.artist.contains(artist.name, ignoreCase = true)
-                                                        }
-                                                        if (artistSongs.isNotEmpty()) {
-                                                            playSongAndOpenPlayer(artistSongs[0], artistSongs)
-                                                        }
+                                                        selectedArtistInTv = artist
                                                     }
                                                 )
                                             }
@@ -765,8 +772,29 @@ fun TvPlaylistDetailView(
     onBack: () -> Unit,
     onSongClick: (Song, List<Song>) -> Unit
 ) {
-    val playlistTracks = remember(playlist, allSongs) {
+    val fallbackTracks = remember(playlist, allSongs) {
         getPlaylistSongsFallback(playlist, allSongs)
+    }
+    var playlistTracks by remember(playlist) { mutableStateOf(fallbackTracks) }
+
+    LaunchedEffect(playlist.id) {
+        try {
+            val res = ApiClient.apiService.getPlaylistSongs(playlist.id)
+            val combined = linkedMapOf<Long, Song>()
+            if (res.success && res.songs.isNotEmpty()) {
+                res.songs.forEach { combined[it.id] = it }
+            }
+            fallbackTracks.forEach {
+                if (!combined.containsKey(it.id)) {
+                    combined[it.id] = it
+                }
+            }
+            if (combined.isNotEmpty()) {
+                playlistTracks = combined.values.toList()
+            }
+        } catch (e: Exception) {
+            // Keep fallbackTracks
+        }
     }
 
     LazyColumn(
@@ -934,6 +962,306 @@ fun TvPlaylistDetailView(
             val idx = playlistTracks.indexOf(song) + 1
             TvFocusableItem(
                 onClick = { onSongClick(song, playlistTracks) },
+                shape = RoundedCornerShape(10.dp),
+                focusedScale = 1.02f
+            ) { isFocused ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isFocused) Color(0xFF262638) else Color(0xFF13131B))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "$idx",
+                        color = if (isFocused) MelodyPrimary else MelodyTextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(28.dp)
+                    )
+
+                    AsyncImage(
+                        model = song.getFullCoverUrl(),
+                        contentDescription = song.title,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = song.title,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            lineHeight = 18.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = song.artist,
+                            color = if (isFocused) Color(0xFFD8B4FE) else MelodyTextSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0x3310B981), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "320K",
+                            color = Color(0xFF34D399),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+/**
+ * Android TV Artist Detail Screen (Spotify 10-Foot Leanback UI).
+ * Shows artist photo, verified badge, monthly listeners, bio, Play All button,
+ * and complete track discography with full D-Pad navigation.
+ */
+@Composable
+fun TvArtistDetailView(
+    artist: ArtistProfile,
+    allSongs: List<Song>,
+    onBack: () -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit
+) {
+    val localMatches = remember(artist, allSongs) {
+        allSongs.filter { isArtistMatch(it.artist, artist.name) }
+    }
+    var artistSongs by remember(artist) { mutableStateOf(localMatches) }
+    var isLoading by remember(artist) { mutableStateOf(localMatches.isEmpty()) }
+
+    LaunchedEffect(artist.name) {
+        try {
+            val response = ApiClient.apiService.getSongs(search = artist.name, limit = 500)
+            if (response.success && response.data.isNotEmpty()) {
+                val combined = linkedMapOf<Long, Song>()
+                response.data.filter { isArtistMatch(it.artist, artist.name) }.forEach {
+                    combined[it.id] = it
+                }
+                localMatches.forEach {
+                    if (!combined.containsKey(it.id)) {
+                        combined[it.id] = it
+                    }
+                }
+                if (combined.isNotEmpty()) {
+                    artistSongs = combined.values.toList()
+                }
+            }
+        } catch (e: Exception) {
+            // Keep localMatches
+        } finally {
+            isLoading = false
+        }
+    }
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Top Nav: Back Button
+        item {
+            TvFocusableItem(
+                onClick = onBack,
+                shape = RoundedCornerShape(20.dp),
+                focusedScale = 1.05f
+            ) { isFocused ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .background(
+                            if (isFocused) Color.White else Color.White.copy(alpha = 0.08f),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (isFocused) Color.Black else Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Back to Home",
+                        color = if (isFocused) Color.Black else Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        softWrap = false
+                    )
+                }
+            }
+        }
+
+        // Artist Hero Header Card
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF14141E), RoundedCornerShape(20.dp))
+                    .padding(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(28.dp)
+            ) {
+                AsyncImage(
+                    model = artist.imageUrl,
+                    contentDescription = artist.name,
+                    modifier = Modifier
+                        .size(160.dp)
+                        .clip(CircleShape)
+                        .border(3.dp, MelodyPrimary, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(MelodyPrimary, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = "VERIFIED ARTIST",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp,
+                                softWrap = false
+                            )
+                        }
+
+                        Text(
+                            text = artist.monthlyListeners,
+                            color = Color(0xFFD8B4FE),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            softWrap = false
+                        )
+                    }
+
+                    Text(
+                        text = artist.name,
+                        color = Color.White,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Black,
+                        lineHeight = 40.sp,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Text(
+                        text = artist.bio,
+                        color = MelodyTextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Play All Button
+                        if (artistSongs.isNotEmpty()) {
+                            TvFocusableItem(
+                                onClick = { onSongClick(artistSongs[0], artistSongs) },
+                                shape = RoundedCornerShape(30.dp),
+                                focusedScale = 1.05f
+                            ) { isFocused ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .background(if (isFocused) Color.White else MelodyPrimary, RoundedCornerShape(30.dp))
+                                        .padding(horizontal = 22.dp, vertical = 11.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "Play All",
+                                        tint = if (isFocused) Color.Black else Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "Play All (${artistSongs.size})",
+                                        color = if (isFocused) Color.Black else Color.White,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "${artistSongs.size} Tracks Available • 320k Lossless",
+                            color = Color(0xFF34D399),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            softWrap = false
+                        )
+                    }
+                }
+            }
+        }
+
+        // Discography Tracks Section Title
+        item {
+            Text(
+                text = "Discography & Songs (${artistSongs.size})",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                softWrap = false
+            )
+        }
+
+        if (artistSongs.isEmpty()) {
+            item {
+                Text(
+                    text = if (isLoading) "Loading discography from Melody Cloud..." else "No tracks found for this artist.",
+                    color = MelodyTextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 20.dp)
+                )
+            }
+        }
+
+        items(artistSongs) { song ->
+            val idx = artistSongs.indexOf(song) + 1
+            TvFocusableItem(
+                onClick = { onSongClick(song, artistSongs) },
                 shape = RoundedCornerShape(10.dp),
                 focusedScale = 1.02f
             ) { isFocused ->

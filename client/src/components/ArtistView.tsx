@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2, ListPlus } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl, fetchSongs } from '../services/api';
+import { isArtistMatch } from '../App';
 
 interface ArtistViewProps {
   artistName: string;
@@ -71,14 +72,14 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
   } = usePlayer();
 
   const [isFollowing, setIsFollowing] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [fetchedArtistSongs, setFetchedArtistSongs] = useState<Song[]>([]);
+  const [showAll, setShowAll] = useState(true);
 
   // Automatically fetch complete artist discography directly from PostgreSQL
   useEffect(() => {
     let isMounted = true;
-    fetchSongs(artistName, '', 200).then((res) => {
+    fetchSongs(artistName, '', 500).then((res) => {
       if (isMounted && res && res.length > 0) {
         setFetchedArtistSongs(res);
       }
@@ -88,10 +89,25 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
     };
   }, [artistName]);
 
-  const localMatches = songs.filter(
-    (s) => s.artist.toLowerCase().includes(artistName.toLowerCase()) || artistName.toLowerCase().includes(s.artist.toLowerCase())
-  );
-  const artistSongs = fetchedArtistSongs.length > 0 ? fetchedArtistSongs : localMatches;
+  const artistSongs = useMemo(() => {
+    const mergedMap = new Map<number, Song>();
+
+    // 1. Add all catalog tracks matching artist
+    songs.forEach((s) => {
+      if (isArtistMatch(s.artist, artistName) || isArtistMatch(s.title, artistName)) {
+        mergedMap.set(s.id, s);
+      }
+    });
+
+    // 2. Add all server fetched tracks matching artist
+    fetchedArtistSongs.forEach((s) => {
+      if (isArtistMatch(s.artist, artistName) || isArtistMatch(s.title, artistName)) {
+        mergedMap.set(s.id, s);
+      }
+    });
+
+    return Array.from(mergedMap.values());
+  }, [songs, fetchedArtistSongs, artistName]);
 
   const meta = ARTIST_METADATA[artistName] || {
     banner: 'linear-gradient(180deg, rgba(88, 28, 135, 0.7) 0%, rgba(18, 18, 18, 1) 100%)',
@@ -117,7 +133,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
     setIsDownloadingAll(false);
   };
 
-  const visibleSongs = showAll ? artistSongs : artistSongs.slice(0, 5);
+  const visibleSongs = showAll ? artistSongs : artistSongs.slice(0, 10);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-16 select-none">
@@ -390,7 +406,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
       <div className="space-y-4 pt-4">
         <h2 className="text-2xl font-extrabold text-white tracking-tight">Discography</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {artistSongs.slice(0, 10).map((song) => (
+          {artistSongs.slice(0, 25).map((song) => (
             <div
               key={song.id}
               onClick={() => playSong(song, artistSongs)}

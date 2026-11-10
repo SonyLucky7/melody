@@ -574,10 +574,17 @@ fun CustomPlaylistScreen(
             if (songs.isEmpty()) isLoading = true
             try {
                 val res = ApiClient.apiService.getPlaylistSongs(playlist.id)
+                val combined = linkedMapOf<Long, Song>()
                 if (res.success && res.songs.isNotEmpty()) {
-                    songs = res.songs
-                } else if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
-                    songs = fallbackSongs
+                    res.songs.forEach { combined[it.id] = it }
+                }
+                fallbackSongs.forEach {
+                    if (!combined.containsKey(it.id)) {
+                        combined[it.id] = it
+                    }
+                }
+                if (combined.isNotEmpty()) {
+                    songs = combined.values.toList()
                 }
             } catch (e: Exception) {
                 if (songs.isEmpty() && fallbackSongs.isNotEmpty()) {
