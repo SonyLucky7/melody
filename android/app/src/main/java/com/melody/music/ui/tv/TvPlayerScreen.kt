@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -182,8 +183,9 @@ fun TvPlayerScreen(
                         color = Color.White,
                         fontSize = 26.sp,
                         fontWeight = FontWeight.Black,
-                        lineHeight = 32.sp,
+                        lineHeight = 34.sp,
                         maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
 
@@ -196,6 +198,7 @@ fun TvPlayerScreen(
                         fontWeight = FontWeight.SemiBold,
                         lineHeight = 24.sp,
                         maxLines = 1,
+                        softWrap = false,
                         overflow = TextOverflow.Ellipsis
                     )
 
@@ -432,6 +435,13 @@ fun TvControlIconButton(
             .border(BorderStroke(if (isFocused) 2.dp else 0.dp, Color.White), CircleShape)
             .onFocusChanged { isFocused = it.isFocused }
             .focusable(interactionSource = interactionSource)
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyUp &&
+                    (keyEvent.key == Key.DirectionCenter || keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter)) {
+                    onClick()
+                    true
+                } else false
+            }
             .clickable(interactionSource = interactionSource, indication = null) { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -463,6 +473,13 @@ fun TvFocusablePlayButton(
             .border(BorderStroke(if (isFocused) 3.dp else 0.dp, MelodyPrimary), CircleShape)
             .onFocusChanged { isFocused = it.isFocused }
             .focusable(interactionSource = interactionSource)
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyUp &&
+                    (keyEvent.key == Key.DirectionCenter || keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter)) {
+                    onClick()
+                    true
+                } else false
+            }
             .clickable(interactionSource = interactionSource, indication = null) { onClick() },
         contentAlignment = Alignment.Center
     ) {

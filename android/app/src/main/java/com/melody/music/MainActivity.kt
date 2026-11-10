@@ -78,6 +78,44 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        return when (keyCode) {
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            android.view.KeyEvent.KEYCODE_HEADSETHOOK -> {
+                MelodyPlayerManager.togglePlay()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                if (MelodyPlayerManager.isPlaying.value.not()) MelodyPlayerManager.togglePlay()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                if (MelodyPlayerManager.isPlaying.value) MelodyPlayerManager.togglePlay()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                MelodyPlayerManager.next()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                MelodyPlayerManager.prev()
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                val current = MelodyPlayerManager.progressMs.value
+                val dur = MelodyPlayerManager.durationMs.value
+                MelodyPlayerManager.seekTo((current + 10000).coerceAtMost(dur))
+                true
+            }
+            android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                val current = MelodyPlayerManager.progressMs.value
+                MelodyPlayerManager.seekTo((current - 10000).coerceAtLeast(0L))
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
     override fun onDestroy() {
         unbindService(serviceConnection)
         super.onDestroy()
@@ -117,48 +155,6 @@ fun MelodyApp() {
         mutableStateOf(tvPrefs.getBoolean("tv_mode_active", isHardwareTv))
     }
 
-    if (isTvMode) {
-        TvMainScreen(
-            songs = songs,
-            onSongClick = { song, queue ->
-                MelodyPlayerManager.playSong(song, queue)
-            },
-            onSwitchToMobileMode = {
-                isTvMode = false
-                tvPrefs.edit().putBoolean("tv_mode_active", false).apply()
-            }
-        )
-        return
-    }
-
-    // Request notification permission on Android 13+ so Lock Screen & System Controls appear
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-        ) { }
-        LaunchedEffect(Unit) {
-            launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }
-
-    // Update Home Screen Widget when song or playback changes
-    LaunchedEffect(currentSong, isPlaying) {
-        com.melody.music.widget.MelodyAppWidgetProvider.updateAllWidgets(context, currentSong, isPlaying)
-    }
-
-    // Handle Android hardware back button
-    BackHandler(enabled = isFullPlayerVisible || selectedArtist != null || selectedPlaylist != null || selectedTab != 0) {
-        if (isFullPlayerVisible) {
-            isFullPlayerVisible = false
-        } else if (selectedArtist != null) {
-            selectedArtist = null
-        } else if (selectedPlaylist != null) {
-            selectedPlaylist = null
-        } else if (selectedTab != 0) {
-            selectedTab = 0
-        }
-    }
-
     fun loadCatalog() {
         scope.launch {
             // 1. Immediate restore from persistent cache for 0ms initial load
@@ -176,8 +172,8 @@ fun MelodyApp() {
                 }
             }
 
-            // 2. Parallel pagination across all offsets (0..600) to fetch all 552 songs
-            val offsets = listOf(0, 100, 200, 300, 400, 500, 600)
+            // 2. Parallel pagination across all offsets (0..900) to fetch all 825+ songs
+            val offsets = listOf(0, 100, 200, 300, 400, 500, 600, 700, 800, 900)
             try {
                 val deferredList = offsets.map { offset ->
                     async(Dispatchers.IO) {
@@ -218,6 +214,47 @@ fun MelodyApp() {
     LaunchedEffect(Unit) {
         loadCatalog()
     }
+
+    // Request notification permission on Android 13+ so Lock Screen & System Controls appear
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { }
+        LaunchedEffect(Unit) {
+            launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // Update Home Screen Widget when song or playback changes
+    LaunchedEffect(currentSong, isPlaying) {
+        com.melody.music.widget.MelodyAppWidgetProvider.updateAllWidgets(context, currentSong, isPlaying)
+    }
+
+    if (isTvMode) {
+        TvMainScreen(
+            songs = songs,
+            onSongClick = { song, queue ->
+                MelodyPlayerManager.playSong(song, queue)
+            },
+            onSwitchToMobileMode = {
+                isTvMode = false
+                tvPrefs.edit().putBoolean("tv_mode_active", false).apply()
+            },
+            onOpenActivation = { isActivationDialogOpen = true }
+        )
+    } else {
+        // Handle Android hardware back button
+        BackHandler(enabled = isFullPlayerVisible || selectedArtist != null || selectedPlaylist != null || selectedTab != 0) {
+            if (isFullPlayerVisible) {
+                isFullPlayerVisible = false
+            } else if (selectedArtist != null) {
+                selectedArtist = null
+            } else if (selectedPlaylist != null) {
+                selectedPlaylist = null
+            } else if (selectedTab != 0) {
+                selectedTab = 0
+            }
+        }
 
     Scaffold(
         containerColor = MelodyBg,
@@ -395,22 +432,22 @@ fun MelodyApp() {
                     onDismiss = { isFullPlayerVisible = false }
                 )
             }
-
-            // Key Activation Dialog
-            ActivationDialog(
-                isOpen = isActivationDialogOpen,
-                onDismiss = { isActivationDialogOpen = false },
-                onActivated = {
-                    scope.launch {
-                        try {
-                            val res = ApiClient.service.getSongs()
-                            songs = res.data
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            )
         }
     }
+
+    // Key Activation Dialog (Available globally in both TV and Mobile mode)
+    ActivationDialog(
+        isOpen = isActivationDialogOpen,
+        onDismiss = { isActivationDialogOpen = false },
+        onActivated = {
+            scope.launch {
+                try {
+                    val res = ApiClient.service.getSongs()
+                    songs = res.data
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    )
 }

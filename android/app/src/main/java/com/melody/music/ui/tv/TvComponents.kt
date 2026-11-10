@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +76,13 @@ fun TvFocusableItem(
             .border(BorderStroke(if (isFocused) 2.5.dp else 0.dp, borderColor), shape)
             .onFocusChanged { isFocused = it.isFocused }
             .focusable(interactionSource = interactionSource)
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyUp &&
+                    (keyEvent.key == Key.DirectionCenter || keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter)) {
+                    onClick()
+                    true
+                } else false
+            }
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
     ) {
         content(isFocused)
@@ -163,8 +171,9 @@ fun TvSongCard(
                 color = if (isFocused) Color.White else Color(0xFFE5E7EB),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 19.sp,
+                lineHeight = 20.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -176,6 +185,7 @@ fun TvSongCard(
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -247,8 +257,9 @@ fun TvPlaylistCard(
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 19.sp,
+                lineHeight = 20.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -310,6 +321,7 @@ fun TvArtistCard(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -318,6 +330,7 @@ fun TvArtistCard(
                 color = if (isFocused) Color(0xFFD8B4FE) else MelodyTextSecondary,
                 fontSize = 11.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -339,7 +352,7 @@ fun TvBillboardBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 270.dp)
+            .heightIn(min = 285.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Color(0xFF161622))
     ) {
@@ -384,7 +397,7 @@ fun TvBillboardBanner(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp, horizontal = 28.dp),
+                .padding(vertical = 28.dp, horizontal = 32.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Row(
@@ -401,7 +414,9 @@ fun TvBillboardBanner(
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
+                        letterSpacing = 1.sp,
+                        softWrap = false,
+                        maxLines = 1
                     )
                 }
 
@@ -415,23 +430,28 @@ fun TvBillboardBanner(
                         text = "320K LOSSLESS FLAC",
                         color = Color(0xFF34D399),
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        softWrap = false,
+                        maxLines = 1
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = title,
                 color = Color.White,
-                fontSize = 28.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-0.5).sp,
-                lineHeight = 36.sp,
+                lineHeight = 40.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = subtitle,
@@ -440,6 +460,7 @@ fun TvBillboardBanner(
                 fontWeight = FontWeight.SemiBold,
                 lineHeight = 20.sp,
                 maxLines = 1,
+                softWrap = false,
                 overflow = TextOverflow.Ellipsis
             )
 
@@ -452,15 +473,15 @@ fun TvBillboardBanner(
                 lineHeight = 18.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 520.dp)
+                modifier = Modifier.widthIn(max = 540.dp)
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Action Buttons Row: Play Collection + Save to Library (No-wrap Pills)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 TvFocusableItem(
                     onClick = onPlayClick,
@@ -475,20 +496,21 @@ fun TvBillboardBanner(
                                 if (isFocused) Color.White else MelodyPrimary,
                                 RoundedCornerShape(30.dp)
                             )
-                            .padding(horizontal = 24.dp, vertical = 11.dp)
+                            .padding(horizontal = 26.dp, vertical = 12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Play",
                             tint = if (isFocused) Color.Black else Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = "Play Collection",
                             color = if (isFocused) Color.Black else Color.White,
                             fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
-                            maxLines = 1
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -507,14 +529,15 @@ fun TvBillboardBanner(
                                 RoundedCornerShape(30.dp)
                             )
                             .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)), RoundedCornerShape(30.dp))
-                            .padding(horizontal = 20.dp, vertical = 11.dp)
+                            .padding(horizontal = 22.dp, vertical = 12.dp)
                     ) {
                         Text(
                             text = "Save to Library",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            maxLines = 1
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
