@@ -58,8 +58,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Initialize persistent API & Device ID session
+        // Initialize persistent API, Offline Storage & Device ID session
         ApiClient.init(applicationContext)
+        com.melody.music.data.download.MelodyDownloadManager.init(applicationContext)
         MelodyPlayerManager.refreshFavourites()
 
         // 1 Full Ad on Application Launch/Open Only
@@ -157,7 +158,7 @@ fun MelodyApp() {
 
     fun loadCatalog() {
         scope.launch {
-            // 1. Immediate restore from persistent cache for 0ms initial load
+            // 1. Immediate restore from persistent cache (or local offline downloads if zero internet!)
             val prefs = context.getSharedPreferences("melody_catalog_cache", Context.MODE_PRIVATE)
             val cachedJson = prefs.getString("songs_json", null)
             if (!cachedJson.isNullOrBlank() && songs.isEmpty()) {
@@ -171,9 +172,15 @@ fun MelodyApp() {
                     e.printStackTrace()
                 }
             }
+            if (songs.isEmpty()) {
+                val offline = com.melody.music.data.download.MelodyDownloadManager.downloadedSongs.value
+                if (offline.isNotEmpty()) {
+                    songs = offline.map { it.toSong() }
+                }
+            }
 
-            // 2. Parallel pagination across all offsets (0..900) to fetch all 825+ songs
-            val offsets = listOf(0, 100, 200, 300, 400, 500, 600, 700, 800, 900)
+            // 2. Parallel pagination across all offsets (0..1100) to fetch all 850+ songs
+            val offsets = listOf(0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100)
             try {
                 val deferredList = offsets.map { offset ->
                     async(Dispatchers.IO) {
@@ -399,8 +406,11 @@ fun MelodyApp() {
                     )
                     1 -> SearchScreen(
                         songs = songs,
-                        onSongClick = { song ->
-                            MelodyPlayerManager.playSong(song, songs)
+                        onSongClick = { song, queue ->
+                            MelodyPlayerManager.playSong(song, queue)
+                        },
+                        onArtistClick = { artistName ->
+                            selectedArtist = artistName
                         }
                     )
                     2 -> LibraryScreen(
@@ -434,20 +444,15 @@ fun MelodyApp() {
             }
         }
     }
+    }
 
     // Key Activation Dialog (Available globally in both TV and Mobile mode)
     ActivationDialog(
         isOpen = isActivationDialogOpen,
         onDismiss = { isActivationDialogOpen = false },
         onActivated = {
-            scope.launch {
-                try {
-                    val res = ApiClient.service.getSongs()
-                    songs = res.data
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            loadCatalog()
+            MelodyPlayerManager.refreshFavourites()
         }
     )
 }

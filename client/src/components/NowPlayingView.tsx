@@ -8,9 +8,6 @@ import {
   Shuffle,
   Repeat,
   Heart,
-  Download,
-  Check,
-  Loader2,
   Sliders,
   Volume2,
   VolumeX,
@@ -48,10 +45,6 @@ export const NowPlayingView: React.FC = () => {
     toggleShuffle,
     toggleRepeat,
     toggleFavourite,
-    downloadedSongIds,
-    downloadProgress,
-    downloadSong,
-    removeDownload,
     isNowPlayingOpen,
     setIsNowPlayingOpen,
     nowPlayingTheme,
@@ -108,8 +101,6 @@ export const NowPlayingView: React.FC = () => {
   if (!isNowPlayingOpen || !currentSong) return null;
 
   const isLiked = favourites.has(currentSong.id);
-  const isDownloaded = downloadedSongIds.has(currentSong.id);
-  const downloadPct = downloadProgress[currentSong.id];
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -328,33 +319,6 @@ export const NowPlayingView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Download Offline Button */}
-            <button
-              onClick={() => {
-                if (isDownloaded) {
-                  removeDownload(currentSong.id);
-                } else if (downloadPct === undefined) {
-                  downloadSong(currentSong);
-                }
-              }}
-              className="p-2.5 rounded-full bg-white/5 hover:bg-white/15 text-white transition-all hover:scale-110"
-              title={
-                isDownloaded
-                  ? 'Downloaded to this device (Click to remove)'
-                  : downloadPct !== undefined
-                  ? `Downloading ${downloadPct}%`
-                  : 'Download for offline play'
-              }
-            >
-              {downloadPct !== undefined ? (
-                <Loader2 className="w-5 h-5 text-[#a855f7] animate-spin" />
-              ) : isDownloaded ? (
-                <Check className="w-5 h-5 text-[#a855f7] stroke-[3]" />
-              ) : (
-                <Download className="w-5 h-5 text-neutral-300" />
-              )}
-            </button>
-
             {/* Heart Like Button */}
             <button
               onClick={() => toggleFavourite(currentSong)}

@@ -49,10 +49,19 @@ val BROWSE_GENRES = listOf(
 @Composable
 fun SearchScreen(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit,
+    onSongClick: (Song, List<Song>) -> Unit,
+    onArtistClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
+
+    val matchedArtists = remember(searchQuery) {
+        if (searchQuery.isBlank()) emptyList()
+        else {
+            val q = searchQuery.trim().lowercase()
+            ARTIST_PROFILES.values.filter { it.name.lowercase().contains(q) }
+        }
+    }
 
     val searchResults = remember(searchQuery, songs) {
         if (searchQuery.isBlank()) emptyList()
@@ -61,7 +70,8 @@ fun SearchScreen(
             songs.filter {
                 it.title.lowercase().contains(q) ||
                 it.artist.lowercase().contains(q) ||
-                (it.album?.lowercase()?.contains(q) == true)
+                (it.album?.lowercase()?.contains(q) == true) ||
+                (it.language?.lowercase()?.contains(q) == true)
             }
         }
     }
@@ -157,6 +167,43 @@ fun SearchScreen(
                 contentPadding = PaddingValues(bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (matchedArtists.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Artists",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                    }
+                    items(matchedArtists) { artist ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MelodySurface)
+                                .clickable { onArtistClick(artist.name) }
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = artist.imageUrl,
+                                contentDescription = artist.name,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(artist.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("Artist • ${artist.rank}", color = MelodyTextSecondary, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+
                 if (searchResults.isNotEmpty()) {
                     val topResult = searchResults.first()
 
@@ -174,7 +221,7 @@ fun SearchScreen(
                             colors = CardDefaults.cardColors(containerColor = MelodySurface),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSongClick(topResult) }
+                                .clickable { onSongClick(topResult, searchResults) }
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 AsyncImage(
@@ -233,10 +280,10 @@ fun SearchScreen(
                     items(searchResults) { song ->
                         SongListItem(
                             song = song,
-                            onClick = { onSongClick(song) }
+                            onClick = { onSongClick(song, searchResults) }
                         )
                     }
-                } else {
+                } else if (matchedArtists.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier

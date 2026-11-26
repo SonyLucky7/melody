@@ -30,9 +30,11 @@ import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Playlist
 import com.melody.music.data.model.PUBLIC_PLAYLISTS
 import com.melody.music.data.model.getPlaylistSongsFallback
+import com.melody.music.data.model.isSystemPlaylist
 import com.melody.music.data.model.Song
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
 @Composable
@@ -333,8 +335,9 @@ fun LibraryScreen(
                 }
             }
 
-            // User's Cloud Playlists
-            items(playlists) { pl ->
+            // User's Custom Cloud Playlists ONLY (never duplicate PUBLIC_PLAYLISTS!)
+            val customPlaylists = playlists.filter { !isSystemPlaylist(it.id) }
+            items(customPlaylists) { pl ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -374,7 +377,7 @@ fun LibraryScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Playlist • ${pl.totalSongs ?: 0} songs",
+                            text = "Your Playlist • ${pl.totalSongs ?: 0} songs",
                             fontSize = 13.sp,
                             color = MelodyTextSecondary
                         )
@@ -382,8 +385,8 @@ fun LibraryScreen(
                 }
             }
 
-            // Public Curated Playlists (Spotify-grade)
-            items(com.melody.music.data.model.PUBLIC_PLAYLISTS) { pl ->
+            // Public Curated Playlists (Spotify-grade, deduplicated)
+            items(PUBLIC_PLAYLISTS) { pl ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -452,6 +455,7 @@ fun LibraryScreen(
 
                     Spacer(modifier = Modifier.width(16.dp))
 
+                    val totalMb = String.format("%.1f", MelodyDownloadManager.getTotalDownloadedBytes() / (1024.0 * 1024.0))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Downloaded Music",
@@ -460,9 +464,9 @@ fun LibraryScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "Auto-downloaded • ${downloadedSongs.size} songs locally",
+                            text = "${downloadedSongs.size} songs ($totalMb MB) • Play without internet",
                             fontSize = 13.sp,
-                            color = MelodyTextSecondary
+                            color = MelodyOffline
                         )
                     }
                 }
@@ -663,7 +667,8 @@ fun CustomPlaylistScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
 
-                    if (playlist.id > 11L) {
+                    val isCurated = isSystemPlaylist(playlist.id)
+                    if (!isCurated) {
                         IconButton(
                             onClick = { showDeleteConfirm = true },
                             modifier = Modifier
@@ -693,7 +698,7 @@ fun CustomPlaylistScreen(
 
                     Column {
                         Text(
-                            text = if (playlist.id <= 11L) "CURATED PLAYLIST" else "PLAYLIST",
+                            text = if (isSystemPlaylist(playlist.id)) "CURATED PLAYLIST" else "PLAYLIST",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = MelodyPrimary
@@ -717,13 +722,55 @@ fun CustomPlaylistScreen(
         }
 
         item {
+            val context = LocalContext.current
+            val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+            val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+            val allDownloaded = songs.isNotEmpty() && songs.all { s -> downloadedSongs.any { it.songId == s.id } }
+            val anyDownloading = songs.any { s -> downloadingIds.contains(s.id) }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (songs.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            if (!allDownloaded && !anyDownloading) {
+                                MelodyDownloadManager.downloadPlaylist(context, songs)
+                            }
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (allDownloaded) Color(0x2210B981) else Color(0x18A855F7),
+                            contentColor = if (allDownloaded) MelodyOffline else Color.White
+                        )
+                    ) {
+                        if (anyDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MelodyPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Downloading...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        } else {
+                            Icon(
+                                imageVector = if (allDownloaded) Icons.Default.DownloadDone else Icons.Default.FileDownload,
+                                contentDescription = "Download All Offline",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (allDownloaded) "Saved Offline" else "Download All",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     FloatingActionButton(
                         onClick = { onSongClick(songs.first(), songs) },
                         containerColor = MelodyPrimary,
@@ -770,24 +817,27 @@ fun CustomPlaylistScreen(
                 }
             }
         } else {
+            val isCustomPlaylist = !isSystemPlaylist(playlist.id)
             items(songs) { song ->
                 SongListItem(
                     song = song,
                     onClick = { onSongClick(song, songs) },
-                    trailingContent = {
-                        IconButton(onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    ApiClient.apiService.removeSongFromPlaylist(playlist.id, song.id)
-                                    loadSongs()
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
+                    trailingContent = if (isCustomPlaylist) {
+                        {
+                            IconButton(onClick = {
+                                coroutineScope.launch {
+                                    try {
+                                        ApiClient.apiService.removeSongFromPlaylist(playlist.id, song.id)
+                                        loadSongs()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
                                 }
+                            }) {
+                                Icon(Icons.Default.Close, contentDescription = "Remove", tint = MelodyTextSecondary)
                             }
-                        }) {
-                            Icon(Icons.Default.Close, contentDescription = "Remove", tint = MelodyTextSecondary)
                         }
-                    }
+                    } else null
                 )
                 Spacer(modifier = Modifier.height(6.dp))
             }
@@ -853,13 +903,55 @@ fun LikedSongsScreen(
         }
 
         item {
+            val context = LocalContext.current
+            val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+            val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+            val allDownloaded = likedSongs.isNotEmpty() && likedSongs.all { s -> downloadedSongs.any { it.songId == s.id } }
+            val anyDownloading = likedSongs.any { s -> downloadingIds.contains(s.id) }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (likedSongs.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = {
+                            if (!allDownloaded && !anyDownloading) {
+                                MelodyDownloadManager.downloadPlaylist(context, likedSongs)
+                            }
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (allDownloaded) Color(0x2210B981) else Color(0x18A855F7),
+                            contentColor = if (allDownloaded) MelodyOffline else Color.White
+                        )
+                    ) {
+                        if (anyDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MelodyPrimary,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Downloading...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        } else {
+                            Icon(
+                                imageVector = if (allDownloaded) Icons.Default.DownloadDone else Icons.Default.FileDownload,
+                                contentDescription = "Download All Offline",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (allDownloaded) "Saved Offline" else "Download All",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     FloatingActionButton(
                         onClick = { onSongClick(likedSongs.first()) },
                         containerColor = MelodyPrimary,
@@ -958,10 +1050,11 @@ fun DownloadedSongsScreen(
                         fontWeight = FontWeight.Black,
                         color = Color.White
                     )
+                    val totalMb = String.format("%.1f", MelodyDownloadManager.getTotalDownloadedBytes() / (1024.0 * 1024.0))
                     Text(
-                        text = "${downloaded.size} songs stored on device • Instant 0-data playback",
+                        text = "${downloaded.size} songs ($totalMb MB) on device • Works without internet",
                         fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                 }
             }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Heart, Download, Check, Loader2, ListPlus, Trash2 } from 'lucide-react';
+import { Play, Pause, Heart, Loader2, ListPlus, Trash2 } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl } from '../services/api';
@@ -35,31 +35,16 @@ export const SongRow: React.FC<SongRowProps> = ({
     togglePlay,
     favourites,
     toggleFavourite,
-    downloadedSongIds,
-    downloadProgress,
-    downloadSong,
-    removeDownload,
   } = usePlayer();
 
   const isCurrent = currentSong?.id === song.id;
   const isLiked = favourites.has(song.id);
-  const isDownloaded = downloadedSongIds.has(song.id);
-  const progress = downloadProgress[song.id];
 
   const handleRowClick = () => {
     if (isCurrent) {
       togglePlay();
     } else {
       playSong(song, queueContext);
-    }
-  };
-
-  const handleToggleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isDownloaded) {
-      removeDownload(song.id);
-    } else if (progress === undefined) {
-      downloadSong(song);
     }
   };
 
@@ -130,34 +115,8 @@ export const SongRow: React.FC<SongRowProps> = ({
         {song.album || 'Single'}
       </div>
 
-      {/* Actions: Download Offline, Heart Like, & Duration */}
+      {/* Actions: Heart Like, Add to Playlist, & Duration (Offline Downloads are Android App Exclusive) */}
       <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-        {/* Offline Download Button */}
-        <button
-          onClick={handleToggleDownload}
-          className="p-1 transition-all rounded-full hover:scale-105"
-          title={
-            isDownloaded
-              ? 'Downloaded to this device (Click to remove)'
-              : progress !== undefined
-              ? `Downloading ${progress}%`
-              : 'Download for offline play'
-          }
-        >
-          {progress !== undefined ? (
-            <div className="flex items-center gap-1">
-              <Loader2 className="w-3.5 h-3.5 text-[#a855f7] animate-spin" />
-              <span className="text-[10px] font-mono text-[#a855f7]">{progress}%</span>
-            </div>
-          ) : isDownloaded ? (
-            <div className="w-5 h-5 rounded-full bg-[#a855f7] text-black flex items-center justify-center shadow-sm">
-              <Check className="w-3 h-3 stroke-[3] text-white" />
-            </div>
-          ) : (
-            <Download className="w-4 h-4 text-neutral-400 opacity-70 sm:opacity-0 group-hover:opacity-100 hover:text-white transition-opacity" />
-          )}
-        </button>
-
         {/* User-Scoped Heart Like Button */}
         <button
           onClick={(e) => {

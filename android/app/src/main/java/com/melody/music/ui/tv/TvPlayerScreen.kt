@@ -66,6 +66,8 @@ fun TvPlayerScreen(
     val isShuffle by MelodyPlayerManager.isShuffle.collectAsState()
     val repeatState by MelodyPlayerManager.repeatState.collectAsState()
     val likedIds by MelodyPlayerManager.likedSongIds.collectAsState()
+    val isBuffering by MelodyPlayerManager.isBuffering.collectAsState()
+    val playbackError by MelodyPlayerManager.playbackError.collectAsState()
     val isLiked = likedIds.contains(song.id)
     val queue by MelodyPlayerManager.queue.collectAsState()
 
@@ -271,6 +273,7 @@ fun TvPlayerScreen(
                         // Big Central Play / Pause Button
                         TvFocusablePlayButton(
                             isPlaying = isPlaying,
+                            isBuffering = isBuffering,
                             onClick = onTogglePlay
                         )
 
@@ -310,6 +313,15 @@ fun TvPlayerScreen(
 
                     // Seekable Progress Bar
                     Column(modifier = Modifier.fillMaxWidth()) {
+                        if (playbackError != null) {
+                            Text(
+                                text = "$playbackError • Press Play to retry",
+                                color = Color(0xFFFCA5A5),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
                         val progressFraction = if (durationMs > 0) {
                             (progressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
                         } else 0f
@@ -457,6 +469,7 @@ fun TvControlIconButton(
 @Composable
 fun TvFocusablePlayButton(
     isPlaying: Boolean,
+    isBuffering: Boolean = false,
     onClick: () -> Unit
 ) {
     var isFocused by remember { mutableStateOf(false) }
@@ -483,12 +496,20 @@ fun TvFocusablePlayButton(
             .clickable(interactionSource = interactionSource, indication = null) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-            contentDescription = if (isPlaying) "Pause" else "Play",
-            tint = if (isFocused) Color.Black else Color.White,
-            modifier = Modifier.size(40.dp)
-        )
+        if (isBuffering) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(32.dp),
+                color = if (isFocused) Color.Black else Color.White,
+                strokeWidth = 3.dp
+            )
+        } else {
+            Icon(
+                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                tint = if (isFocused) Color.Black else Color.White,
+                modifier = Modifier.size(40.dp)
+            )
+        }
     }
 }
 

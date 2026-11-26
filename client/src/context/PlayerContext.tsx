@@ -35,6 +35,8 @@ interface PlayerContextType {
   currentSong: Song | null;
   isPlaying: boolean;
   isLoadingTrack: boolean;
+  playbackError: string | null;
+  clearPlaybackError: () => void;
   currentTime: number;
   duration: number;
   volume: number;
@@ -109,6 +111,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLoadingTrack, setIsLoadingTrack] = useState<boolean>(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
+  const clearPlaybackError = useCallback(() => setPlaybackError(null), []);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [volume, setVolumeState] = useState<number>(0.8);
@@ -177,7 +181,6 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Persistent Refs to prevent stale closures in audio event handlers
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
@@ -415,6 +418,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setCurrentSong(song);
     currentSongRef.current = song;
     setIsLoadingTrack(true);
+    setPlaybackError(null);
     setCurrentTime(0);
 
     // Track playback history
@@ -432,45 +436,63 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audioContextRef.current.resume().catch(() => {});
       }
 
-      // Direct high-speed streaming URL for all users (no priority delays)
+      // Direct high-speed streaming URL for all users
       const streamUrl = `${STREAM_BASE}/api/stream/${song.id}`;
+      let targetSrc: string = streamUrl;
 
-      // Check offline IndexedDB ONLY if downloaded on this device (eliminates async lag for 99% of plays)
-      let targetSrc: string;
+      // Check offline IndexedDB ONLY if previously cached
       if (downloadedSongIdsRef.current.has(song.id)) {
         const offline = await getOfflineSong(song.id);
         if (requestId !== playRequestIdRef.current) return;
         if (offline && offline.audioBlob) {
           targetSrc = URL.createObjectURL(offline.audioBlob);
-          console.log('[Melody Offline] Playing track directly from local device storage:', song.title);
-        } else {
-          targetSrc = streamUrl;
         }
-      } else {
-        targetSrc = streamUrl;
       }
 
       if (requestId !== playRequestIdRef.current) return;
 
-      // Sub-second instant playback: Pause old audio and immediately assign new src without redundant load() cycle
+      // Cleanly stop previous track before assigning new src
       if (!audio.paused) {
         audio.pause();
       }
       audio.preload = 'auto';
-      audio.src = targetSrc;
+      let retryStage = 0; // 0 = Render direct, 1 = Render retry, 2 = Vercel edge proxy
 
-      // Auto-fallback: If primary Render stream ever errors, fallback smoothly to Vercel Edge proxy
       audio.onerror = () => {
         if (requestId !== playRequestIdRef.current) return;
         const err = audio.error;
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
-        if (audio.src.includes('onrender.com') && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-          console.warn('[Melody Stream Notice] Falling back to Vercel Edge...');
-          if (requestId !== playRequestIdRef.current) return;
-          audio.src = `/api/stream/${song.id}`;
-          audio.play().catch(() => {});
+
+        if (retryStage === 0 && targetSrc.includes('onrender.com')) {
+          retryStage = 1;
+          console.warn(`[Melody Stream] Retrying track #${song.id} once...`);
+          setTimeout(() => {
+            if (requestId !== playRequestIdRef.current) return;
+            audio.src = `${streamUrl}?r=${Date.now()}`;
+            audio.play().catch(() => {});
+          }, 350);
+          return;
         }
+
+        if (retryStage <= 1 && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          retryStage = 2;
+          console.warn(`[Melody Stream] Falling back to Vercel Edge proxy for track #${song.id}...`);
+          audio.src = `/api/stream/${song.id}`;
+          audio.play().catch(() => {
+            if (requestId !== playRequestIdRef.current) return;
+            setIsPlaying(false);
+            setIsLoadingTrack(false);
+            setPlaybackError(`Could not play "${song.title}". Tap to retry.`);
+          });
+          return;
+        }
+
+        setIsPlaying(false);
+        setIsLoadingTrack(false);
+        setPlaybackError(`Unable to stream "${song.title}". Tap play to retry.`);
       };
+
+      audio.src = targetSrc;
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
@@ -479,6 +501,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             if (requestId !== playRequestIdRef.current) return;
             setIsPlaying(true);
             setIsLoadingTrack(false);
+            setPlaybackError(null);
           })
           .catch((err) => {
             if (requestId !== playRequestIdRef.current) return;
@@ -486,44 +509,31 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
               return;
             }
             console.warn('[Audio Play Promise Notice]:', err);
+            setIsLoadingTrack(false);
           });
       }
 
       // Async record stats in background
       recordPlayback(song.id).catch(() => {});
 
-      // Prefetch upcoming track using persistent ref so browser has buffer ready for <0.2s transition
+      // Lightweight server-side Telegram URL pre-warm ONLY (zero extra audio bandwidth / no 429 overload)
       const activeList = isShuffleRef.current && shuffledQueueRef.current.length > 0
         ? shuffledQueueRef.current
         : (queueList || queueRef.current);
       const currentIdx = activeList.findIndex((s) => s.id === song.id);
-      const nextIdx = (currentIdx + 1) % activeList.length;
-      if (nextIdx < activeList.length && activeList[nextIdx].id !== song.id) {
+      if (activeList.length > 1 && currentIdx !== -1) {
+        const nextIdx = (currentIdx + 1) % activeList.length;
         const nextSong = activeList[nextIdx];
-        if (!preloadAudioRef.current) {
-          preloadAudioRef.current = new Audio();
-          preloadAudioRef.current.preload = 'auto';
+        if (nextSong && nextSong.id !== song.id) {
+          fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
         }
-        preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
-        // Pre-warm the next track's download URL on the server so playback starts in <100ms
-        fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
       }
     } catch (err) {
       if (requestId !== playRequestIdRef.current) return;
       console.error('[Playback Start Error]:', err);
-      // Fallback
-      try {
-        const fallbackUrl = await requestPlayUrl(song.id);
-        if (requestId !== playRequestIdRef.current) return;
-        if (fallbackUrl) {
-          audio.src = fallbackUrl;
-          await audio.play();
-          setIsPlaying(true);
-        }
-      } catch (e) {
-        if (requestId !== playRequestIdRef.current) return;
-        setIsPlaying(false);
-      }
+      setIsLoadingTrack(false);
+      setIsPlaying(false);
+      setPlaybackError(`Playback error on "${song.title}". Tap play to retry.`);
     }
   }, [initEqualizer]);
 
@@ -724,11 +734,18 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (isPlaying) {
       audio.pause();
     } else {
+      // If previous attempt errored or audio has no loaded source, cleanly re-play
+      if (audio.error || !audio.src || audio.readyState === 0) {
+        playSong(currentSong);
+        return;
+      }
       initEqualizer();
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().catch(() => {});
       }
-      audio.play().catch(() => setIsPlaying(false));
+      audio.play().catch(() => {
+        playSong(currentSong);
+      });
     }
   };
 
@@ -764,31 +781,18 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (next && queueRef.current.length > 0) {
         const shuffled = createShuffledOrder(queueRef.current, currentSongRef.current || undefined);
         shuffledQueueRef.current = shuffled;
-        // Immediately pre-buffer and pre-warm upcoming shuffled track for 0ms transition
+        // Lightweight pre-warm upcoming shuffled track on server
         if (shuffled.length > 1) {
-          const nextSong = shuffled[1];
-          if (!preloadAudioRef.current) {
-            preloadAudioRef.current = new Audio();
-          }
-          preloadAudioRef.current.preload = 'auto';
-          preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
-          fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
+          fetch(`${STREAM_BASE}/api/stream/${shuffled[1].id}/prewarm`).catch(() => {});
         }
       } else {
         shuffledQueueRef.current = [];
-        // Sequential next song pre-buffer
         const q = queueRef.current;
         const cur = currentSongRef.current;
         if (q.length > 1 && cur) {
           const curIdx = q.findIndex((s) => s.id === cur.id);
           const nextIdx = (curIdx + 1) % q.length;
-          const nextSong = q[nextIdx];
-          if (!preloadAudioRef.current) {
-            preloadAudioRef.current = new Audio();
-          }
-          preloadAudioRef.current.preload = 'auto';
-          preloadAudioRef.current.src = `${STREAM_BASE}/api/stream/${nextSong.id}`;
-          fetch(`${STREAM_BASE}/api/stream/${nextSong.id}/prewarm`).catch(() => {});
+          fetch(`${STREAM_BASE}/api/stream/${q[nextIdx].id}/prewarm`).catch(() => {});
         }
       }
       return next;
@@ -839,6 +843,8 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         currentSong,
         isPlaying,
         isLoadingTrack,
+        playbackError,
+        clearPlaybackError,
         currentTime,
         duration,
         volume,

@@ -34,6 +34,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
     currentSong,
     isPlaying,
     isLoadingTrack,
+    playbackError,
+    clearPlaybackError,
     currentTime,
     duration,
     volume,
@@ -45,6 +47,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
     eqPreset,
     setIsEqModalOpen,
     setIsNowPlayingOpen,
+    playSong,
     togglePlay,
     nextTrack,
     prevTrack,
@@ -60,7 +63,23 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <footer className="relative h-16 md:h-20 bg-[#181818] border-t border-[#282828] px-3 md:px-4 flex items-center justify-between z-40 select-none">
+    <footer className="relative h-16 md:h-20 bg-[#181818] border-t border-[#282828] px-3 md:px-4 flex items-center justify-between gap-2 z-40 select-none">
+      {/* Playback Error Toast Pill */}
+      {playbackError && currentSong && (
+        <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/95 border border-red-500/40 text-red-200 text-xs font-semibold shadow-xl z-50 whitespace-nowrap">
+          <span>{playbackError}</span>
+          <button
+            onClick={() => {
+              clearPlaybackError();
+              playSong(currentSong);
+            }}
+            className="px-2 py-0.5 rounded-full bg-red-500/30 hover:bg-red-500/50 text-white font-bold text-[11px] cursor-pointer"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Top Edge Micro-Progress Bar on Mobile */}
       <div className="md:hidden absolute top-0 left-0 right-0 h-1 bg-white/10 overflow-hidden">
         <div
@@ -70,7 +89,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
       </div>
 
       {/* 1. Left: Track Info & Cover (Click opens Now Playing Animated Theme) */}
-      <div className="flex items-center gap-2.5 md:gap-3.5 flex-1 min-w-0 md:w-1/4 md:min-w-[200px]">
+      <div className="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0 md:flex-none md:w-[28%] max-w-[320px]">
         {currentSong ? (
           <>
             <div
@@ -134,8 +153,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
       </div>
 
       {/* 2. Center: Spotify Controls & Seekbar */}
-      <div className="flex flex-col items-center gap-1 md:gap-1.5 w-auto md:w-2/4 md:max-w-2xl px-1 sm:px-2 flex-shrink-0">
-        <div className="flex items-center gap-2.5 sm:gap-5">
+      <div className="flex flex-col items-center gap-1 md:gap-1.5 w-auto md:flex-1 md:max-w-xl px-1 sm:px-2 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3.5 lg:gap-5">
           {/* Shuffle */}
           <button
             onClick={toggleShuffle}
@@ -258,11 +277,11 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
       </div>
 
       {/* 3. Right: Audio Options & Volume (Desktop Only) */}
-      <div className="hidden md:flex items-center justify-end gap-3 w-1/4 min-w-[200px]">
+      <div className="hidden md:flex items-center justify-end gap-2 lg:gap-3 md:w-[28%] max-w-[300px] min-w-0 flex-shrink-0">
         {/* Equalizer Quick Access */}
         <button
           onClick={() => setIsEqModalOpen(true)}
-          className={`p-1.5 rounded-full transition-colors relative ${
+          className={`p-1.5 rounded-full transition-colors relative flex-shrink-0 ${
             isEqEnabled ? 'text-[#a855f7]' : 'text-[#b3b3b3] hover:text-white'
           }`}
           title={`Equalizer (${isEqEnabled ? eqPreset : 'Bypassed'})`}
@@ -274,7 +293,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = ({ onSelectArtist }) => {
         </button>
 
         {/* Device Status */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#242424] text-[11px] text-[#b3b3b3]">
+        <div className="hidden lg:flex items-center gap-1.5 px-2 py-1 rounded bg-[#242424] text-[11px] text-[#b3b3b3] flex-shrink-0">
           <Laptop className="w-3.5 h-3.5 text-[#a855f7]" />
           <span className="truncate max-w-[90px]">Melody Web</span>
         </div>

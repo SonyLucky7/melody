@@ -72,6 +72,13 @@ function getGreeting(): string {
 // Curated Public Playlists always available across mobile and desktop
 export const PUBLIC_PLAYLISTS: Playlist[] = [
   {
+    id: 13,
+    name: 'Top The Weeknd Songs',
+    description: 'Blinding Lights, Starboy, Save Your Tears, Die For You, Timeless, São Paulo & global hits.',
+    total_songs: 28,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg'
+  },
+  {
     id: 10,
     name: 'Motivation Vol. 1',
     description: 'Drake, Lil Wayne, 50 Cent, Eminem & high-energy workout bangers.',
@@ -148,40 +155,55 @@ export function isArtistMatch(songArtist: string, targetArtist: string): boolean
   const s = songArtist.toLowerCase().trim();
   const t = targetArtist.toLowerCase().trim();
   if (s === t) return true;
-  if (s.includes(t) || t.includes(s)) return true;
-
-  // Normalized alphanumeric match (removes spaces, dots, dashes, punctuation)
-  const sClean = s.replace(/[^a-z0-9]/g, '');
-  const tClean = t.replace(/[^a-z0-9]/g, '');
-  if (sClean && tClean && (sClean.includes(tClean) || tClean.includes(sClean))) return true;
 
   // Well-known artist aliases & shortened names
   const aliases: Record<string, string[]> = {
     'the weeknd': ['weeknd', 'abel tesfaye', 'the weekend'],
-    'yo yo honey singh': ['honey singh', 'yo yo', 'honeysingh'],
-    'sidhu moose wala': ['sidhu', 'moose wala', 'moosewala'],
-    'lana del rey': ['lana', 'del rey', 'elizabeth grant'],
-    'ariana grande': ['ariana'],
-    '2pac': ['tupac', 'makaveli'],
-    '50 cent': ['50cent', 'curtis jackson'],
-    'eminem': ['slim shady', 'marshall mathers'],
+    'yo yo honey singh': ['honey singh', 'honeysingh', 'yo yo honey'],
+    'sidhu moose wala': ['sidhu moose', 'moose wala', 'moosewala'],
+    'lana del rey': ['lana del rey', 'elizabeth grant'],
+    'ariana grande': ['ariana grande', 'ariana'],
+    '2pac': ['2pac', 'tupac', 'makaveli'],
+    '50 cent': ['50 cent', '50cent', 'curtis jackson'],
+    'eminem': ['eminem', 'slim shady', 'marshall mathers'],
+    'kulwinder billa': ['kulwinder billa'],
   };
 
   for (const [canonical, aliasList] of Object.entries(aliases)) {
-    const isTarget = t.includes(canonical) || aliasList.some((a) => t.includes(a));
-    const isSong = s.includes(canonical) || aliasList.some((a) => s.includes(a));
-    if (isTarget && isSong) return true;
+    const isTarget = t === canonical || aliasList.some((a) => t === a || (a.length >= 5 && t.includes(a)));
+    if (isTarget) {
+      return s.includes(canonical) || aliasList.some((a) => s.includes(a));
+    }
   }
 
-  // Tokenize multi-artist strings (comma, slash, &, feat, ft)
-  const tokens = songArtist.split(/[,/&|;]|(?:\s+ft\.?\s+)|\s+feat\.?\s+/i).map((tok) => tok.trim().toLowerCase());
-  return tokens.some((tok) => tok === t || tok.includes(t) || t.includes(tok));
+  // Exact or safe full-name match (never match tiny tokens like "w" or "aria" inside longer names!)
+  if (t.length >= 4 && s.includes(t)) return true;
+
+  const sClean = s.replace(/[^a-z0-9]/g, '');
+  const tClean = t.replace(/[^a-z0-9]/g, '');
+  if (tClean.length >= 5 && sClean.includes(tClean)) return true;
+
+  // Tokenize multi-artist strings (comma, slash, &, feat, ft) and require exact token match
+  const tokens = songArtist
+    .split(/[,/&|;]|(?:\s+ft\.?\s+)|\s+feat\.?\s+/i)
+    .map((tok) => tok.trim().toLowerCase())
+    .filter((tok) => tok.length >= 2);
+  return tokens.some((tok) => tok === t || (t.length >= 5 && tok.includes(t)) || (tok.length >= 5 && t.includes(tok)));
 }
 
 export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song[] {
   if (!playlist || !songCatalog || songCatalog.length === 0) return [];
   const nameLower = (playlist.name || '').toLowerCase();
   const id = Number(playlist.id);
+
+  if (id === 13 || nameLower.includes('top the weeknd')) {
+    return songCatalog.filter(
+      (x) =>
+        x.album?.toLowerCase().includes('top the weeknd') ||
+        isArtistMatch(x.artist, 'The Weeknd') ||
+        isArtistMatch(x.artist, 'Kulwinder Billa')
+    );
+  }
 
   if (id === 10 || nameLower.includes('motivation vol. 1') || nameLower === 'motivation 1') {
     return songCatalog.filter((x) => x.album === 'Motivation Vol. 1');
@@ -308,8 +330,19 @@ export const App: React.FC = () => {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
-  const { playSong, offlineTracks, refreshFavourites } = usePlayer();
-  const offlineTracksTotalMb = (offlineTracks.reduce((acc, t) => acc + (t.fileSize || 0), 0) / (1024 * 1024)).toFixed(1);
+  const { playSong, favourites, refreshFavourites } = usePlayer();
+
+  // Keep Liked Songs list 100% synchronized in real time with PlayerContext favourites Set
+  const syncedLikedSongs = React.useMemo(() => {
+    const byId = new Map<number, Song>();
+    likedSongsList.forEach((s) => {
+      if (favourites.has(s.id)) byId.set(s.id, s);
+    });
+    songs.forEach((s) => {
+      if (favourites.has(s.id) && !byId.has(s.id)) byId.set(s.id, s);
+    });
+    return Array.from(byId.values());
+  }, [likedSongsList, songs, favourites]);
 
   // Auto-resolve playlist tracks if songs were still fetching when playlist was selected
   useEffect(() => {
@@ -443,10 +476,19 @@ export const App: React.FC = () => {
       const instant = getPlaylistTracks(fullPlaylist, songs);
       setPlaylistSongs(instant);
 
-      // In background, fetch from backend and use if returned
+      // In background, fetch from backend and merge cleanly (preserving order for curated/custom playlists)
       fetchPlaylistSongs(fullPlaylist.id).then((s) => {
         if (s && s.length > 0) {
-          setPlaylistSongs(s);
+          if (fullPlaylist.id === 13 || !PUBLIC_PLAYLISTS.some((p) => p.id === fullPlaylist.id)) {
+            setPlaylistSongs(s);
+          } else {
+            const merged = new Map<number, Song>();
+            s.forEach((track) => merged.set(track.id, track));
+            instant.forEach((track) => {
+              if (!merged.has(track.id)) merged.set(track.id, track);
+            });
+            setPlaylistSongs(Array.from(merged.values()));
+          }
         } else if (instant.length > 0) {
           setPlaylistSongs(instant);
         }
@@ -524,12 +566,17 @@ export const App: React.FC = () => {
     return matchesSearch && matchesLang;
   });
 
-  // Artist specific song collections
-  const theWeekndSongs = songs.filter((s) => s.artist.toLowerCase().includes('weeknd'));
-  const lanaSongs = songs.filter((s) => s.artist.toLowerCase().includes('lana'));
-  const arianaSongs = songs.filter((s) => s.artist.toLowerCase().includes('ariana'));
-  const sidhuSongs = songs.filter((s) => s.artist.toLowerCase().includes('moose wala'));
-  const honeySongs = songs.filter((s) => s.artist.toLowerCase().includes('honey singh'));
+  // Artist specific song collections (using exact same isArtistMatch as ArtistView!)
+  const theWeekndSongs = songs.filter((s) => isArtistMatch(s.artist, 'The Weeknd'));
+  const lanaSongs = songs.filter((s) => isArtistMatch(s.artist, 'Lana Del Rey'));
+  const arianaSongs = songs.filter((s) => isArtistMatch(s.artist, 'Ariana Grande'));
+  const sidhuSongs = songs.filter((s) => isArtistMatch(s.artist, 'Sidhu Moose Wala'));
+  const honeySongs = songs.filter((s) => isArtistMatch(s.artist, 'Yo Yo Honey Singh'));
+
+  const matchedSearchArtists = searchQuery
+    ? ['Sidhu Moose Wala', 'Yo Yo Honey Singh', 'Ariana Grande', 'The Weeknd', 'Lana Del Rey', '2Pac', '50 Cent', 'Kulwinder Billa']
+        .filter((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
 
   // Get user initials for avatar
   const getInitials = () => {
@@ -560,7 +607,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.1.0</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.0</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
@@ -760,7 +807,7 @@ export const App: React.FC = () => {
                         className="w-full py-1.5 px-2.5 text-left rounded-lg hover:bg-white/5 text-neutral-300 flex items-center gap-2 transition-colors"
                       >
                         <Heart className="w-3.5 h-3.5 text-pink-400" />
-                        <span>Liked Songs ({likedSongsList.length})</span>
+                        <span>Liked Songs ({syncedLikedSongs.length})</span>
                       </button>
                       <button
                         onClick={() => {
@@ -840,14 +887,14 @@ export const App: React.FC = () => {
                   <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">{getGreeting()}</h1>
                 </div>
 
-                {/* 1. Top 6 Spotify Quick-Picks Grid (2-cols on mobile, 3-cols on desktop) */}
+                {/* 1. Top 6 Spotify Quick-Picks Grid (Responsive anti-truncation grid) */}
                 {songs.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                     {songs.slice(0, 6).map((song) => (
                       <div
                         key={song.id}
                         onClick={() => playSong(song, songs)}
-                        className="group flex items-center gap-2 sm:gap-3 bg-white/5 hover:bg-white/15 rounded-md overflow-hidden cursor-pointer transition-all border border-white/5 shadow-sm pr-2 sm:pr-3 h-14 sm:h-16"
+                        className="group flex items-center gap-3 bg-white/5 hover:bg-white/15 rounded-md overflow-hidden cursor-pointer transition-all border border-white/5 shadow-sm pr-3 h-14 sm:h-16 min-w-0"
                       >
                         <img
                           src={getFullCoverUrl(song.cover_url)}
@@ -857,8 +904,8 @@ export const App: React.FC = () => {
                           }}
                           className="w-14 h-14 sm:w-16 sm:h-16 object-cover flex-shrink-0"
                         />
-                        <span className="font-bold text-xs sm:text-sm truncate flex-1 leading-snug">{song.title}</span>
-                        <div className="hidden sm:flex w-9 h-9 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white items-center justify-center shadow-xl shadow-purple-900/30 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all flex-shrink-0">
+                        <span className="font-bold text-xs sm:text-sm truncate flex-1 min-w-0 leading-snug">{song.title}</span>
+                        <div className="hidden lg:flex w-9 h-9 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white items-center justify-center shadow-xl shadow-purple-900/30 opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all flex-shrink-0">
                           <Play className="w-4 h-4 fill-white ml-0.5" />
                         </div>
                       </div>
@@ -866,7 +913,7 @@ export const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 2. Popular Artists Section (Spotify Circular Avatars - Scaled for Mobile) */}
+                {/* 2. Popular Artists Section (Spotify Circular Avatars - Zero Clipping on All Screens) */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -875,116 +922,40 @@ export const App: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
-                    {/* Sidhu Moose Wala Card */}
-                    <div
-                      onClick={() => handleSelectView('artist', 'Sidhu Moose Wala')}
-                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
-                    >
-                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
-                        <img
-                          src="/covers/desi-295-mvs26s80.jpg"
-                          alt="Sidhu Moose Wala"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
-                        />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                    {[
+                      { name: 'Sidhu Moose Wala', img: '/covers/desi-295-mvs26s80.jpg', count: sidhuSongs.length },
+                      { name: 'Yo Yo Honey Singh', img: '/covers/desi-desi-kalakaar-mvs2csms.jpg', count: honeySongs.length },
+                      { name: 'Ariana Grande', img: '/covers/ariana-positions-mvrzwtf6.jpg', count: arianaSongs.length },
+                      { name: 'The Weeknd', img: '/covers/the-weeknd-avatar.jpg', count: theWeekndSongs.length },
+                      { name: 'Lana Del Rey', img: '/covers/lana-collection.jpg', count: lanaSongs.length },
+                    ].map((artist) => (
+                      <div
+                        key={artist.name}
+                        onClick={() => handleSelectView('artist', artist.name)}
+                        className="group p-3 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative min-w-0 overflow-hidden"
+                      >
+                        <div className="relative aspect-square w-full max-w-[136px] rounded-full overflow-hidden bg-neutral-800 mb-3 shadow-xl">
+                          <img
+                            src={artist.img}
+                            alt={artist.name}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
+                            }}
+                            className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
+                          />
+                        </div>
+                        <div className="w-full flex items-center justify-center gap-1 min-w-0 px-1">
+                          <span className="font-bold text-xs sm:text-sm text-white truncate" title={artist.name}>
+                            {artist.name}
+                          </span>
+                          <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
+                        </div>
+                        <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium truncate w-full">
+                          Artist &bull; {artist.count} Tracks
+                        </span>
                       </div>
-                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
-                        Sidhu Moose Wala
-                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {sidhuSongs.length} Tracks</span>
-                    </div>
-
-                    {/* Yo Yo Honey Singh Card */}
-                    <div
-                      onClick={() => handleSelectView('artist', 'Yo Yo Honey Singh')}
-                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
-                    >
-                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
-                        <img
-                          src="/covers/desi-desi-kalakaar-mvs2csms.jpg"
-                          alt="Yo Yo Honey Singh"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
-                        />
-                      </div>
-                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
-                        Yo Yo Honey Singh
-                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {honeySongs.length} Tracks</span>
-                    </div>
-
-                    {/* Ariana Grande Card */}
-                    <div
-                      onClick={() => handleSelectView('artist', 'Ariana Grande')}
-                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
-                    >
-                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
-                        <img
-                          src="/covers/ariana-positions-mvrzwtf6.jpg"
-                          alt="Ariana Grande"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
-                        />
-                      </div>
-                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
-                        Ariana Grande
-                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {arianaSongs.length} Tracks</span>
-                    </div>
-
-                    {/* The Weeknd Card */}
-                    <div
-                      onClick={() => handleSelectView('artist', 'The Weeknd')}
-                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
-                    >
-                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
-                        <img
-                          src="/covers/the-weeknd-avatar.jpg"
-                          alt="The Weeknd"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
-                        />
-                      </div>
-                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
-                        The Weeknd
-                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {theWeekndSongs.length} Tracks</span>
-                    </div>
-
-                    {/* Lana Del Rey Card */}
-                    <div
-                      onClick={() => handleSelectView('artist', 'Lana Del Rey')}
-                      className="group p-2.5 sm:p-4 bg-[#181818] hover:bg-[#282828] rounded-md transition-all cursor-pointer flex flex-col items-center text-center relative"
-                    >
-                      <div className="relative aspect-square w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden bg-neutral-800 mb-2 sm:mb-4 shadow-xl">
-                        <img
-                          src="/covers/lana-collection.jpg"
-                          alt="Lana Del Rey"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/Melody-Logo-512.png';
-                          }}
-                          className="w-full h-full object-cover group-hover:scale-105 group-hover:brightness-110 transition-all duration-300"
-                        />
-                      </div>
-                      <span className="font-bold text-xs sm:text-base text-white truncate w-full flex items-center justify-center gap-1">
-                        Lana Del Rey
-                        <CheckCircle2 className="w-3.5 h-3.5 fill-blue-500 text-white flex-shrink-0" />
-                      </span>
-                      <span className="text-[10px] sm:text-xs text-[#b3b3b3] mt-0.5 font-medium">Artist &bull; {lanaSongs.length} Tracks</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1288,14 +1259,12 @@ export const App: React.FC = () => {
                   <span className="text-xs text-[#b3b3b3]">{filteredSongs.length} matches</span>
                 </div>
 
-                {/* Artist Matches */}
-                {searchQuery && (
+                {/* Artist Matches (only render when at least one artist matches) */}
+                {matchedSearchArtists.length > 0 && (
                   <div className="space-y-2 sm:space-y-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#b3b3b3]">Artists</h3>
                     <div className="flex flex-wrap gap-2.5 sm:gap-4">
-                      {['Sidhu Moose Wala', 'Yo Yo Honey Singh', 'Ariana Grande', 'The Weeknd', 'Lana Del Rey']
-                        .filter((a) => a.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map((artistName) => (
+                      {matchedSearchArtists.map((artistName) => (
                           <div
                             key={artistName}
                             onClick={() => handleSelectView('artist', artistName)}
@@ -1366,7 +1335,7 @@ export const App: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Quick Pinned Cards: Liked Songs & Downloaded */}
+                {/* Quick Pinned Cards: Liked Songs & Offline Android App Banner */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Liked Songs Tile */}
                   <div
@@ -1378,22 +1347,22 @@ export const App: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-sm sm:text-base text-white truncate">Liked Songs</h3>
-                      <p className="text-xs text-neutral-400">{likedSongsList.length} tracks &bull; Auto-synced</p>
+                      <p className="text-xs text-neutral-400">{syncedLikedSongs.length} tracks &bull; Auto-synced</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
 
-                  {/* Downloaded Songs Tile */}
+                  {/* Offline Downloads: Android App Exclusive CTA */}
                   <div
-                    onClick={() => handleSelectView('downloaded')}
+                    onClick={() => setIsDownloadModalOpen(true)}
                     className="group flex items-center gap-4 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-cyan-950/50 via-blue-950/30 to-[#181818] border border-cyan-500/20 hover:border-cyan-500/50 cursor-pointer transition-all hover:scale-[1.01]"
                   >
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center shadow-lg flex-shrink-0">
                       <ArrowDownCircle className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm sm:text-base text-white truncate">Downloaded</h3>
-                      <p className="text-xs text-neutral-400">{offlineTracks.length} tracks &bull; Zero-data offline</p>
+                      <h3 className="font-bold text-sm sm:text-base text-white truncate">Offline Mode (Android App)</h3>
+                      <p className="text-xs text-neutral-400">Download songs to device & play without internet</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
@@ -1450,69 +1419,38 @@ export const App: React.FC = () => {
                   <div className="w-28 h-28 sm:w-44 sm:h-44 rounded-md bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-2xl flex-shrink-0">
                     <Heart className="w-14 h-14 sm:w-20 sm:h-20 fill-white text-white" />
                   </div>
-                  <div className="space-y-1 sm:space-y-2">
+                  <div className="space-y-2">
                     <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-blue-400">Playlist</span>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white">Liked Songs</h1>
-                    <p className="text-xs text-[#b3b3b3]">{likedSongsList.length} favourite tracks</p>
+                    <p className="text-xs text-[#b3b3b3]">{syncedLikedSongs.length} favourite tracks</p>
+                    {syncedLikedSongs.length > 0 && (
+                      <div className="pt-2">
+                        <button
+                          onClick={() => playSong(syncedLikedSongs[0], syncedLikedSongs)}
+                          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#a855f7] hover:bg-[#9333ea] text-white font-extrabold text-sm shadow-xl shadow-purple-950/60 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                        >
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>Play All</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  {likedSongsList.map((song, i) => (
+                  {syncedLikedSongs.map((song, i) => (
                     <SongRow
                       key={song.id}
                       index={i}
                       song={song}
-                      queueContext={likedSongsList}
+                      queueContext={syncedLikedSongs}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
                       onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
                     />
                   ))}
-                  {likedSongsList.length === 0 && (
+                  {syncedLikedSongs.length === 0 && (
                     <div className="py-12 text-center text-[#b3b3b3] text-sm">
                       No liked songs yet. Tap the heart icon on any song!
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* VIEW: DOWNLOADED (SAVED ON THIS DEVICE FOR OFFLINE PLAY) */}
-            {currentView === 'downloaded' && (
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 p-4 sm:p-8 rounded-xl bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent border border-purple-500/20 shadow-xl">
-                  <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-xl bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-900 flex items-center justify-center shadow-2xl shadow-purple-900/50 flex-shrink-0">
-                    <ArrowDownCircle className="w-14 h-14 sm:w-20 sm:h-20 text-white" />
-                  </div>
-                  <div className="space-y-1 sm:space-y-2">
-                    <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-purple-400">Local Device Storage</span>
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white">Downloaded</h1>
-                    <p className="text-xs text-[#b3b3b3]">
-                      Saved on this device for zero-data offline playback &bull; {offlineTracks.length} tracks ({offlineTracksTotalMb} MB)
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  {offlineTracks.map((track, i) => (
-                    <SongRow
-                      key={track.id}
-                      index={i}
-                      song={track as Song}
-                      queueContext={offlineTracks as Song[]}
-                      onSelectArtist={(a) => handleSelectView('artist', a)}
-                      onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
-                    />
-                  ))}
-                  {offlineTracks.length === 0 && (
-                    <div className="py-16 text-center text-[#b3b3b3] space-y-2 text-sm">
-                      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto text-[#a855f7]">
-                        <ArrowDownCircle className="w-6 h-6" />
-                      </div>
-                      <div className="font-bold text-white">No downloaded songs on this device yet</div>
-                      <div className="text-xs max-w-sm mx-auto">
-                        Click the download arrow on any song or album to save it locally on your device for instant offline listening.
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1547,8 +1485,10 @@ export const App: React.FC = () => {
               </div>
             )}
 
-            {/* VIEW: CUSTOM PLAYLIST */}
-            {currentView === 'playlist' && selectedPlaylist && (
+            {/* VIEW: CUSTOM / CURATED PLAYLIST */}
+            {currentView === 'playlist' && selectedPlaylist && (() => {
+              const isSystemPlaylist = PUBLIC_PLAYLISTS.some((p) => p.id === selectedPlaylist.id);
+              return (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 p-4 sm:p-8 rounded-2xl bg-gradient-to-b sm:bg-gradient-to-r from-purple-900/40 via-neutral-900/60 to-black/80 border border-white/10 shadow-2xl">
                   {/* Playlist Cover Art with fallback */}
@@ -1572,7 +1512,7 @@ export const App: React.FC = () => {
                   <div className="space-y-2.5 flex-1 min-w-0 text-center sm:text-left w-full">
                     <div className="flex items-center justify-center sm:justify-start gap-2">
                       <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider border border-purple-500/30">
-                        {selectedPlaylist.id <= 11 ? 'Curated Playlist' : 'Your Playlist'}
+                        {isSystemPlaylist ? 'Curated Playlist' : 'Your Playlist'}
                       </span>
                       <span className="text-[11px] text-neutral-400">Studio 320k Audio</span>
                     </div>
@@ -1603,17 +1543,17 @@ export const App: React.FC = () => {
                           }
                         }}
                         disabled={playlistSongs.length === 0}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-40 text-white font-extrabold text-sm shadow-xl shadow-purple-950/60 transition-all hover:scale-105 active:scale-95"
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#a855f7] hover:bg-[#9333ea] disabled:opacity-40 text-white font-extrabold text-sm shadow-xl shadow-purple-950/60 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-white" />
                         <span>Play All</span>
                       </button>
 
                       {/* Only allow deleting custom playlists, never system curated */}
-                      {selectedPlaylist.id > 11 && (
+                      {!isSystemPlaylist && (
                         <button
                           onClick={() => handleDeletePlaylist(selectedPlaylist.id)}
-                          className="px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-neutral-400 hover:text-red-400 text-xs font-semibold transition-colors"
+                          className="px-4 py-2 rounded-full bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-neutral-400 hover:text-red-400 text-xs font-semibold transition-colors cursor-pointer"
                         >
                           Delete Playlist
                         </button>
@@ -1631,7 +1571,7 @@ export const App: React.FC = () => {
                       queueContext={playlistSongs}
                       onSelectArtist={(a) => handleSelectView('artist', a)}
                       onAddToPlaylist={(s) => setSongToAddToPlaylist(s)}
-                      onRemoveFromPlaylist={() => handleRemoveSongFromCurrentPlaylist(song.id)}
+                      onRemoveFromPlaylist={!isSystemPlaylist ? () => handleRemoveSongFromCurrentPlaylist(song.id) : undefined}
                     />
                   ))}
                   {loading && playlistSongs.length === 0 ? (
@@ -1648,7 +1588,8 @@ export const App: React.FC = () => {
                   ) : null}
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
         </main>
       </div>
@@ -1744,7 +1685,7 @@ export const App: React.FC = () => {
         onClose={() => setIsProfileModalOpen(false)}
         userProfile={userProfile}
         onLogout={handleLogout}
-        likedCount={likedSongsList.length}
+        likedCount={syncedLikedSongs.length}
         playlistsCount={playlists.length}
         recentCount={recentSongs.length}
         onNavigateHistory={() => handleSelectView('history')}

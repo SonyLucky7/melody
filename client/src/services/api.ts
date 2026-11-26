@@ -75,8 +75,8 @@ export async function fetchSongs(search = '', language = '', limit = 1000, offse
       return data.data || [];
     }
 
-    // High-speed parallel page fetcher: retrieves entire 825+ track catalog concurrently
-    const pageOffsets = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+    // High-speed parallel page fetcher: retrieves entire 1100+ track catalog concurrently
+    const pageOffsets = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100];
     const pagePromises = pageOffsets.map(async (pageOff) => {
       try {
         const params = new URLSearchParams();
@@ -323,6 +323,10 @@ export async function activateLicence(key: string, deviceName: string) {
 }
 
 export async function fetchDevices(): Promise<{ devices: ActiveDevice[]; user?: UserProfile }> {
+  // Avoid 401 console errors for guest users without an active session token
+  if (!getDeviceToken()) {
+    return { devices: [] };
+  }
   try {
     const res = await fetch(`${API_BASE}/devices`, { headers: authHeaders() });
     if (!res.ok) return { devices: [] };

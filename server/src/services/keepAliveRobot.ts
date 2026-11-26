@@ -7,7 +7,8 @@ import http from 'http';
  * to prevent the server from ever entering sleep mode.
  */
 export function startKeepAliveRobot(targetUrl?: string) {
-  const url = targetUrl || process.env.RENDER_EXTERNAL_URL || 'https://melody-mzsm.onrender.com/health';
+  const base = targetUrl || process.env.RENDER_EXTERNAL_URL || 'https://melody-mzsm.onrender.com';
+  const url = base.endsWith('/health') ? base : `${base.replace(/\/$/, '')}/health`;
 
   console.log(`[Keep-Alive Robot] Initialized for: ${url} (Interval: 8 minutes)`);
 

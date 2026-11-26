@@ -118,18 +118,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
 
         <button
-          onClick={() => onSelectView('downloaded')}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-            currentView === 'downloaded' ? 'text-white bg-white/10' : 'hover:text-white hover:bg-white/5 text-[#b3b3b3]'
-          }`}
-        >
-          <div className="w-6 h-6 rounded bg-[#282828] flex items-center justify-center text-[#a855f7]">
-            <ArrowDownCircle className="w-3.5 h-3.5" />
-          </div>
-          <span>Downloaded</span>
-        </button>
-
-        <button
           onClick={() => onSelectView('history')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
             currentView === 'history' ? 'text-white bg-white/10' : 'hover:text-white hover:bg-white/5 text-[#b3b3b3]'
@@ -301,10 +289,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         ) : (
           <a
-            href="/Melody-v1.1.0.apk"
+            href="/Melody-v1.2.0.apk"
             download
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
-            title="Download Melody Android APK (v1.1.0)"
+            title="Download Melody Android APK (v1.2.0)"
           >
             <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
             <span>Download Android App</span>

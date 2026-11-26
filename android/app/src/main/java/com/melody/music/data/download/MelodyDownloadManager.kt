@@ -8,6 +8,7 @@ import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,7 @@ import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 
 data class DownloadedSong(
     val songId: Long,
@@ -28,6 +29,8 @@ data class DownloadedSong(
     val durationSeconds: Int,
     val coverUrl: String?,
     val localAudioPath: String,
+    val localCoverPath: String? = null,
+    val fileSizeBytes: Long = 0L,
     val downloadedAt: Long
 ) {
     fun toSong(): Song {
@@ -38,7 +41,11 @@ data class DownloadedSong(
             album = album,
             language = null,
             durationSeconds = durationSeconds,
-            coverUrl = coverUrl,
+            coverUrl = if (!localCoverPath.isNullOrBlank() && File(localCoverPath).exists()) {
+                "file://$localCoverPath"
+            } else {
+                coverUrl
+            },
             createdAt = null
         )
     }
@@ -49,14 +56,22 @@ object MelodyDownloadManager {
     private const val PREFS_NAME = "melody_offline_cache"
     private const val KEY_DOWNLOADS = "offline_songs_index"
     private val gson = Gson()
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private val client = OkHttpClient()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
 
     private val _downloadedSongs = MutableStateFlow<List<DownloadedSong>>(emptyList())
     val downloadedSongs: StateFlow<List<DownloadedSong>> = _downloadedSongs.asStateFlow()
 
     private val _downloadingIds = MutableStateFlow<Set<Long>>(emptySet())
     val downloadingIds: StateFlow<Set<Long>> = _downloadingIds.asStateFlow()
+
+    private val _downloadProgress = MutableStateFlow<Map<Long, Int>>(emptyMap())
+    val downloadProgress: StateFlow<Map<Long, Int>> = _downloadProgress.asStateFlow()
 
     private var isInitialized = false
 
@@ -73,8 +88,15 @@ object MelodyDownloadManager {
             try {
                 val type = object : TypeToken<Map<String, DownloadedSong>>() {}.type
                 val map: Map<String, DownloadedSong> = gson.fromJson(json, type)
-                // Filter out entries where file no longer exists
-                val valid = map.values.filter { File(it.localAudioPath).exists() }
+                // Keep only entries whose audio file still exists and is non-empty
+                val valid = map.values.filter {
+                    val f = File(it.localAudioPath)
+                    f.exists() && f.length() > 10_000L
+                }.map { item ->
+                    if (item.fileSizeBytes <= 0L) {
+                        item.copy(fileSizeBytes = File(item.localAudioPath).length())
+                    } else item
+                }
                 _downloadedSongs.value = valid.sortedByDescending { it.downloadedAt }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -101,7 +123,36 @@ object MelodyDownloadManager {
     fun getLocalFile(songId: Long): File? {
         val item = _downloadedSongs.value.find { it.songId == songId } ?: return null
         val file = File(item.localAudioPath)
-        return if (file.exists() && file.length() > 0) file else null
+        return if (file.exists() && file.length() > 10_000L) file else null
+    }
+
+    fun getLocalCoverFile(songId: Long): File? {
+        val item = _downloadedSongs.value.find { it.songId == songId } ?: return null
+        val path = item.localCoverPath ?: return null
+        val file = File(path)
+        return if (file.exists() && file.length() > 0L) file else null
+    }
+
+    fun getTotalDownloadedBytes(): Long {
+        return _downloadedSongs.value.sumOf {
+            if (it.fileSizeBytes > 0L) it.fileSizeBytes else File(it.localAudioPath).length()
+        }
+    }
+
+    fun downloadPlaylist(context: Context, songs: List<Song>, onAllComplete: (() -> Unit)? = null) {
+        val toDownload = songs.filter { !isDownloaded(it.id) && !isDownloading(it.id) }
+        if (toDownload.isEmpty()) {
+            onAllComplete?.invoke()
+            return
+        }
+        scope.launch {
+            for (song in toDownload) {
+                downloadSongSync(context, song)
+            }
+            withContext(Dispatchers.Main) {
+                onAllComplete?.invoke()
+            }
+        }
     }
 
     fun downloadSong(context: Context, song: Song, onComplete: ((Boolean) -> Unit)? = null) {
@@ -109,67 +160,148 @@ object MelodyDownloadManager {
             onComplete?.invoke(true)
             return
         }
-
-        _downloadingIds.value = _downloadingIds.value + song.id
-
         scope.launch {
-            var success = false
-            try {
-                // 1. High-Speed Cloudflare Edge CDN Download URL
-                val fullUrl = "https://snowy-dream-9c30melody-stream.ogguvaralaxmi12.workers.dev/api/stream/${song.id}"
+            val ok = downloadSongSync(context, song)
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(ok)
+            }
+        }
+    }
 
-                // 2. Download File to app's music directory
-                val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
-                    ?: File(context.filesDir, "music")
-                if (!musicDir.exists()) musicDir.mkdirs()
+    private suspend fun downloadSongSync(context: Context, song: Song): Boolean {
+        if (isDownloaded(song.id) || isDownloading(song.id)) return true
 
-                val targetFile = File(musicDir, "melody_${song.id}.mp3")
+        withContext(Dispatchers.Main) {
+            _downloadingIds.value = _downloadingIds.value + song.id
+            _downloadProgress.value = _downloadProgress.value + (song.id to 1)
+        }
 
-                val request = Request.Builder()
-                    .url(fullUrl)
-                    .addHeader("x-device-id", ApiClient.deviceId)
-                    .build()
+        val musicDir = context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)
+            ?: File(context.filesDir, "music")
+        if (!musicDir.exists()) musicDir.mkdirs()
 
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful && response.body != null) {
-                    val inputStream: InputStream = response.body!!.byteStream()
-                    val outputStream = FileOutputStream(targetFile)
-                    val buffer = ByteArray(8192)
-                    var read: Int
-                    while (inputStream.read(buffer).also { read = it } != -1) {
-                        outputStream.write(buffer, 0, read)
+        val targetFile = File(musicDir, "melody_${song.id}.mp3")
+        val tmpFile = File(musicDir, "melody_${song.id}.mp3.tmp")
+        var success = false
+
+        try {
+            val base = ApiClient.baseUrl.trimEnd('/')
+            val urlsToTry = listOf(
+                "$base/api/stream/${song.id}",
+                "https://melody-chi-nine.vercel.app/api/stream/${song.id}"
+            )
+
+            for (url in urlsToTry) {
+                try {
+                    if (tmpFile.exists()) tmpFile.delete()
+
+                    val request = Request.Builder()
+                        .url(url)
+                        .addHeader("x-device-id", ApiClient.deviceId)
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    response.use { resp ->
+                        val contentType = resp.header("Content-Type") ?: ""
+                        if (resp.isSuccessful && resp.body != null && !contentType.contains("application/json")) {
+                            val totalLength = resp.body!!.contentLength()
+                            val inputStream: InputStream = resp.body!!.byteStream()
+                            val outputStream = FileOutputStream(tmpFile)
+                            val buffer = ByteArray(16 * 1024)
+                            var downloadedBytes = 0L
+                            var lastPct = 1
+                            var read: Int
+
+                            outputStream.use { out ->
+                                inputStream.use { inp ->
+                                    while (inp.read(buffer).also { read = it } != -1) {
+                                        out.write(buffer, 0, read)
+                                        downloadedBytes += read
+                                        if (totalLength > 0L) {
+                                            val pct = ((downloadedBytes * 100L) / totalLength).toInt().coerceIn(1, 99)
+                                            if (pct >= lastPct + 3) {
+                                                lastPct = pct
+                                                withContext(Dispatchers.Main) {
+                                                    _downloadProgress.value = _downloadProgress.value + (song.id to pct)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    out.flush()
+                                }
+                            }
+
+                            if (downloadedBytes > 10_000L && (totalLength <= 0L || downloadedBytes >= totalLength - 4096)) {
+                                if (targetFile.exists()) targetFile.delete()
+                                if (!tmpFile.renameTo(targetFile)) {
+                                    tmpFile.copyTo(targetFile, overwrite = true)
+                                    tmpFile.delete()
+                                }
+
+                                // Also cache album cover locally so offline mode displays artwork without internet!
+                                val localCoverPath = downloadCoverSilently(musicDir, song)
+
+                                val downloaded = DownloadedSong(
+                                    songId = song.id,
+                                    title = song.title,
+                                    artist = song.artist,
+                                    album = song.album,
+                                    durationSeconds = song.durationSeconds,
+                                    coverUrl = song.coverUrl,
+                                    localAudioPath = targetFile.absolutePath,
+                                    localCoverPath = localCoverPath,
+                                    fileSizeBytes = targetFile.length(),
+                                    downloadedAt = System.currentTimeMillis()
+                                )
+
+                                withContext(Dispatchers.Main) {
+                                    val currentList = _downloadedSongs.value.filter { it.songId != song.id } + downloaded
+                                    saveIndex(context, currentList)
+                                    _downloadProgress.value = _downloadProgress.value + (song.id to 100)
+                                }
+                                success = true
+                            } else {
+                                tmpFile.delete()
+                            }
+                        }
                     }
-                    outputStream.flush()
-                    outputStream.close()
-                    inputStream.close()
-
-                    // 3. Save to registry
-                    val downloaded = DownloadedSong(
-                        songId = song.id,
-                        title = song.title,
-                        artist = song.artist,
-                        album = song.album,
-                        durationSeconds = song.durationSeconds,
-                        coverUrl = song.coverUrl,
-                        localAudioPath = targetFile.absolutePath,
-                        downloadedAt = System.currentTimeMillis()
-                    )
-
-                    withContext(Dispatchers.Main) {
-                        val currentList = _downloadedSongs.value.filter { it.songId != song.id } + downloaded
-                        saveIndex(context, currentList)
-                    }
-                    success = true
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                success = false
-            } finally {
-                withContext(Dispatchers.Main) {
-                    _downloadingIds.value = _downloadingIds.value - song.id
-                    onComplete?.invoke(success)
+                    if (success) break
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    if (tmpFile.exists()) tmpFile.delete()
                 }
             }
+        } finally {
+            if (tmpFile.exists()) tmpFile.delete()
+            withContext(Dispatchers.Main) {
+                _downloadingIds.value = _downloadingIds.value - song.id
+                _downloadProgress.value = _downloadProgress.value - song.id
+            }
+        }
+        return success
+    }
+
+    private fun downloadCoverSilently(musicDir: File, song: Song): String? {
+        return try {
+            val coverUrl = song.getFullCoverUrl()
+            if (!coverUrl.startsWith("http")) return null
+            val coverFile = File(musicDir, "cover_${song.id}.jpg")
+            if (coverFile.exists() && coverFile.length() > 500) return coverFile.absolutePath
+
+            val req = Request.Builder().url(coverUrl).build()
+            client.newCall(req).execute().use { resp ->
+                if (resp.isSuccessful && resp.body != null) {
+                    FileOutputStream(coverFile).use { out ->
+                        resp.body!!.byteStream().copyTo(out)
+                    }
+                    if (coverFile.length() > 500) coverFile.absolutePath else {
+                        coverFile.delete()
+                        null
+                    }
+                } else null
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -177,10 +309,8 @@ object MelodyDownloadManager {
         scope.launch {
             val item = _downloadedSongs.value.find { it.songId == songId } ?: return@launch
             try {
-                val file = File(item.localAudioPath)
-                if (file.exists()) {
-                    file.delete()
-                }
+                File(item.localAudioPath).takeIf { it.exists() }?.delete()
+                item.localCoverPath?.let { File(it).takeIf { f -> f.exists() }?.delete() }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

@@ -25,7 +25,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.platform.LocalContext
 import com.melody.music.data.api.ApiClient
+import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
 import com.melody.music.data.model.isArtistMatch
 import com.melody.music.player.MelodyPlayerManager
@@ -139,10 +141,21 @@ fun ArtistScreen(
 
     val artistSongs = remember(songs, fetchedSongs, artistName) {
         val map = linkedMapOf<Long, Song>()
-        songs.filter { isArtistMatch(it.artist, artistName) || isArtistMatch(it.title, artistName) }
-            .forEach { map[it.id] = it }
-        fetchedSongs.filter { isArtistMatch(it.artist, artistName) || isArtistMatch(it.title, artistName) }
-            .forEach { map[it.id] = it }
+        val lowerTarget = artistName.lowercase().trim()
+        val matches: (Song) -> Boolean = { s ->
+            if (isArtistMatch(s.artist, artistName)) true
+            else {
+                val tl = s.title.lowercase()
+                lowerTarget.length >= 4 && (
+                    tl.contains("with $lowerTarget") ||
+                    tl.contains("feat. $lowerTarget") ||
+                    tl.contains("feat $lowerTarget") ||
+                    tl.contains("ft. $lowerTarget")
+                )
+            }
+        }
+        songs.filter(matches).forEach { map[it.id] = it }
+        fetchedSongs.filter(matches).forEach { map[it.id] = it }
         map.values.toList()
     }
 
@@ -303,6 +316,35 @@ fun ArtistScreen(
                         )
                     }
 
+                    val context = LocalContext.current
+                    val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+                    val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+                    val allArtistDownloaded = artistSongs.isNotEmpty() && artistSongs.all { s -> downloadedSongs.any { it.songId == s.id } }
+                    val anyArtistDownloading = artistSongs.any { s -> downloadingIds.contains(s.id) }
+
+                    IconButton(
+                        onClick = {
+                            if (artistSongs.isNotEmpty() && !allArtistDownloaded && !anyArtistDownloading) {
+                                MelodyDownloadManager.downloadPlaylist(context, artistSongs)
+                            }
+                        }
+                    ) {
+                        if (anyArtistDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MelodyPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (allArtistDownloaded) Icons.Default.DownloadDone else Icons.Default.FileDownload,
+                                contentDescription = "Download All Offline",
+                                tint = if (allArtistDownloaded) MelodyOffline else MelodyTextSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
                     IconButton(
                         onClick = { MelodyPlayerManager.toggleShuffle() }
                     ) {
@@ -317,7 +359,7 @@ fun ArtistScreen(
 
                 // Big Purple Play/Pause Button
                 val isCurrentArtistPlaying = currentSong != null &&
-                        currentSong?.artist?.contains(artistName, ignoreCase = true) == true &&
+                        isArtistMatch(currentSong?.artist, artistName) &&
                         isPlaying
 
                 FloatingActionButton(
@@ -427,10 +469,16 @@ fun ArtistScreen(
                 }
 
                 items(albums) { albumTitle ->
+                    val albumSongs = artistSongs.filter { it.album == albumTitle }.ifEmpty { artistSongs }
                     ReleaseCard(
                         albumTitle = albumTitle,
                         artistName = profile.name,
-                        coverUrl = artistSongs.find { it.album == albumTitle }?.coverUrl ?: profile.imageUrl
+                        coverUrl = albumSongs.firstOrNull()?.getFullCoverUrl() ?: profile.imageUrl,
+                        onClick = {
+                            if (albumSongs.isNotEmpty()) {
+                                onSongClick(albumSongs.first(), albumSongs)
+                            }
+                        }
                     )
                 }
             }
@@ -572,13 +620,40 @@ fun ArtistTrackRow(
             )
         }
 
-        IconButton(onClick = onClick) {
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = "More",
-                tint = MelodyTextSecondary,
-                modifier = Modifier.size(20.dp)
-            )
+        val context = LocalContext.current
+        val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+        val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+        val isDownloaded = downloadedSongs.any { it.songId == song.id }
+        val isDownloading = downloadingIds.contains(song.id)
+
+        IconButton(
+            onClick = {
+                if (isDownloaded) {
+                    MelodyDownloadManager.removeDownload(context, song.id)
+                } else if (!isDownloading) {
+                    MelodyDownloadManager.downloadSong(context, song)
+                }
+            }
+        ) {
+            when {
+                isDownloading -> CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = MelodyPrimary,
+                    strokeWidth = 2.dp
+                )
+                isDownloaded -> Icon(
+                    Icons.Default.DownloadDone,
+                    contentDescription = "Saved Offline",
+                    tint = MelodyOffline,
+                    modifier = Modifier.size(20.dp)
+                )
+                else -> Icon(
+                    Icons.Default.FileDownload,
+                    contentDescription = "Download Offline",
+                    tint = MelodyTextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
 }
@@ -587,13 +662,14 @@ fun ArtistTrackRow(
 fun ReleaseCard(
     albumTitle: String,
     artistName: String,
-    coverUrl: String
+    coverUrl: String,
+    onClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .width(140.dp)
             .clip(RoundedCornerShape(8.dp))
-            .clickable { }
+            .clickable { onClick() }
     ) {
         AsyncImage(
             model = coverUrl,

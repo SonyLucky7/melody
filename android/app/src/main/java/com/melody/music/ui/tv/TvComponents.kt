@@ -347,6 +347,7 @@ fun TvBillboardBanner(
     description: String,
     coverUrl: String,
     onPlayClick: () -> Unit,
+    onSaveClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -516,7 +517,7 @@ fun TvBillboardBanner(
                 }
 
                 TvFocusableItem(
-                    onClick = { /* Save to Library */ },
+                    onClick = onSaveClick,
                     shape = RoundedCornerShape(30.dp),
                     focusedScale = 1.05f
                 ) { isFocused ->

@@ -124,15 +124,29 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
 
   const expectedTotalBytes = parseInt(song.file_size_bytes || '0', 10);
   const spoolPath = path.join(config.tempDir, `song-${songId}.mp3`);
-  const tmpSpoolPath = path.join(config.tempDir, `song-${songId}.mp3.tmp`);
+
+  // Fast Path 1: Instant Local Spool Stream (when complete file is cached on disk)
+  if (fs.existsSync(spoolPath)) {
+    try {
+      const stat = fs.statSync(spoolPath);
+      if (stat.size > 100000 && (expectedTotalBytes === 0 || stat.size >= expectedTotalBytes - 4096)) {
+        fs.utimes(spoolPath, new Date(), new Date(), () => {});
+        serveFromDisk(req, res, spoolPath, stat.size);
+        return;
+      } else if (stat.size > 0 && expectedTotalBytes > 0 && stat.size < expectedTotalBytes - 4096) {
+        // Remove any corrupted/truncated spool file
+        fs.unlink(spoolPath, () => {});
+      }
+    } catch {}
+  }
 
   // Fast Path 0: Instant 0ms response for HTTP HEAD requests (probed by ExoPlayer & Chrome)
   if (isHead && expectedTotalBytes > 0) {
     const rangeHeader = req.headers.range;
     if (rangeHeader) {
       const parts = rangeHeader.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10) || 0;
-      const end = parts[1] ? parseInt(parts[1], 10) : expectedTotalBytes - 1;
+      const start = Math.max(0, parseInt(parts[0], 10) || 0);
+      const end = parts[1] ? Math.min(parseInt(parts[1], 10), expectedTotalBytes - 1) : expectedTotalBytes - 1;
       const chunkSize = Math.max(0, end - start + 1);
       res.writeHead(206, {
         'Content-Type': 'audio/mpeg',
@@ -157,24 +171,9 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     }
   }
 
-  // Fast Path 1: Instant Local Spool Stream (when downloaded)
-  if (fs.existsSync(spoolPath)) {
-    try {
-      const stat = fs.statSync(spoolPath);
-      if (stat.size > 500000 && (expectedTotalBytes === 0 || stat.size >= expectedTotalBytes - 4096)) {
-        // Touch access time to keep cache hot
-        fs.utimes(spoolPath, new Date(), new Date(), () => {});
-        serveFromDisk(req, res, spoolPath, stat.size);
-        return;
-      }
-    } catch {}
-  }
-
-  // Direct High-Speed Streaming: Resolve Telegram file URL
-  try {
-    const { downloadUrl } = await telegramService.getFileDownloadUrl(song.telegram_file_id);
-
-    // Stream range immediately from Telegram's file CDN directly to client
+  // Direct High-Speed Streaming: Resolve Telegram file URL with automatic stale-URL retry
+  const streamFromTelegram = async (attempt: number): Promise<void> => {
+    const { downloadUrl } = await telegramService.getFileDownloadUrl(song!.telegram_file_id);
     const rangeHeader = req.headers.range;
     const protocol = downloadUrl.startsWith('https') ? https : http;
 
@@ -185,78 +184,167 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
       requestHeaders['Range'] = rangeHeader;
     }
 
-    // Flush socket immediately without TCP buffering delay
     res.socket?.setNoDelay(true);
 
-    const tgReq = protocol.get(downloadUrl, { agent: telegramAgent, headers: requestHeaders }, (tgRes) => {
-      // Clear connect timeout now that streaming has begun so audio streams fully
-      tgReq.setTimeout(0);
+    return new Promise<void>((resolve, reject) => {
+      const tgReq = protocol.get(downloadUrl, { agent: telegramAgent, headers: requestHeaders }, (tgRes) => {
+        tgReq.setTimeout(0);
 
-      const statusCode = tgRes.statusCode || (rangeHeader ? 206 : 200);
+        const statusCode = tgRes.statusCode || 500;
 
-      const responseHeaders: Record<string, any> = {
-        'Content-Type': 'audio/mpeg',
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'public, max-age=604800, immutable',
-        'X-Accel-Buffering': 'no',
-      };
-
-      if (tgRes.headers['content-range']) {
-        responseHeaders['Content-Range'] = tgRes.headers['content-range'];
-      }
-      if (tgRes.headers['content-length']) {
-        responseHeaders['Content-Length'] = tgRes.headers['content-length'];
-      }
-
-      res.writeHead(statusCode, responseHeaders);
-
-      if (isHead) {
-        res.end();
-        tgReq.destroy();
-        return;
-      }
-
-      tgRes.pipe(res);
-
-      // Local spool caching: save stream to disk atomically for instant 0ms seeking & replays
-      if (!rangeHeader || rangeHeader === 'bytes=0-') {
-        if (!fs.existsSync(spoolPath) && !fs.existsSync(tmpSpoolPath)) {
-          try {
-            const fileOut = fs.createWriteStream(tmpSpoolPath);
-            tgRes.pipe(fileOut);
-            fileOut.on('finish', async () => {
-              try {
-                await fs.promises.rename(tmpSpoolPath, spoolPath);
-              } catch {}
-            });
-            fileOut.on('error', () => {
-              fs.unlink(tmpSpoolPath, () => {});
-            });
-          } catch {}
+        // If Telegram rejected (e.g. expired cached download URL -> 404/400), invalidate & retry once
+        if (statusCode >= 400) {
+          tgRes.resume();
+          if (attempt === 0) {
+            telegramService.invalidateCache(song!.telegram_file_id);
+            streamFromTelegram(1).then(resolve).catch(reject);
+            return;
+          }
+          if (!res.headersSent) {
+            res.status(502).json({ error: 'UPSTREAM_STREAM_ERROR', message: `Audio CDN returned status ${statusCode}.` });
+          }
+          resolve();
+          return;
         }
-      }
-    });
 
-    tgReq.setTimeout(15000, () => {
-      if (!res.headersSent) {
-        tgReq.destroy(new Error('Telegram streaming connect timeout'));
-      }
-    });
+        const responseHeaders: Record<string, any> = {
+          'Content-Type': 'audio/mpeg',
+          'Accept-Ranges': 'bytes',
+          'Cache-Control': 'public, max-age=604800, immutable',
+          'X-Accel-Buffering': 'no',
+        };
 
-    tgReq.on('error', (err) => {
-      console.error('[Direct Stream Error]:', err.message);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'STREAM_ERROR', message: 'Failed to proxy audio stream.' });
-      }
-    });
+        if (tgRes.headers['content-range']) {
+          responseHeaders['Content-Range'] = tgRes.headers['content-range'];
+        }
+        if (tgRes.headers['content-length']) {
+          responseHeaders['Content-Length'] = tgRes.headers['content-length'];
+        }
 
-    req.on('close', () => {
-      tgReq.destroy();
+        res.writeHead(statusCode, responseHeaders);
+
+        if (isHead) {
+          res.end();
+          tgReq.destroy();
+          resolve();
+          return;
+        }
+
+        // Safe atomic disk spooling ONLY when full file is streamed from byte 0 without client abort
+        const shouldSpool =
+          (!rangeHeader || rangeHeader === 'bytes=0-') &&
+          !fs.existsSync(spoolPath) &&
+          !activeBackgroundDownloads.has(`song-${songId}`);
+
+        let fileOut: fs.WriteStream | null = null;
+        let uniqueTmpPath = '';
+        let bytesWritten = 0;
+        let tgFinishedCleanly = false;
+        const upstreamExpectedLength = parseInt(tgRes.headers['content-length'] || '0', 10);
+
+        if (shouldSpool) {
+          try {
+            fs.mkdirSync(config.tempDir, { recursive: true });
+            uniqueTmpPath = path.join(config.tempDir, `song-${songId}.${Date.now()}.tmp`);
+            activeBackgroundDownloads.add(`song-${songId}`);
+            fileOut = fs.createWriteStream(uniqueTmpPath);
+            fileOut.on('error', () => {
+              activeBackgroundDownloads.delete(`song-${songId}`);
+              fs.unlink(uniqueTmpPath, () => {});
+              fileOut = null;
+            });
+          } catch {
+            activeBackgroundDownloads.delete(`song-${songId}`);
+            fileOut = null;
+          }
+        }
+
+        tgRes.on('data', (chunk: Buffer) => {
+          bytesWritten += chunk.length;
+          if (fileOut && !fileOut.destroyed) {
+            fileOut.write(chunk);
+          }
+        });
+
+        tgRes.on('end', () => {
+          tgFinishedCleanly = true;
+          if (fileOut) {
+            const outStream = fileOut;
+            fileOut = null;
+            outStream.end(async () => {
+              activeBackgroundDownloads.delete(`song-${songId}`);
+              const minExpected = Math.max(expectedTotalBytes, upstreamExpectedLength);
+              const isComplete =
+                tgFinishedCleanly &&
+                bytesWritten > 100000 &&
+                (minExpected === 0 || bytesWritten >= minExpected - 4096);
+              if (isComplete) {
+                try {
+                  await fs.promises.rename(uniqueTmpPath, spoolPath);
+                } catch {
+                  fs.unlink(uniqueTmpPath, () => {});
+                }
+              } else {
+                fs.unlink(uniqueTmpPath, () => {});
+              }
+            });
+          }
+          resolve();
+        });
+
+        tgRes.on('error', () => {
+          if (fileOut) {
+            fileOut.destroy();
+            fileOut = null;
+            activeBackgroundDownloads.delete(`song-${songId}`);
+            fs.unlink(uniqueTmpPath, () => {});
+          }
+          resolve();
+        });
+
+        tgRes.pipe(res);
+
+        req.on('close', () => {
+          if (!tgFinishedCleanly) {
+            tgReq.destroy();
+            if (fileOut) {
+              fileOut.destroy();
+              fileOut = null;
+              activeBackgroundDownloads.delete(`song-${songId}`);
+              fs.unlink(uniqueTmpPath, () => {});
+            }
+          }
+          resolve();
+        });
+      });
+
+      tgReq.setTimeout(15000, () => {
+        if (!res.headersSent) {
+          tgReq.destroy(new Error('Telegram streaming connect timeout'));
+        }
+      });
+
+      tgReq.on('error', (err) => {
+        if (!res.headersSent) {
+          if (attempt === 0) {
+            telegramService.invalidateCache(song!.telegram_file_id);
+            streamFromTelegram(1).then(resolve).catch(reject);
+            return;
+          }
+          console.error('[Direct Stream Error]:', err.message);
+          res.status(502).json({ error: 'STREAM_ERROR', message: 'Failed to proxy audio stream.' });
+        }
+        resolve();
+      });
     });
+  };
+
+  try {
+    await streamFromTelegram(0);
   } catch (err: any) {
     console.error(`[Streaming Failure for Song ${songId}]:`, err.message);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'STREAM_ERROR', message: 'Failed to stream audio track.' });
+      res.status(502).json({ error: 'STREAM_ERROR', message: 'Failed to stream audio track.' });
     }
   }
 }

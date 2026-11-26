@@ -20,6 +20,14 @@ export const CURATED_PLAYLISTS = [
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE album = 'Motivation Vol. 2' ORDER BY id DESC`,
   },
   {
+    id: 13,
+    name: 'Top The Weeknd Songs',
+    description: 'Blinding Lights, Starboy, Save Your Tears, Die For You, Timeless, São Paulo & global hits.',
+    total_songs: 28,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg',
+    query: `SELECT s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url FROM playlist_songs ps JOIN songs s ON s.id = ps.song_id WHERE ps.playlist_id = 13 ORDER BY ps.position ASC, ps.song_id ASC`,
+  },
+  {
     id: 12,
     name: 'Brazil Phonk Essentials',
     description: 'Montagem, Automotivo, Brazilian drift phonk, funk pesado & bass boosts.',

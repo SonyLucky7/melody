@@ -20,37 +20,37 @@ import apiRoutes from './routes/api.routes';
 import adminRoutes from './routes/admin.routes';
 
 const app = express();
+app.set('trust proxy', 1);
+
+// CORS FIRST — ensures even 401/404/429/500 & preflight OPTIONS always include CORS headers!
+const corsOptions: cors.CorsOptions = {
+  origin: (_origin, callback) => callback(null, true),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-device-id', 'x-device-token', 'x-admin-secret', 'Range'],
+  exposedHeaders: ['Content-Range', 'Content-Length', 'Accept-Ranges', 'Content-Type'],
+  maxAge: 86400,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Security Headers
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allows cross-origin audio streaming
+    crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: false, // Allows clean inline styles and fonts on admin portal
-  })
-);
-
-// CORS configuration for Web, Android and Desktop clients
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow mobile apps, curl, or matching origins
-      if (!origin || config.allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Dev-friendly fallback
-      }
-    },
-    credentials: true,
   })
 );
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Global Rate Limiting
+// Global Rate Limiting — NEVER rate-limit audio Range streaming or prewarm!
 const globalLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 300, // 300 requests per minute
+  max: 1200, // High ceiling for fast browsing & playlists
+  skip: (req) => req.path.startsWith('/stream'),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please try again later.' },
@@ -59,7 +59,7 @@ const globalLimiter = rateLimit({
 // Stricter Rate Limiting for Key Activation & Stream Init
 const activateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 20, // 20 attempts
+  max: 25, // 25 attempts
   message: { error: 'TOO_MANY_ATTEMPTS', message: 'Too many activation attempts. Try again in 5 minutes.' },
 });
 
@@ -71,12 +71,13 @@ app.get('/health', async (req, res) => {
   const dbConnected = await checkDatabaseConnection();
   res.status(dbConnected ? 200 : 503).json({
     status: dbConnected ? 'healthy' : 'degraded',
-    version: '1.0.5-mobile-sync',
+    version: '1.2.0-spotify-sync',
     database: dbConnected ? 'connected' : 'disconnected',
     freeMode: config.freeMode,
     activeStreams: spoolManager.getActiveCount(),
     maxConcurrentStreams: config.maxConcurrentStreams,
     telegramBotsConfigured: config.telegramBotTokens.length,
+    telegramBotsHealthy: telegramService.getHealthyBotCount(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -174,6 +175,9 @@ export const server = app.listen(config.port, async () => {
 
   // Start built-in 24/7 Keep-Alive Robot for Render
   startKeepAliveRobot();
+
+  // Validate configured Telegram bots in background so dead tokens never stall uploads/streams
+  telegramService.validateBots().catch(() => {});
 
   // Run database migrations if DB is accessible
   try {

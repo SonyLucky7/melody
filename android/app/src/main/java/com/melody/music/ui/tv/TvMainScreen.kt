@@ -361,6 +361,11 @@ fun TvMainScreen(
                                             if (phonkSongs.isNotEmpty()) {
                                                 playSongAndOpenPlayer(phonkSongs[0], phonkSongs)
                                             }
+                                        },
+                                        onSaveClick = {
+                                            PUBLIC_PLAYLISTS.find { it.id == 12L }?.let {
+                                                selectedPlaylistInTv = it
+                                            }
                                         }
                                     )
                                 }
@@ -1442,9 +1447,9 @@ fun TvSearchView(
 
             val matchFilter = when (selectedFilter) {
                 "Brazil Phonk" -> song.album?.contains("phonk", true) == true || song.album?.contains("brazil", true) == true || song.title.contains("montagem", true)
-                "The Weeknd" -> song.artist.contains("weeknd", true)
-                "Sidhu Moose Wala" -> song.artist.contains("moose wala", true)
-                "Honey Singh" -> song.artist.contains("honey singh", true)
+                "The Weeknd" -> isArtistMatch(song.artist, "The Weeknd")
+                "Sidhu Moose Wala" -> isArtistMatch(song.artist, "Sidhu Moose Wala")
+                "Honey Singh" -> isArtistMatch(song.artist, "Yo Yo Honey Singh")
                 "Slowed" -> song.title.contains("slowed", true) || song.album?.contains("slowed", true) == true
                 "Motivation" -> song.album?.contains("motivation", true) == true
                 else -> true

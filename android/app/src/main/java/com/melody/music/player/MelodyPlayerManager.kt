@@ -1,12 +1,13 @@
 package com.melody.music.player
 
-import android.content.Context
+import android.content.Intent
 import android.media.audiofx.Equalizer
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import com.melody.music.MelodyApplication
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Song
@@ -34,11 +35,22 @@ object MelodyPlayerManager {
     private var playJob: Job? = null
     private var equalizer: Equalizer? = null
 
+    // Pending play request if user taps a song before foreground service finishes binding
+    private var pendingSong: Song? = null
+    private var pendingQueue: List<Song> = emptyList()
+    private var retryCountForCurrentSong = 0
+
     private val _currentSong = MutableStateFlow<Song?>(null)
     val currentSong: StateFlow<Song?> = _currentSong.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
+    private val _isBuffering = MutableStateFlow(false)
+    val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
+
+    private val _playbackError = MutableStateFlow<String?>(null)
+    val playbackError: StateFlow<String?> = _playbackError.asStateFlow()
 
     private val _progressMs = MutableStateFlow(0L)
     val progressMs: StateFlow<Long> = _progressMs.asStateFlow()
@@ -58,11 +70,11 @@ object MelodyPlayerManager {
     private val _likedSongIds = MutableStateFlow<Set<Long>>(emptySet())
     val likedSongIds: StateFlow<Set<Long>> = _likedSongIds.asStateFlow()
 
-    // 6-Band Equalizer State (60Hz, 230Hz, 910Hz, 3.6kHz, 14kHz)
+    // 6-Band Equalizer State
     private val _eqEnabled = MutableStateFlow(false)
     val eqEnabled: StateFlow<Boolean> = _eqEnabled.asStateFlow()
 
-    private val _eqBands = MutableStateFlow(listOf(0, 0, 0, 0, 0, 0)) // 6 bands, -10 to +10 dB
+    private val _eqBands = MutableStateFlow(listOf(0, 0, 0, 0, 0, 0))
     val eqBands: StateFlow<List<Int>> = _eqBands.asStateFlow()
 
     private val _currentPreset = MutableStateFlow("Flat")
@@ -79,27 +91,66 @@ object MelodyPlayerManager {
         EqPreset("Rock", listOf(5, 3, -2, 2, 4, 5))
     )
 
+    fun clearError() {
+        _playbackError.value = null
+    }
+
     fun bindService(playbackService: MelodyPlaybackService) {
         service = playbackService
 
         playbackService.player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 _isPlaying.value = playing
-                if (playing) startProgressTracker() else stopProgressTracker()
+                if (playing) {
+                    _isBuffering.value = false
+                    _playbackError.value = null
+                    retryCountForCurrentSong = 0
+                    startProgressTracker()
+                } else {
+                    stopProgressTracker()
+                }
             }
 
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) {
-                    _durationMs.value = playbackService.player.duration.coerceAtLeast(0L)
-                    attachEqualizer(playbackService.player.audioSessionId)
-                } else if (state == Player.STATE_ENDED) {
-                    handleTrackEnded()
+                when (state) {
+                    Player.STATE_BUFFERING -> {
+                        _isBuffering.value = true
+                    }
+                    Player.STATE_READY -> {
+                        _isBuffering.value = false
+                        _playbackError.value = null
+                        _durationMs.value = playbackService.player.duration.coerceAtLeast(0L)
+                        attachEqualizer(playbackService.player.audioSessionId)
+                    }
+                    Player.STATE_ENDED -> {
+                        _isBuffering.value = false
+                        handleTrackEnded()
+                    }
+                    Player.STATE_IDLE -> {
+                        _isBuffering.value = false
+                    }
                 }
             }
 
             override fun onPlayerError(error: PlaybackException) {
                 error.printStackTrace()
                 _isPlaying.value = false
+                _isBuffering.value = false
+                val failedSong = _currentSong.value
+
+                // Auto-retry once via Vercel Edge fallback if remote stream failed
+                if (failedSong != null && retryCountForCurrentSong < 1 && MelodyDownloadManager.getLocalFile(failedSong.id) == null) {
+                    retryCountForCurrentSong++
+                    scope.launch {
+                        delay(350)
+                        if (_currentSong.value?.id == failedSong.id) {
+                            startPlaybackInternal(failedSong, useFallbackEdge = true)
+                        }
+                    }
+                    return
+                }
+
+                _playbackError.value = "Could not play \"${failedSong?.title ?: "track"}\". Tap play to retry."
                 try {
                     playbackService.player.stop()
                     playbackService.player.clearMediaItems()
@@ -111,6 +162,15 @@ object MelodyPlayerManager {
 
         // Fetch initial liked songs
         refreshFavourites()
+
+        // If user clicked a song while service was starting up, immediately play it now!
+        val queuedSong = pendingSong
+        val queuedList = pendingQueue
+        if (queuedSong != null) {
+            pendingSong = null
+            pendingQueue = emptyList()
+            playSong(queuedSong, queuedList)
+        }
     }
 
     fun unbindService() {
@@ -150,8 +210,8 @@ object MelodyPlayerManager {
                 if (res.success) {
                     _likedSongIds.value = res.data.map { it.id }.toSet()
                 }
-            } catch (e: Exception) {
-                // Ignore offline or unauthenticated
+            } catch (_: Exception) {
+                // Offline or unauthenticated — safe to ignore
             }
         }
     }
@@ -193,10 +253,12 @@ object MelodyPlayerManager {
         val curIdx = if (cur != null) q.indexOfFirst { it.id == cur.id } else -1
         if (curIdx != -1 && curIdx + 1 < q.size) {
             val nextSong = q[curIdx + 1]
-            scope.launch(Dispatchers.IO) {
-                try {
-                    ApiClient.service.prewarmStream(nextSong.id)
-                } catch (e: Exception) {}
+            if (MelodyDownloadManager.getLocalFile(nextSong.id) == null) {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        ApiClient.service.prewarmStream(nextSong.id)
+                    } catch (_: Exception) {}
+                }
             }
         }
     }
@@ -211,6 +273,9 @@ object MelodyPlayerManager {
 
     fun playSong(song: Song, queueList: List<Song> = emptyList()) {
         _currentSong.value = song
+        _playbackError.value = null
+        retryCountForCurrentSong = 0
+
         if (queueList.isNotEmpty()) {
             originalQueue = queueList
             if (_isShuffle.value) {
@@ -227,10 +292,27 @@ object MelodyPlayerManager {
             _queue.value = updated
         }
 
-        // 1. Immediately cancel any prior in-flight song request
-        playJob?.cancel()
+        // If playback service isn't bound yet (cold start or OS restarted service), wake it up and queue play!
+        if (service == null) {
+            pendingSong = song
+            pendingQueue = queueList
+            _isBuffering.value = true
+            try {
+                val ctx = MelodyApplication.instance
+                ctx.startService(Intent(ctx, MelodyPlaybackService::class.java))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return
+        }
 
-        // 2. Stop and clear previous decoder state to prevent deadlocks
+        startPlaybackInternal(song, useFallbackEdge = false)
+    }
+
+    private fun startPlaybackInternal(song: Song, useFallbackEdge: Boolean) {
+        playJob?.cancel()
+        _isBuffering.value = true
+
         try {
             service?.player?.apply {
                 stop()
@@ -240,25 +322,34 @@ object MelodyPlayerManager {
             e.printStackTrace()
         }
         _progressMs.value = 0L
+        _durationMs.value = (song.durationSeconds * 1000L).coerceAtLeast(0L)
 
-        // 3. Launch isolated player loading job
         playJob = scope.launch {
             try {
-                // Check if song is downloaded locally first!
-                val localFile = MelodyDownloadManager.getLocalFile(song.id)
-                val mediaUri: Uri = if (localFile != null && localFile.exists()) {
+                // 1. Check local device offline storage FIRST — plays 100% WITHOUT INTERNET!
+                val localFile: File? = MelodyDownloadManager.getLocalFile(song.id)
+                val isOfflineLocal = localFile != null && localFile.exists()
+                val mediaUri: Uri = if (isOfflineLocal) {
                     Uri.fromFile(localFile)
+                } else if (useFallbackEdge) {
+                    Uri.parse("https://melody-chi-nine.vercel.app/api/stream/${song.id}")
                 } else {
-                    // Fast direct streaming from Render backend
-                    val streamUrl = "https://melody-mzsm.onrender.com/api/stream/${song.id}"
-                    Uri.parse(streamUrl)
+                    val base = ApiClient.baseUrl.trimEnd('/')
+                    Uri.parse("$base/api/stream/${song.id}")
+                }
+
+                val localCover = MelodyDownloadManager.getLocalCoverFile(song.id)
+                val artworkUri = if (localCover != null) {
+                    Uri.fromFile(localCover)
+                } else {
+                    Uri.parse(song.getFullCoverUrl())
                 }
 
                 val mediaMetadata = MediaMetadata.Builder()
                     .setTitle(song.title)
                     .setArtist(song.artist)
                     .setAlbumTitle(song.album ?: "Melody")
-                    .setArtworkUri(Uri.parse(song.getFullCoverUrl()))
+                    .setArtworkUri(artworkUri)
                     .build()
 
                 val mediaItem = MediaItem.Builder()
@@ -272,37 +363,53 @@ object MelodyPlayerManager {
                     play()
                 }
 
-                // Pre-warm next track on the server so its Telegram URL is hot
-                val q = _queue.value
-                val curIdx = q.indexOfFirst { it.id == song.id }
-                if (curIdx != -1 && curIdx + 1 < q.size) {
-                    val nextSong = q[curIdx + 1]
+                // Only call network prewarm / history when streaming online
+                if (!isOfflineLocal) {
+                    val q = _queue.value
+                    val curIdx = q.indexOfFirst { it.id == song.id }
+                    if (curIdx != -1 && curIdx + 1 < q.size) {
+                        val nextSong = q[curIdx + 1]
+                        if (MelodyDownloadManager.getLocalFile(nextSong.id) == null) {
+                            scope.launch(Dispatchers.IO) {
+                                try {
+                                    ApiClient.service.prewarmStream(nextSong.id)
+                                } catch (_: Exception) {}
+                            }
+                        }
+                    }
+
                     scope.launch(Dispatchers.IO) {
                         try {
-                            ApiClient.service.prewarmStream(nextSong.id)
-                        } catch (e: Exception) {}
+                            ApiClient.service.recordPlayed(song.id)
+                        } catch (_: Exception) {}
                     }
                 }
-
-                // Fire and forget play history increment
-                try {
-                    ApiClient.service.recordPlayed(song.id)
-                } catch (e: Exception) {}
             } catch (e: CancellationException) {
-                // Superseded by another song selection, clean exit
+                // Superseded by another song selection
             } catch (e: Exception) {
                 e.printStackTrace()
                 _isPlaying.value = false
+                _isBuffering.value = false
+                _playbackError.value = "Playback error on \"${song.title}\". Tap play to retry."
             }
         }
     }
 
     fun togglePlay() {
-        val player = service?.player ?: return
+        val cur = _currentSong.value ?: return
+        val player = service?.player
+        if (player == null) {
+            playSong(cur)
+            return
+        }
         if (player.isPlaying) {
             player.pause()
         } else {
-            player.play()
+            if (player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED || _playbackError.value != null) {
+                playSong(cur)
+            } else {
+                player.play()
+            }
         }
     }
 
@@ -313,8 +420,7 @@ object MelodyPlayerManager {
 
         val curIdx = q.indexOfFirst { it.id == cur.id }
         if (curIdx != -1 && curIdx + 1 < q.size) {
-            val nextSong = q[curIdx + 1]
-            playSong(nextSong)
+            playSong(q[curIdx + 1])
         } else if (forceLoop || _repeatState.value == RepeatState.ALL) {
             playSong(q[0])
         }
@@ -350,7 +456,9 @@ object MelodyPlayerManager {
             while (isActive) {
                 service?.player?.let {
                     _progressMs.value = it.currentPosition
-                    _durationMs.value = it.duration.coerceAtLeast(0L)
+                    if (it.duration > 0L) {
+                        _durationMs.value = it.duration
+                    }
                 }
                 delay(300)
             }

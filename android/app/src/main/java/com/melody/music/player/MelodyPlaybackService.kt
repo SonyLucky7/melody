@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
@@ -56,15 +57,17 @@ class MelodyPlaybackService : MediaSessionService() {
             .setUsage(C.USAGE_MEDIA)
             .build()
 
-        // 2. High-Performance Cache DataSource (Eliminates seek lag & stutter)
-        val upstreamFactory = DefaultHttpDataSource.Factory()
+        // 2. Unified DataSource: handles BOTH local file:// offline downloads (0-internet) & cached https:// streams
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
             .setConnectTimeoutMs(20000)
             .setReadTimeoutMs(30000)
             .setAllowCrossProtocolRedirects(true)
 
+        val defaultDataSourceFactory = DefaultDataSource.Factory(this, httpDataSourceFactory)
+
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(MelodyCache.getCache(this))
-            .setUpstreamDataSourceFactory(upstreamFactory)
+            .setUpstreamDataSourceFactory(defaultDataSourceFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
         // 3. Ultra-Fast Load Control (Starts playing in 500ms; seeks in 1000ms)

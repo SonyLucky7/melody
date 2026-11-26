@@ -69,8 +69,12 @@ fun FullPlayerSheet(
 
     val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
     val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+    val downloadProgressMap by MelodyDownloadManager.downloadProgress.collectAsState()
+    val isBuffering by MelodyPlayerManager.isBuffering.collectAsState()
+    val playbackError by MelodyPlayerManager.playbackError.collectAsState()
     val isDownloaded = downloadedSongs.any { it.songId == song.id }
     val isDownloading = downloadingIds.contains(song.id)
+    val downloadPct = downloadProgressMap[song.id]
 
     val shuffleOn by MelodyPlayerManager.isShuffle.collectAsState()
     val repeatState by MelodyPlayerManager.repeatState.collectAsState()
@@ -251,11 +255,21 @@ fun FullPlayerSheet(
                         }
                     ) {
                         if (isDownloading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = MelodyPrimary,
-                                strokeWidth = 2.dp
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = MelodyPrimary,
+                                    strokeWidth = 2.dp
+                                )
+                                if (downloadPct != null) {
+                                    Text(
+                                        text = "$downloadPct",
+                                        fontSize = 7.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         } else {
                             Icon(
                                 imageVector = if (isDownloaded) Icons.Default.DownloadDone else Icons.Default.FileDownload,
@@ -279,6 +293,34 @@ fun FullPlayerSheet(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            if (playbackError != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0x33EF4444))
+                        .clickable { onTogglePlay() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = "Playback Error",
+                        tint = Color(0xFFFCA5A5),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "$playbackError • Tap Play to retry",
+                        color = Color(0xFFFECACA),
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             // Seekbar
             Slider(
@@ -343,7 +385,7 @@ fun FullPlayerSheet(
                     )
                 }
 
-                // Play / Pause FAB
+                // Play / Pause / Buffering FAB
                 FloatingActionButton(
                     onClick = onTogglePlay,
                     containerColor = MelodyPrimary,
@@ -351,11 +393,19 @@ fun FullPlayerSheet(
                     shape = CircleShape,
                     modifier = Modifier.size(68.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(38.dp)
-                    )
+                    if (isBuffering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(30.dp),
+                            color = Color.White,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Pause" else "Play",
+                            modifier = Modifier.size(38.dp)
+                        )
+                    }
                 }
 
                 // Next

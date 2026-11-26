@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, Pause, Heart, CheckCircle2, Clock, Check, Download, Loader2, ListPlus } from 'lucide-react';
+import { Play, Pause, Heart, CheckCircle2, Clock, Check, Loader2, ListPlus } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl, fetchSongs } from '../services/api';
@@ -60,25 +60,21 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
   const {
     currentSong,
     isPlaying,
+    isLoadingTrack,
     playSong,
     togglePlay,
     favourites,
     toggleFavourite,
-    downloadedSongIds,
-    downloadProgress,
-    downloadSong,
-    removeDownload,
-    downloadPlaylist,
   } = usePlayer();
 
   const [isFollowing, setIsFollowing] = useState(false);
-  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [fetchedArtistSongs, setFetchedArtistSongs] = useState<Song[]>([]);
   const [showAll, setShowAll] = useState(true);
 
   // Automatically fetch complete artist discography directly from PostgreSQL
   useEffect(() => {
     let isMounted = true;
+    setFetchedArtistSongs([]);
     fetchSongs(artistName, '', 500).then((res) => {
       if (isMounted && res && res.length > 0) {
         setFetchedArtistSongs(res);
@@ -91,19 +87,22 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
 
   const artistSongs = useMemo(() => {
     const mergedMap = new Map<number, Song>();
+    const lowerTarget = artistName.toLowerCase().trim();
+    const matchesTrack = (s: Song) => {
+      if (isArtistMatch(s.artist, artistName)) return true;
+      // Only match title if explicitly credited as featured/with artist
+      const tl = (s.title || '').toLowerCase();
+      return (
+        lowerTarget.length >= 4 &&
+        (tl.includes(`with ${lowerTarget}`) || tl.includes(`feat. ${lowerTarget}`) || tl.includes(`feat ${lowerTarget}`) || tl.includes(`ft. ${lowerTarget}`))
+      );
+    };
 
-    // 1. Add all catalog tracks matching artist
     songs.forEach((s) => {
-      if (isArtistMatch(s.artist, artistName) || isArtistMatch(s.title, artistName)) {
-        mergedMap.set(s.id, s);
-      }
+      if (matchesTrack(s)) mergedMap.set(s.id, s);
     });
-
-    // 2. Add all server fetched tracks matching artist
     fetchedArtistSongs.forEach((s) => {
-      if (isArtistMatch(s.artist, artistName) || isArtistMatch(s.title, artistName)) {
-        mergedMap.set(s.id, s);
-      }
+      if (matchesTrack(s)) mergedMap.set(s.id, s);
     });
 
     return Array.from(mergedMap.values());
@@ -125,12 +124,6 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
     } else if (artistSongs.length > 0) {
       playSong(artistSongs[0], artistSongs);
     }
-  };
-
-  const handleDownloadAll = async () => {
-    setIsDownloadingAll(true);
-    await downloadPlaylist(artistSongs);
-    setIsDownloadingAll(false);
   };
 
   const visibleSongs = showAll ? artistSongs : artistSongs.slice(0, 10);
@@ -204,26 +197,6 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
             'Follow'
           )}
         </button>
-
-        {/* Download All to Local Device */}
-        <button
-          onClick={handleDownloadAll}
-          disabled={isDownloadingAll}
-          className="px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-white/20 hover:border-white text-[#b3b3b3] hover:text-white flex items-center gap-1.5 sm:gap-2 transition-all hover:scale-105 disabled:opacity-50"
-          title="Download entire artist collection to this device"
-        >
-          {isDownloadingAll ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#a855f7]" />
-              <span className="text-[11px] sm:text-xs">Downloading...</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-3.5 h-3.5 text-[#a855f7]" />
-              <span className="text-[11px] sm:text-xs">Save All Offline</span>
-            </>
-          )}
-        </button>
       </div>
 
       {/* 3. Popular Tracks Table */}
@@ -246,8 +219,6 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
           {visibleSongs.map((song, idx) => {
             const isSongCurrent = currentSong?.id === song.id;
             const isLiked = favourites.has(song.id);
-            const isDownloaded = downloadedSongIds.has(song.id);
-            const progress = downloadProgress[song.id];
 
             // Realistic formatted fake play count
             const fakePlays = ((idx + 1) * 38472910 + (song.id * 148293)).toLocaleString();
@@ -268,7 +239,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
               >
                 {/* Index / Play Icon / Equalizer */}
                 <div className="flex items-center justify-center text-xs font-mono text-[#b3b3b3]">
-                  {isSongCurrent && isPlaying ? (
+                  {isSongCurrent && isLoadingTrack ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#a855f7]" />
+                  ) : isSongCurrent && isPlaying ? (
                     <span className="flex items-end gap-0.5 h-3">
                       <span className="w-0.5 h-full bg-[#a855f7] animate-pulse"></span>
                       <span className="w-0.5 h-2/3 bg-[#a855f7] animate-pulse delay-75"></span>
@@ -280,7 +253,9 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
                     </span>
                   )}
                   <span className="hidden group-hover:block text-white">
-                    {isSongCurrent && isPlaying ? (
+                    {isSongCurrent && isLoadingTrack ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                    ) : isSongCurrent && isPlaying ? (
                       <Pause className="w-3.5 h-3.5 fill-current" />
                     ) : (
                       <Play className="w-3.5 h-3.5 fill-current" />
@@ -320,40 +295,8 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
                   {fakePlays}
                 </div>
 
-                {/* Actions: Download, Like & Duration */}
+                {/* Actions: Like, Add to Playlist & Duration */}
                 <div className="flex items-center justify-end gap-3">
-                  {/* Download Offline Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isDownloaded) {
-                        removeDownload(song.id);
-                      } else if (progress === undefined) {
-                        downloadSong(song);
-                      }
-                    }}
-                    className="p-1 transition-all rounded-full hover:scale-105"
-                    title={
-                      isDownloaded
-                        ? 'Downloaded to this device (Click to remove)'
-                        : progress !== undefined
-                        ? `Downloading ${progress}%`
-                        : 'Download for offline play'
-                    }
-                  >
-                    {progress !== undefined ? (
-                      <div className="flex items-center gap-1">
-                        <Loader2 className="w-3.5 h-3.5 text-[#a855f7] animate-spin" />
-                      </div>
-                    ) : isDownloaded ? (
-                      <div className="w-4 h-4 rounded-full bg-[#a855f7] text-black flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 stroke-[3] text-white" />
-                      </div>
-                    ) : (
-                      <Download className="w-3.5 h-3.5 text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-white transition-opacity" />
-                    )}
-                  </button>
-
                   {/* Like Button */}
                   <button
                     onClick={(e) => {
@@ -361,6 +304,7 @@ export const ArtistView: React.FC<ArtistViewProps> = ({ artistName, songs, onAdd
                       toggleFavourite(song);
                     }}
                     className="p-1 text-neutral-400 hover:text-white transition-colors"
+                    title={isLiked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
                   >
                     <Heart
                       className={`w-4 h-4 ${

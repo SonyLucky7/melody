@@ -65,22 +65,22 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
 
     setLoading(true);
     try {
-      const res = await activateLicence(clean, deviceName.trim());
-      if (res.success) {
-        setSuccessMsg(res.message || 'Logged in successfully! Your playlists and liked songs are synced.');
+      const { status, data } = await activateLicence(clean, deviceName.trim());
+      if (data?.success || (status >= 200 && status < 300 && data?.token)) {
+        setSuccessMsg(data?.message || 'Logged in successfully! Your playlists and liked songs are synced.');
         setTimeout(() => {
           onActivated();
           onClose();
         }, 1200);
       } else {
-        if (res.error === 'DEVICE_LIMIT_REACHED' && res.devices) {
+        if (data?.error === 'DEVICE_LIMIT_REACHED' && data?.devices) {
           if (onDeviceLimitReached) {
-            onDeviceLimitReached(res.devices);
+            onDeviceLimitReached(data.devices);
             onClose();
             return;
           }
         }
-        setErrorMsg(res.message || 'Failed to authenticate key.');
+        setErrorMsg(data?.message || 'Failed to authenticate key.');
       }
     } catch (err: any) {
       const resp = err.response?.data;

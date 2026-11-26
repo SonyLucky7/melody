@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, Download, Check, Loader2, ListPlus } from 'lucide-react';
+import { Play, Pause, Loader2, ListPlus } from 'lucide-react';
 import { Song } from '../types';
 import { usePlayer } from '../context/PlayerContext';
 import { getFullCoverUrl } from '../services/api';
@@ -18,30 +18,15 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
     isLoadingTrack,
     playSong,
     togglePlay,
-    downloadedSongIds,
-    downloadProgress,
-    downloadSong,
-    removeDownload,
   } = usePlayer();
 
   const isCurrent = currentSong?.id === song.id;
-  const isDownloaded = downloadedSongIds.has(song.id);
-  const progress = downloadProgress[song.id];
 
   const handleCardClick = () => {
     if (isCurrent) {
       togglePlay();
     } else {
       playSong(song, queueContext);
-    }
-  };
-
-  const handleToggleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isDownloaded) {
-      removeDownload(song.id);
-    } else if (progress === undefined) {
-      downloadSong(song);
     }
   };
 
@@ -96,33 +81,6 @@ export const SongCard: React.FC<SongCardProps> = ({ song, queueContext, onSelect
             <ListPlus className="w-3.5 h-3.5" />
           </button>
         )}
-
-        {/* Top-Right Downloaded Badge / Download Trigger */}
-        <button
-          onClick={handleToggleDownload}
-          className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${
-            isDownloaded
-              ? 'bg-[#a855f7] text-white shadow-md'
-              : progress !== undefined
-              ? 'bg-black/70 text-[#a855f7]'
-              : 'bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:scale-110'
-          }`}
-          title={
-            isDownloaded
-              ? 'Downloaded to this device (Click to remove)'
-              : progress !== undefined
-              ? `Downloading ${progress}%`
-              : 'Download for offline play'
-          }
-        >
-          {progress !== undefined ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : isDownloaded ? (
-            <Check className="w-3.5 h-3.5 stroke-[3]" />
-          ) : (
-            <Download className="w-3.5 h-3.5" />
-          )}
-        </button>
       </div>
 
       <div className="flex flex-col">

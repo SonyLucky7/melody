@@ -28,10 +28,44 @@ export class TelegramMultiBotService {
   private fileBotMap = new Map<string, number>();
   private urlCache = new Map<string, { downloadUrl: string; botIndex: number; expiresAt: number }>();
   private inFlightUrlResolutions = new Map<string, Promise<{ downloadUrl: string; botIndex: number }>>();
+  private healthyBotIndices: Set<number> = new Set();
 
   constructor(botTokens: string[], channelId: string) {
     this.botTokens = botTokens.length > 0 ? botTokens : ['MOCK_BOT_TOKEN_1', 'MOCK_BOT_TOKEN_2'];
     this.channelId = channelId;
+    this.botTokens.forEach((_, i) => this.healthyBotIndices.add(i));
+  }
+
+  getHealthyBotCount(): number {
+    return this.healthyBotIndices.size;
+  }
+
+  invalidateCache(fileId: string): void {
+    this.urlCache.delete(fileId);
+    this.fileBotMap.delete(fileId);
+  }
+
+  async validateBots(): Promise<void> {
+    const checks = await Promise.all(
+      this.botTokens.map(async (token, idx) => {
+        try {
+          const res = await this.fetchJson(`https://api.telegram.org/bot${token}/getMe`);
+          if (res && res.ok) {
+            console.log(`[Telegram Bot ${idx + 1}] Online: @${res.result?.username}`);
+            return idx;
+          }
+          console.warn(`[Telegram Bot ${idx + 1}] Invalid/Unauthorized: ${res?.description || 'unknown error'}`);
+          return -1;
+        } catch (err: any) {
+          console.warn(`[Telegram Bot ${idx + 1}] Health check error: ${err.message}`);
+          return -1;
+        }
+      })
+    );
+    const valid = checks.filter((i) => i >= 0);
+    if (valid.length > 0) {
+      this.healthyBotIndices = new Set(valid);
+    }
   }
 
   /**
@@ -45,10 +79,13 @@ export class TelegramMultiBotService {
     coverBuffer?: Buffer
   ): Promise<TelegramUploadResult> {
     let lastError: Error | null = null;
-    const numBots = this.botTokens.length;
+    const candidateIndices = this.healthyBotIndices.size > 0
+      ? Array.from(this.healthyBotIndices)
+      : this.botTokens.map((_, i) => i);
+    const numBots = candidateIndices.length;
 
     for (let attempt = 0; attempt < numBots; attempt++) {
-      const idx = (this.currentBotIndex + attempt) % numBots;
+      const idx = candidateIndices[(this.currentBotIndex + attempt) % numBots];
       const token = this.botTokens[idx];
       try {
         console.log(`[Telegram Bot ${idx + 1}] Uploading audio "${title}" to channel...`);
@@ -61,7 +98,7 @@ export class TelegramMultiBotService {
           artist,
           coverBuffer
         );
-        this.currentBotIndex = (idx + 1) % numBots;
+        this.currentBotIndex = (this.currentBotIndex + attempt + 1) % numBots;
         return result;
       } catch (err: any) {
         console.warn(`[Telegram Bot ${idx + 1} Error]: ${err.message}. Trying next bot...`);
@@ -135,13 +172,18 @@ export class TelegramMultiBotService {
             return result;
           }
         } catch {
-          // Fall through to multi-bot race
+          // Clear stale bot affinity & fall through to multi-bot race
+          this.fileBotMap.delete(fileId);
         }
       }
 
-      // 2. High-Speed Concurrent Race: Query ALL bots in parallel simultaneously with Promise.any
-      // The fastest bot that holds this file ID will resolve in ~100ms; others returning 400 are ignored by Promise.any
-      const promises = this.botTokens.map(async (token, idx) => {
+      // 2. High-Speed Concurrent Race: Query healthy bots in parallel simultaneously with Promise.any
+      const activeIndices = this.healthyBotIndices.size > 0
+        ? Array.from(this.healthyBotIndices)
+        : this.botTokens.map((_, i) => i);
+
+      const promises = activeIndices.map(async (idx) => {
+        const token = this.botTokens[idx];
         const res = await this.fetchJson(
           `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
         );
@@ -151,7 +193,7 @@ export class TelegramMultiBotService {
             botIndex: idx,
           };
         }
-        throw new Error(`Bot ${idx + 1} getFile failed`);
+        throw new Error(`Bot ${idx + 1} getFile failed: ${res?.description || 'not found'}`);
       });
 
       try {
@@ -348,7 +390,7 @@ export class TelegramMultiBotService {
   private fetchJson(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const req = https
-        .get(url, { agent: telegramAgent, timeout: 4000 }, (res) => {
+        .get(url, { agent: telegramAgent, timeout: 8000 }, (res) => {
           let data = '';
           res.on('data', (c) => (data += c));
           res.on('end', () => {

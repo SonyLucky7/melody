@@ -42,6 +42,8 @@ fun MiniPlayerBar(
     if (song == null) return
 
     val likedSongIds by MelodyPlayerManager.likedSongIds.collectAsState()
+    val isBuffering by MelodyPlayerManager.isBuffering.collectAsState()
+    val playbackError by MelodyPlayerManager.playbackError.collectAsState()
     val isLiked = likedSongIds.contains(song.id)
 
     val progress = if (durationMs > 0) (progressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
@@ -81,8 +83,8 @@ fun MiniPlayerBar(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = song.artist,
-                    color = MelodyTextSecondary,
+                    text = playbackError ?: song.artist,
+                    color = if (playbackError != null) Color(0xFFF87171) else MelodyTextSecondary,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -102,17 +104,25 @@ fun MiniPlayerBar(
                 )
             }
 
-            // Play / Pause Button
+            // Play / Pause / Buffering Button
             IconButton(
                 onClick = onTogglePlay,
                 modifier = Modifier.size(36.dp)
             ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
+                if (isBuffering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MelodyPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
         }
 

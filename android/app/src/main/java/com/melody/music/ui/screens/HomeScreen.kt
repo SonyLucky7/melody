@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tv
@@ -19,14 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.melody.music.data.download.MelodyDownloadManager
 import com.melody.music.data.model.Playlist
 import com.melody.music.data.model.PUBLIC_PLAYLISTS
 import com.melody.music.data.model.Song
+import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
 
 @Composable
@@ -448,22 +454,55 @@ fun SongListItem(
     onClick: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val currentSong by MelodyPlayerManager.currentSong.collectAsState()
+    val isPlaying by MelodyPlayerManager.isPlaying.collectAsState()
+    val downloadedSongs by MelodyDownloadManager.downloadedSongs.collectAsState()
+    val downloadingIds by MelodyDownloadManager.downloadingIds.collectAsState()
+    val progressMap by MelodyDownloadManager.downloadProgress.collectAsState()
+
+    val isCurrent = currentSong?.id == song.id
+    val isDownloaded = downloadedSongs.any { it.songId == song.id }
+    val isDownloading = downloadingIds.contains(song.id)
+    val downloadPct = progressMap[song.id]
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
+            .background(if (isCurrent) Color(0x1FA855F7) else Color.Transparent)
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = song.getFullCoverUrl(),
-            contentDescription = song.title,
+        Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(6.dp)),
-            contentScale = ContentScale.Crop
-        )
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = song.getFullCoverUrl(),
+                contentDescription = song.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            if (isCurrent && isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0x88000000)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = "Playing",
+                        tint = MelodyPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -471,26 +510,83 @@ fun SongListItem(
             Text(
                 text = song.title,
                 fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                color = if (isCurrent) MelodyPrimary else Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = "${song.artist} • ${song.album ?: "Single"}",
-                fontSize = 13.sp,
-                color = MelodyTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                if (isDownloaded) {
+                    Icon(
+                        imageVector = Icons.Default.DownloadDone,
+                        contentDescription = "Offline Ready",
+                        tint = MelodyOffline,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
+                Text(
+                    text = "${song.artist} • ${song.album ?: "Single"}",
+                    fontSize = 12.sp,
+                    color = MelodyTextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        // Android Exclusive Offline Download Button on EVERY song row!
+        IconButton(
+            onClick = {
+                if (isDownloaded) {
+                    MelodyDownloadManager.removeDownload(context, song.id)
+                } else if (!isDownloading) {
+                    MelodyDownloadManager.downloadSong(context, song)
+                }
+            },
+            modifier = Modifier.size(38.dp)
+        ) {
+            when {
+                isDownloading -> {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = MelodyPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        if (downloadPct != null) {
+                            Text(
+                                text = "$downloadPct",
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+                isDownloaded -> {
+                    Icon(
+                        imageVector = Icons.Default.DownloadDone,
+                        contentDescription = "Downloaded Offline",
+                        tint = MelodyOffline,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                else -> {
+                    Icon(
+                        imageVector = Icons.Default.FileDownload,
+                        contentDescription = "Download for Offline Play",
+                        tint = MelodyTextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
 
         if (trailingContent != null) {
             trailingContent()
-        } else {
-            IconButton(onClick = onClick) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = MelodyTextSecondary)
-            }
         }
     }
 }
