@@ -1,14 +1,15 @@
 # 🎵 Melody — Production-Grade Music Streaming Ecosystem
 
 [![Web Player](https://img.shields.io/badge/Web_Player-Live_on_Vercel-success?style=for-the-badge&logo=vercel)](https://melody-chi-nine.vercel.app)
-[![Android APK](https://img.shields.io/badge/Android_App-v1.0.8_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk)
-[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.0.8-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases/tag/v1.0.8)
+[![Android APK](https://img.shields.io/badge/Android_App-v1.2.0_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk)
+[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.2.0-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases/tag/v1.2.0)
+[![Sponsor SonyLucky7](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/SonyLucky7)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material_3-4285F4?style=for-the-badge&logo=android)](https://developer.android.com/jetpack/compose)
 [![React 18](https://img.shields.io/badge/React_18-TypeScript-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
 
-> **Melody** is a modern, high-concurrency music streaming ecosystem engineered for 0ms cold starts, sub-millisecond audio streaming, zero-cost distributed storage, and cross-platform playback across **Android Mobile**, **Google TV / Android TV**, and **Web**.
+> **Melody** is a modern, high-concurrency music streaming ecosystem engineered for 0ms cold starts, sub-millisecond audio streaming, zero-cost distributed storage, Android-exclusive offline storage, and cross-platform playback across **Android Mobile**, **Google TV / Android TV**, and **Web**.
 
 ---
 
@@ -17,8 +18,8 @@
 | Platform | Link | Description |
 | :--- | :--- | :--- |
 | 🌍 **Web Player** | [melody-chi-nine.vercel.app](https://melody-chi-nine.vercel.app) | Responsive Spotify-grade Web Application (Mobile + Desktop). |
-| 📱 **Android App (APK)** | [Download Melody v1.0.8 APK](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk) | Direct production APK with offline storage, background audio, and lock-screen widget. |
-| 📺 **Android TV / Google TV** | [Download Melody TV APK](https://melody-chi-nine.vercel.app/Melody-v1.0.8.apk) | 10-foot Leanback living room interface with D-Pad TV remote navigation. |
+| 📱 **Android App (APK)** | [Download Melody v1.2.0 APK](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk) | Direct production APK with Android-exclusive offline storage, background audio, and lock-screen widget. |
+| 📺 **Android TV / Google TV** | [Download Melody TV APK](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk) | 10-foot Leanback living room interface with D-Pad TV remote navigation. |
 | 🏷️ **GitHub Releases** | [Releases & Changelog](https://github.com/SonyLucky7/melody/releases) | Versioned release tags, compilation artifacts, and changelog history. |
 
 ---
@@ -219,6 +220,10 @@ npm run dev
 ```
 
 ---
+
+## 💖 Sponsor
+
+If you find this project useful, consider [sponsoring me on GitHub](https://github.com/sponsors/SonyLucky7) — your support helps me keep building open-source tools.
 
 ## 📄 License & Attribution
 
