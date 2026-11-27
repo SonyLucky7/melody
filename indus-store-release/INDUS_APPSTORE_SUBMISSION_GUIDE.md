@@ -40,7 +40,7 @@ Everything in `indus-store-release/` is pre-built, signed with your permanent pr
 - **Privacy Policy URL**: `https://melody-chi-nine.vercel.app/privacy.html`
 - **Terms of Service URL**: `https://melody-chi-nine.vercel.app/terms.html`
 - **Official Website**: `https://melody-chi-nine.vercel.app`
-- **Developer Support Email**: `sonylucky46hac@gmail.com`
+- **Developer Support Email**: *(Enter your preferred public developer contact email in the Indus Appstore Console)*
 
 ### Short Description (78 characters)
 ```text

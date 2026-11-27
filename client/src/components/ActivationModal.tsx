@@ -195,10 +195,12 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
         <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
           <span>Need your key or support?</span>
           <a
-            href="mailto:sonylucky46hac@gmail.com?subject=Melody%20Account%20Support"
+            href="https://t.me/xO_HaC"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-purple-400 hover:text-purple-300 font-semibold"
           >
-            sonylucky46hac@gmail.com
+            Telegram: @xO_HaC
           </a>
         </div>
       </div>

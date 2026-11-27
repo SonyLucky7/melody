@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import {
   X,
-  MessageCircle,
-  Mail,
   Send,
   HelpCircle,
   RefreshCw,
-  Check,
   ExternalLink,
-  ShieldAlert,
   Headphones,
   CheckCircle2,
-  Copy,
+  Globe,
 } from 'lucide-react';
 
 interface SupportModalProps {
@@ -21,16 +17,9 @@ interface SupportModalProps {
 }
 
 export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, onResync }) => {
-  const [copiedEmail, setCopiedEmail] = useState(false);
   const [resynced, setResynced] = useState(false);
 
   if (!isOpen) return null;
-
-  const handleCopyEmail = () => {
-    navigator.clipboard.writeText('sonylucky46hac@gmail.com');
-    setCopiedEmail(true);
-    setTimeout(() => setCopiedEmail(false), 2000);
-  };
 
   const handleClearAndResync = () => {
     try {
@@ -96,36 +85,26 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, onR
             <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-white flex-shrink-0 transition-colors" />
           </a>
 
-          {/* Option 2: Email Direct Support */}
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+          {/* Option 2: GitHub Support Portal */}
+          <a
+            href="https://github.com/SonyLucky7/melody/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all group"
+          >
             <div className="flex items-center gap-3.5 min-w-0 pr-2">
               <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center flex-shrink-0">
-                <Mail className="w-5 h-5" />
+                <Globe className="w-5 h-5" />
               </div>
               <div className="truncate">
-                <h3 className="text-sm font-bold text-white truncate">Email Customer Support</h3>
-                <p className="text-xs text-neutral-400 truncate">sonylucky46hac@gmail.com</p>
+                <h3 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors truncate">
+                  Official Support &amp; Bug Reports
+                </h3>
+                <p className="text-xs text-neutral-400 truncate">github.com/SonyLucky7/melody/issues</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                onClick={handleCopyEmail}
-                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-xs font-bold text-white transition-all flex items-center gap-1.5"
-                title="Copy Email"
-              >
-                {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedEmail ? 'Copied' : 'Copy'}</span>
-              </button>
-
-              <a
-                href="mailto:sonylucky46hac@gmail.com?subject=Melody%20Support%20Request"
-                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition-all flex items-center gap-1"
-              >
-                <span>Write</span>
-              </a>
-            </div>
-          </div>
+            <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-white flex-shrink-0 transition-colors" />
+          </a>
 
           {/* Quick Troubleshooting & Cache Resync */}
           <div className="p-4 rounded-2xl bg-neutral-900/80 border border-white/5 space-y-3">

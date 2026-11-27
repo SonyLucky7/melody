@@ -93,20 +93,22 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
           </a>
         </div>
 
-        {/* Email Support Card */}
+        {/* Official Support Portal Card */}
         <div className="p-3 bg-[#0a0a0f] border border-white/5 rounded-xl flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
             <Mail className="w-4 h-4 text-purple-400" />
             <div>
-              <span className="text-[10px] text-neutral-400 uppercase font-bold block">Official Email</span>
-              <span className="text-xs font-mono font-medium text-white">sonylucky46hac@gmail.com</span>
+              <span className="text-[10px] text-neutral-400 uppercase font-bold block">Support Portal</span>
+              <span className="text-xs font-mono font-medium text-white">github.com/SonyLucky7/melody</span>
             </div>
           </div>
           <a
-            href="mailto:sonylucky46hac@gmail.com?subject=Melody%20Support%20Request"
+            href="https://github.com/SonyLucky7/melody/issues"
+            target="_blank"
+            rel="noreferrer"
             className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold transition-colors"
           >
-            Email Us
+            Open Issue
           </a>
         </div>
 
