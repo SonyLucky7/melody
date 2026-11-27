@@ -28,7 +28,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
-  const apkUrl = '/Melody-v1.2.0.apk';
+  const apkUrl = '/Melody-v1.2.1.apk';
 
   const copyUrl = () => {
     const fullUrl = `${window.location.origin}${apkUrl}`;
@@ -55,7 +55,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
                 Download Melody
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  v1.2.0
+                  v1.2.1
                 </span>
               </h2>
               <p className="text-xs text-neutral-400">
@@ -150,17 +150,17 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
                     </span>
                   </div>
                   <p className="text-xs text-neutral-300">
-                    Android 8.0 to Android 15 • 12 MB • 320k FLAC Audio
+                    Android 8.0 to Android 16 • 22 MB • Lock Screen Controls & Offline Mode
                   </p>
                 </div>
 
                 <a
                   href={apkUrl}
-                  download="Melody-v1.2.0.apk"
+                  download="Melody-v1.2.1.apk"
                   className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download APK (v1.2.0)</span>
+                  <span>Download APK (v1.2.1)</span>
                 </a>
               </div>
 
@@ -256,7 +256,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
 
                 <a
                   href={apkUrl}
-                  download="Melody-v1.2.0.apk"
+                  download="Melody-v1.2.1.apk"
                   className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:brightness-110 active:scale-95 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />

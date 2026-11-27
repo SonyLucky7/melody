@@ -196,6 +196,10 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const eqBandsRef = useRef<number[]>(eqBands);
   const downloadedSongIdsRef = useRef<Set<number>>(new Set());
   const playRequestIdRef = useRef<number>(0);
+  const userPausedRef = useRef<boolean>(true);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const midSongRetryCountRef = useRef<number>(0);
+  const lastRecoveredTimeRef = useRef<number>(0);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -285,6 +289,13 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const ctx = new AudioCtx();
       audioContextRef.current = ctx;
 
+      // Auto-resume AudioContext if browser/mobile OS suspends it mid-song!
+      ctx.onstatechange = () => {
+        if (ctx.state === 'suspended' && !userPausedRef.current && audioRef.current && !audioRef.current.paused) {
+          ctx.resume().catch(() => {});
+        }
+      };
+
       const source = ctx.createMediaElementSource(audio);
       isSourceConnectedRef.current = true;
 
@@ -332,6 +343,7 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Set individual EQ band gain (-12dB to +12dB)
   const setEqBand = useCallback((index: number, gainDb: number) => {
+    initEqualizer();
     const clamped = Math.max(-12, Math.min(12, gainDb));
     setEqBands((prev) => {
       const next = [...prev];
@@ -357,6 +369,9 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const setEqPreset = useCallback((presetName: string) => {
     const preset = EQ_PRESETS[presetName];
     if (!preset) return;
+    if (preset.some((g) => g !== 0)) {
+      initEqualizer();
+    }
     setEqPresetState(presetName);
     setEqBands(preset);
     try {
@@ -431,9 +446,22 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!audio) return;
 
     try {
-      initEqualizer();
+      // Only attach Web Audio API Equalizer when the user has custom non-flat EQ bands!
+      // Keeping native <audio> unrouted when EQ is flat prevents mobile Chrome & background tabs
+      // from suspending AudioContext and cutting audio in the middle of songs!
+      if (isEqEnabledRef.current && eqBandsRef.current.some((g) => g !== 0)) {
+        initEqualizer();
+      }
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().catch(() => {});
+      }
+
+      userPausedRef.current = false;
+      midSongRetryCountRef.current = 0;
+      lastRecoveredTimeRef.current = 0;
+      if (stallTimerRef.current) {
+        clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
       }
 
       // Direct high-speed streaming URL for all users
@@ -456,34 +484,51 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         audio.pause();
       }
       audio.preload = 'auto';
-      let retryStage = 0; // 0 = Render direct, 1 = Render retry, 2 = Vercel edge proxy
+
+      const reloadAtSavedTime = (nextUrl: string, resumeSec: number) => {
+        if (requestId !== playRequestIdRef.current) return;
+        setIsLoadingTrack(true);
+        audio.src = nextUrl;
+        const restoreAndPlay = () => {
+          audio.removeEventListener('loadedmetadata', restoreAndPlay);
+          if (requestId !== playRequestIdRef.current) return;
+          if (resumeSec > 1 && Number.isFinite(audio.duration) && resumeSec < audio.duration - 1) {
+            try {
+              audio.currentTime = resumeSec;
+            } catch {}
+          }
+          if (!userPausedRef.current) {
+            audio.play().catch(() => {});
+          }
+        };
+        audio.addEventListener('loadedmetadata', restoreAndPlay, { once: true });
+        audio.load();
+      };
 
       audio.onerror = () => {
         if (requestId !== playRequestIdRef.current) return;
         const err = audio.error;
         if (err && err.code === MediaError.MEDIA_ERR_ABORTED) return;
 
-        if (retryStage === 0 && targetSrc.includes('onrender.com')) {
-          retryStage = 1;
-          console.warn(`[Melody Stream] Retrying track #${song.id} once...`);
-          setTimeout(() => {
-            if (requestId !== playRequestIdRef.current) return;
-            audio.src = `${streamUrl}?r=${Date.now()}`;
-            audio.play().catch(() => {});
-          }, 350);
+        const savedPos = audio.currentTime > 1 ? audio.currentTime : lastRecoveredTimeRef.current;
+        if (savedPos > 1) lastRecoveredTimeRef.current = savedPos;
+
+        const attempt = midSongRetryCountRef.current++;
+        if (attempt === 0 && targetSrc.includes('onrender.com')) {
+          console.warn(`[Melody Stream] Recovering track #${song.id} at ${savedPos.toFixed(1)}s (retry 1)...`);
+          setTimeout(() => reloadAtSavedTime(`${streamUrl}?r=${Date.now()}`, savedPos), 350);
           return;
         }
 
-        if (retryStage <= 1 && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-          retryStage = 2;
-          console.warn(`[Melody Stream] Falling back to Vercel Edge proxy for track #${song.id}...`);
-          audio.src = `/api/stream/${song.id}`;
-          audio.play().catch(() => {
-            if (requestId !== playRequestIdRef.current) return;
-            setIsPlaying(false);
-            setIsLoadingTrack(false);
-            setPlaybackError(`Could not play "${song.title}". Tap to retry.`);
-          });
+        if (attempt === 1 && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+          console.warn(`[Melody Stream] Switching to Vercel Edge proxy for track #${song.id} at ${savedPos.toFixed(1)}s...`);
+          setTimeout(() => reloadAtSavedTime(`/api/stream/${song.id}?r=${Date.now()}`, savedPos), 450);
+          return;
+        }
+
+        if (attempt === 2) {
+          console.warn(`[Melody Stream] Final stream recovery for track #${song.id} at ${savedPos.toFixed(1)}s...`);
+          setTimeout(() => reloadAtSavedTime(`${streamUrl}?r=${Date.now()}`, savedPos), 900);
           return;
         }
 
@@ -619,8 +664,68 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     audioRef.current = audio;
     audio.volume = volume;
 
+    const clearStallWatchdog = () => {
+      if (stallTimerRef.current) {
+        clearTimeout(stallTimerRef.current);
+        stallTimerRef.current = null;
+      }
+    };
+
+    const scheduleStallRecovery = () => {
+      if (userPausedRef.current || !currentSongRef.current) return;
+      if (stallTimerRef.current) return;
+      const startTime = audio.currentTime;
+      const activeReqId = playRequestIdRef.current;
+      stallTimerRef.current = setTimeout(() => {
+        stallTimerRef.current = null;
+        if (activeReqId !== playRequestIdRef.current || userPausedRef.current) return;
+        const curSong = currentSongRef.current;
+        if (!curSong) return;
+        // Only trigger mid-song reconnect if playback actually froze at the exact same timestamp
+        if (Math.abs(audio.currentTime - startTime) < 0.15 && audio.readyState < 3 && midSongRetryCountRef.current < 3) {
+          midSongRetryCountRef.current++;
+          const savedPos = audio.currentTime > 1 ? audio.currentTime : lastRecoveredTimeRef.current;
+          if (savedPos > 1) lastRecoveredTimeRef.current = savedPos;
+          const useEdge = midSongRetryCountRef.current === 2 && typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+          const nextUrl = useEdge
+            ? `/api/stream/${curSong.id}?r=${Date.now()}`
+            : `${STREAM_BASE}/api/stream/${curSong.id}?r=${Date.now()}`;
+          console.warn(`[Melody Stall Watchdog] Auto-recovering track #${curSong.id} at ${savedPos.toFixed(1)}s...`);
+          audio.src = nextUrl;
+          const onReady = () => {
+            audio.removeEventListener('loadedmetadata', onReady);
+            if (activeReqId !== playRequestIdRef.current) return;
+            if (savedPos > 1 && Number.isFinite(audio.duration) && savedPos < audio.duration - 1) {
+              try {
+                audio.currentTime = savedPos;
+              } catch {}
+            }
+            if (!userPausedRef.current) {
+              audio.play().catch(() => {});
+            }
+          };
+          audio.addEventListener('loadedmetadata', onReady, { once: true });
+          audio.load();
+        }
+      }, 4500);
+    };
+
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
+      const t = audio.currentTime;
+      setCurrentTime(t);
+      if (t > 1) {
+        lastRecoveredTimeRef.current = t;
+      }
+      clearStallWatchdog();
+      if ('mediaSession' in navigator && typeof navigator.mediaSession.setPositionState === 'function' && Number.isFinite(audio.duration) && audio.duration > 0) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration,
+            playbackRate: audio.playbackRate || 1,
+            position: Math.min(t, audio.duration),
+          });
+        } catch {}
+      }
     };
 
     const handleLoadedMetadata = () => {
@@ -629,28 +734,54 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const handlePlay = () => {
       setIsPlaying(true);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     };
 
     const handlePlaying = () => {
+      clearStallWatchdog();
+      midSongRetryCountRef.current = 0;
       setIsPlaying(true);
       setIsLoadingTrack(false);
+      setPlaybackError(null);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
     };
 
     const handleWaiting = () => {
       setIsLoadingTrack(true);
+      scheduleStallRecovery();
+    };
+
+    const handleStalled = () => {
+      scheduleStallRecovery();
     };
 
     const handleCanPlay = () => {
+      clearStallWatchdog();
       setIsLoadingTrack(false);
     };
 
     const handlePause = () => {
+      clearStallWatchdog();
       setIsPlaying(false);
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     };
 
     const handleEnded = () => {
+      clearStallWatchdog();
       // Autoplay: trigger next track using freshest ref state
       handleNextTrack(true);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && audioContextRef.current?.state === 'suspended' && !userPausedRef.current) {
+        audioContextRef.current.resume().catch(() => {});
+      }
     };
 
     const handleError = (e: any) => {
@@ -661,8 +792,6 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
       if (!audio.src) return;
       console.warn('[Audio Player Notice]:', e);
-      setIsPlaying(false);
-      setIsLoadingTrack(false);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -670,10 +799,12 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('stalled', handleStalled);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     // Initial fetch of user-specific favourites
     fetchFavourites().then((favs) => {
@@ -681,16 +812,19 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     return () => {
+      clearStallWatchdog();
       audio.pause();
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('stalled', handleStalled);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [handleNextTrack]);
 
@@ -712,9 +846,11 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
 
     navigator.mediaSession.setActionHandler('play', () => {
+      userPausedRef.current = false;
       audioRef.current?.play().catch(() => {});
     });
     navigator.mediaSession.setActionHandler('pause', () => {
+      userPausedRef.current = true;
       audioRef.current?.pause();
     });
     navigator.mediaSession.setActionHandler('previoustrack', () => handlePrevTrack());
@@ -732,14 +868,15 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!audio || !currentSong) return;
 
     if (isPlaying) {
+      userPausedRef.current = true;
       audio.pause();
     } else {
+      userPausedRef.current = false;
       // If previous attempt errored or audio has no loaded source, cleanly re-play
       if (audio.error || !audio.src || audio.readyState === 0) {
         playSong(currentSong);
         return;
       }
-      initEqualizer();
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().catch(() => {});
       }

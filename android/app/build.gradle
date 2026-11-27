@@ -11,8 +11,8 @@ android {
         applicationId "com.melody.music"
         minSdk 24
         targetSdk 34
-        versionCode 12
-        versionName "1.2.0"
+        versionCode 13
+        versionName "1.2.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -57,11 +57,12 @@ dependencies {
     implementation 'androidx.compose.material3:material3'
     implementation 'androidx.compose.material:material-icons-extended'
 
-    // AndroidX Media3 (ExoPlayer + MediaSession + Cache)
+    // AndroidX Media3 (ExoPlayer + MediaSession + Cache + OkHttp Resilient DataSource)
     implementation 'androidx.media3:media3-exoplayer:1.2.1'
     implementation 'androidx.media3:media3-session:1.2.1'
     implementation 'androidx.media3:media3-ui:1.2.1'
     implementation 'androidx.media3:media3-datasource:1.2.1'
+    implementation 'androidx.media3:media3-datasource-okhttp:1.2.1'
     implementation 'androidx.media3:media3-database:1.2.1'
 
     // Image loading

@@ -71,7 +71,7 @@ app.get('/health', async (req, res) => {
   const dbConnected = await checkDatabaseConnection();
   res.status(dbConnected ? 200 : 503).json({
     status: dbConnected ? 'healthy' : 'degraded',
-    version: '1.2.0-spotify-sync',
+    version: '1.2.1-zero-cut-spotify',
     database: dbConnected ? 'connected' : 'disconnected',
     freeMode: config.freeMode,
     activeStreams: spoolManager.getActiveCount(),
@@ -160,6 +160,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // --- Server Startup & Auto-Cleanup Init ---
 export const server = app.listen(config.port, async () => {
+  // Prevent Node.js 18+/20+ or Render reverse-proxy keep-alive timeouts from dropping active audio streams mid-song!
+  server.requestTimeout = 0;
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
+
   console.log(`====================================================`);
   console.log(`  🎵 Melody Shared Backend running on port ${config.port}`);
   console.log(`  💎 Free Mode: ${config.freeMode ? 'ACTIVE (All features 100% Free)' : 'PAID'}`);

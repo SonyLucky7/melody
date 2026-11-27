@@ -46,7 +46,31 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedLanguage by remember { mutableStateOf("") }
-    val languages = listOf("All", "English", "Punjabi", "Hindi", "Phonk", "Slowed")
+    val languages = listOf("All", "Telugu", "English", "Punjabi", "Hindi", "Phonk", "Slowed")
+    var homePlaylists by remember { mutableStateOf(PUBLIC_PLAYLISTS) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val res = com.melody.music.data.api.ApiClient.apiService.getPlaylists()
+            if (res.success && res.data.isNotEmpty()) {
+                val map = LinkedHashMap<Long, Playlist>()
+                PUBLIC_PLAYLISTS.forEach { map[it.id] = it }
+                res.data.forEach { pl ->
+                    val existing = map[pl.id]
+                    if (existing != null) {
+                        map[pl.id] = pl.copy(
+                            coverUrl = pl.coverUrl ?: existing.coverUrl,
+                            description = pl.description ?: existing.description,
+                            totalSongs = if ((pl.totalSongs ?: 0) > 0) pl.totalSongs else existing.totalSongs
+                        )
+                    } else if ((pl.totalSongs ?: 0) > 0) {
+                        map[pl.id] = pl
+                    }
+                }
+                homePlaylists = map.values.toList()
+            }
+        } catch (_: Exception) {}
+    }
 
     val greeting = remember {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
@@ -204,7 +228,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(PUBLIC_PLAYLISTS) { playlist ->
+                items(homePlaylists) { playlist ->
                     PlaylistCard(
                         playlist = playlist,
                         onClick = { onPlaylistClick(playlist) }

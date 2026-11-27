@@ -4,6 +4,22 @@ import { query } from '../db/client';
 
 export const CURATED_PLAYLISTS = [
   {
+    id: 14,
+    name: 'Adithi',
+    description: 'Vennelave Vennelave, Maate Vinadhuga, Inthandham, Emai Poyave, Hoyna Hoyna & Telugu melodies.',
+    total_songs: 25,
+    cover_url: 'https://mosaic.scdn.co/640/ab67616d00001e02455b426149833ff977f81656ab67616d00001e027e23cd1ca5abcf039d176f08ab67616d00001e027fe12eefb56610912fa8f9b4ab67616d00001e0284351604b643064b97982db5',
+    query: `SELECT s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url FROM playlist_songs ps JOIN songs s ON s.id = ps.song_id WHERE ps.playlist_id = 14 ORDER BY ps.position ASC, ps.song_id ASC`,
+  },
+  {
+    id: 13,
+    name: 'Top The Weeknd Songs',
+    description: 'Blinding Lights, Starboy, Save Your Tears, Die For You, Timeless, São Paulo & global hits.',
+    total_songs: 28,
+    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg',
+    query: `SELECT s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url FROM playlist_songs ps JOIN songs s ON s.id = ps.song_id WHERE ps.playlist_id = 13 ORDER BY ps.position ASC, ps.song_id ASC`,
+  },
+  {
     id: 10,
     name: 'Motivation Vol. 1',
     description: 'Drake, Lil Wayne, 50 Cent, Eminem & high-energy workout bangers.',
@@ -18,14 +34,6 @@ export const CURATED_PLAYLISTS = [
     total_songs: 91,
     cover_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=80',
     query: `SELECT id, title, artist, album, language, duration_seconds, cover_url FROM songs WHERE album = 'Motivation Vol. 2' ORDER BY id DESC`,
-  },
-  {
-    id: 13,
-    name: 'Top The Weeknd Songs',
-    description: 'Blinding Lights, Starboy, Save Your Tears, Die For You, Timeless, São Paulo & global hits.',
-    total_songs: 28,
-    cover_url: 'https://melody-chi-nine.vercel.app/covers/the-weeknd-avatar.jpg',
-    query: `SELECT s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url FROM playlist_songs ps JOIN songs s ON s.id = ps.song_id WHERE ps.playlist_id = 13 ORDER BY ps.position ASC, ps.song_id ASC`,
   },
   {
     id: 12,

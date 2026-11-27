@@ -92,6 +92,13 @@ data class Playlist(
 
 val PUBLIC_PLAYLISTS = listOf(
     Playlist(
+        14L,
+        "Adithi",
+        25,
+        "https://mosaic.scdn.co/640/ab67616d00001e02455b426149833ff977f81656ab67616d00001e027e23cd1ca5abcf039d176f08ab67616d00001e027fe12eefb56610912fa8f9b4ab67616d00001e0284351604b643064b97982db5",
+        "Vennelave Vennelave, Maate Vinadhuga, Inthandham, Emai Poyave, Hoyna Hoyna & Telugu melodies."
+    ),
+    Playlist(
         13L,
         "Top The Weeknd Songs",
         28,
@@ -215,6 +222,8 @@ fun getPlaylistSongsFallback(playlist: Playlist, allSongs: List<Song>): List<Son
     val nameLower = playlist.name.lowercase()
     val id = playlist.id
     return when {
+        id == 14L || nameLower == "adithi" ->
+            allSongs.filter { it.album?.equals("Adithi", ignoreCase = true) == true }
         id == 13L || nameLower.contains("top the weeknd") ->
             allSongs.filter {
                 it.album?.contains("top the weeknd", ignoreCase = true) == true ||

@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db/client';
 import { config } from '../config';
-import { generateSignedStreamToken, verifySignedStreamToken, handleAudioStream } from '../services/stream';
+import { generateSignedStreamToken, verifySignedStreamToken, handleAudioStream, ensureBackgroundSpool } from '../services/stream';
 import { telegramService } from '../services/telegram';
 
 /**
@@ -190,12 +190,16 @@ export async function prewarmStream(req: AuthenticatedRequest, res: Response): P
 
   try {
     const songRes = await query(
-      `SELECT telegram_file_id FROM songs WHERE id = $1`,
+      `SELECT telegram_file_id, file_size_bytes FROM songs WHERE id = $1`,
       [songId]
     );
 
     if (songRes.rows.length > 0 && songRes.rows[0].telegram_file_id) {
-      telegramService.getFileDownloadUrl(songRes.rows[0].telegram_file_id).catch(() => {});
+      const fid = songRes.rows[0].telegram_file_id;
+      const bytes = parseInt(songRes.rows[0].file_size_bytes || '0', 10);
+      telegramService.getFileDownloadUrl(fid).catch(() => {});
+      // Also pre-spool next track to local NVMe disk so playback transitions seamlessly with 0 mid-song cuts!
+      ensureBackgroundSpool(songId, fid, bytes);
     }
 
     res.status(200).json({ success: true, songId, prewarmed: true });

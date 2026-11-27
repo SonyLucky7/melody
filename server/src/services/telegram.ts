@@ -54,11 +54,16 @@ export class TelegramMultiBotService {
             console.log(`[Telegram Bot ${idx + 1}] Online: @${res.result?.username}`);
             return idx;
           }
-          console.warn(`[Telegram Bot ${idx + 1}] Invalid/Unauthorized: ${res?.description || 'unknown error'}`);
-          return -1;
+          // Only permanently exclude if Telegram explicitly rejected token (401/404)
+          if (res && res.ok === false && (res.error_code === 401 || res.error_code === 404)) {
+            console.warn(`[Telegram Bot ${idx + 1}] Invalid/Unauthorized: ${res?.description || 'unauthorized'}`);
+            return -1;
+          }
+          return idx;
         } catch (err: any) {
-          console.warn(`[Telegram Bot ${idx + 1}] Health check error: ${err.message}`);
-          return -1;
+          // Transient timeout at startup should NOT permanently exclude a healthy bot
+          console.warn(`[Telegram Bot ${idx + 1}] Startup check notice (keeping active): ${err.message}`);
+          return idx;
         }
       })
     );
@@ -182,7 +187,7 @@ export class TelegramMultiBotService {
         ? Array.from(this.healthyBotIndices)
         : this.botTokens.map((_, i) => i);
 
-      const promises = activeIndices.map(async (idx) => {
+      const queryBot = async (idx: number) => {
         const token = this.botTokens[idx];
         const res = await this.fetchJson(
           `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`
@@ -194,10 +199,10 @@ export class TelegramMultiBotService {
           };
         }
         throw new Error(`Bot ${idx + 1} getFile failed: ${res?.description || 'not found'}`);
-      });
+      };
 
       try {
-        const result = await Promise.any(promises);
+        const result = await Promise.any(activeIndices.map(queryBot));
         this.fileBotMap.set(fileId, result.botIndex);
         this.urlCache.set(fileId, {
           downloadUrl: result.downloadUrl,
@@ -205,8 +210,22 @@ export class TelegramMultiBotService {
           expiresAt: Date.now() + 50 * 60 * 1000,
         });
         return result;
-      } catch (err: any) {
-        throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message}`);
+      } catch (firstErr: any) {
+        // Retry once across ALL configured bots (in case of transient Telegram blip or recovered bot)
+        try {
+          const allIndices = this.botTokens.map((_, i) => i);
+          const result = await Promise.any(allIndices.map(queryBot));
+          this.healthyBotIndices.add(result.botIndex);
+          this.fileBotMap.set(fileId, result.botIndex);
+          this.urlCache.set(fileId, {
+            downloadUrl: result.downloadUrl,
+            botIndex: result.botIndex,
+            expiresAt: Date.now() + 50 * 60 * 1000,
+          });
+          return result;
+        } catch (err: any) {
+          throw new Error(`Failed to resolve file URL from all Telegram bots: ${err.message || firstErr.message}`);
+        }
       }
     })().finally(() => {
       this.inFlightUrlResolutions.delete(fileId);
@@ -390,7 +409,7 @@ export class TelegramMultiBotService {
   private fetchJson(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const req = https
-        .get(url, { agent: telegramAgent, timeout: 8000 }, (res) => {
+        .get(url, { agent: telegramAgent, timeout: 12000 }, (res) => {
           let data = '';
           res.on('data', (c) => (data += c));
           res.on('end', () => {

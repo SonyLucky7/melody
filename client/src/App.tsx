@@ -69,8 +69,15 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-// Curated Public Playlists always available across mobile and desktop
+// Curated Public Playlists always available to EVERYONE across mobile, TV, and desktop
 export const PUBLIC_PLAYLISTS: Playlist[] = [
+  {
+    id: 14,
+    name: 'Adithi',
+    description: 'Vennelave Vennelave, Maate Vinadhuga, Inthandham, Emai Poyave, Hoyna Hoyna & Telugu melodies.',
+    total_songs: 25,
+    cover_url: 'https://mosaic.scdn.co/640/ab67616d00001e02455b426149833ff977f81656ab67616d00001e027e23cd1ca5abcf039d176f08ab67616d00001e027fe12eefb56610912fa8f9b4ab67616d00001e0284351604b643064b97982db5'
+  },
   {
     id: 13,
     name: 'Top The Weeknd Songs',
@@ -195,6 +202,10 @@ export function getPlaylistTracks(playlist: Playlist, songCatalog: Song[]): Song
   if (!playlist || !songCatalog || songCatalog.length === 0) return [];
   const nameLower = (playlist.name || '').toLowerCase();
   const id = Number(playlist.id);
+
+  if (id === 14 || nameLower === 'adithi') {
+    return songCatalog.filter((x) => x.album?.toLowerCase() === 'adithi');
+  }
 
   if (id === 13 || nameLower.includes('top the weeknd')) {
     return songCatalog.filter(
@@ -607,7 +618,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.0</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.1</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>

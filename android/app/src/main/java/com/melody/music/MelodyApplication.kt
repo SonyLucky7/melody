@@ -1,6 +1,7 @@
 package com.melody.music
 
 import android.app.Application
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
@@ -63,7 +64,11 @@ class MelodyApplication : Application() {
                 "Melody Playback",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Foreground playback notification for Melody music player"
+                description = "Lock screen & notification media controls for Melody"
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
             }
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
