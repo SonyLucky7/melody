@@ -1,6 +1,9 @@
 package com.melody.music.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,13 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.melody.music.R
 import com.melody.music.data.api.ApiClient
 import com.melody.music.player.MelodyPlayerManager
 import com.melody.music.ui.theme.*
@@ -396,7 +402,7 @@ fun ProfileScreen(
                     Text("Log Out on this Phone", fontWeight = FontWeight.Bold)
                 }
 
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
         } else {
             // Unauthenticated Guest View
@@ -456,8 +462,262 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+
+        // Voluntary Open-Source Sponsor Card (GitHub Sponsors + Binance USDT BEP20)
+        item {
+            val binanceAddress = "0x992de9de5b80e98272e64a6f4cc3a49f4ec80198"
+            var showBinanceQr by remember { mutableStateOf(false) }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF2B1033), Color(0xFF181822))
+                        )
+                    )
+                    .border(1.dp, Color(0x44EC4899), RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "SPONSOR MELODY",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFFF472B6),
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "Support Open-Source Development",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Voluntary support helps keep servers fast & free for everyone.",
+                                fontSize = 11.sp,
+                                color = MelodyTextSecondary
+                            )
+                        }
+                        Icon(
+                            Icons.Default.Favorite,
+                            contentDescription = "Sponsor",
+                            tint = Color(0xFFEC4899),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    // GitHub Sponsors CTA
+                    Button(
+                        onClick = {
+                            try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sponsors/SonyLucky7"))
+                                )
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "github.com/sponsors/SonyLucky7", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDB2777)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("GitHub Sponsors (@SonyLucky7)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    // Binance USDT (BEP20) Box
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF101018))
+                            .border(1.dp, Color(0x44F59E0B), RoundedCornerShape(14.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Binance USDT • BSC (BEP20)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFBBF24)
+                            )
+                            TextButton(
+                                onClick = { showBinanceQr = !showBinanceQr },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            ) {
+                                Text(
+                                    text = if (showBinanceQr) "Hide QR" else "Show QR",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFDE68A)
+                                )
+                            }
+                        }
+
+                        if (showBinanceQr) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(172.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Color.White)
+                                        .padding(8.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.binance_usdt_qr_compact),
+                                        contentDescription = "Binance USDT BEP20 QR Code",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFF1C1C28))
+                                .clickable {
+                                    clipboardManager.setText(AnnotatedString(binanceAddress))
+                                    Toast.makeText(context, "Binance USDT (BEP20) address copied!", Toast.LENGTH_SHORT).show()
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = binanceAddress,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 2
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Copy Binance Address",
+                                tint = Color(0xFFFBBF24),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "Network: BNB Smart Chain (BEP20) • Don't send NFTs to this address.",
+                            fontSize = 10.sp,
+                            color = MelodyTextSecondary
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Legal, Privacy & App Version Card (always visible for Indus Appstore & Play compliance)
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF181818))
+                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "ABOUT & LEGAL",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MelodyTextSecondary,
+                        letterSpacing = 1.sp
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                try {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://melody-chi-nine.vercel.app/privacy.html"))
+                                    )
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "Privacy Policy: melody-chi-nine.vercel.app/privacy.html", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Privacy Policy", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("How Melody protects your data & offline library", color = MelodyTextSecondary, fontSize = 11.sp)
+                        }
+                        Icon(Icons.Default.OpenInNew, contentDescription = "Open Privacy Policy", tint = MelodyPrimary, modifier = Modifier.size(18.dp))
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.05f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                try {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://melody-chi-nine.vercel.app/terms.html"))
+                                    )
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "Terms: melody-chi-nine.vercel.app/terms.html", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Terms of Service", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Usage terms, copyright & support information", color = MelodyTextSecondary, fontSize = 11.sp)
+                        }
+                        Icon(Icons.Default.OpenInNew, contentDescription = "Open Terms of Service", tint = MelodyPrimary, modifier = Modifier.size(18.dp))
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.05f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("App Version", color = MelodyTextSecondary, fontSize = 12.sp)
+                        Text("Melody v1.2.3 (Build 15)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 }

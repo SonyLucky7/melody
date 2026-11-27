@@ -195,7 +195,7 @@ fun TvMainScreen(
                                 letterSpacing = 0.5.sp
                             )
                             Text(
-                                text = "Spotify TV Edition",
+                                text = "Android TV Edition",
                                 color = Color(0xFF34D399),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp
@@ -937,7 +937,7 @@ fun TvPlaylistDetailView(
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = "SPOTIFY TV PLAYLIST",
+                            text = "MELODY TV PLAYLIST",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,

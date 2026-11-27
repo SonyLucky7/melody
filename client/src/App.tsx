@@ -13,6 +13,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { DownloadModal } from './components/DownloadModal';
 import { SupportModal } from './components/SupportModal';
+import { SponsorModal } from './components/SponsorModal';
 import { usePlayer } from './context/PlayerContext';
 import {
   fetchSongs,
@@ -338,6 +339,7 @@ export const App: React.FC = () => {
   const [deviceLimitDevices, setDeviceLimitDevices] = useState<ActiveDevice[]>([]);
   const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null);
   const [showMobileInstallBanner, setShowMobileInstallBanner] = useState(true);
+  const [isSponsorModalOpen, setIsSponsorModalOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
@@ -618,7 +620,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.2</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.3</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>
@@ -718,6 +720,16 @@ export const App: React.FC = () => {
             <ArrowDownCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             <span className="hidden sm:inline">Install App</span>
             <span className="sm:hidden">Install</span>
+          </button>
+
+          {/* Sponsor Melody Pill Button (GitHub Sponsors + Binance USDT BEP20) */}
+          <button
+            onClick={() => setIsSponsorModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-pink-500/15 hover:bg-pink-500/25 active:scale-95 text-pink-200 hover:text-white text-xs sm:text-sm font-bold shadow-md transition-all whitespace-nowrap cursor-pointer border border-pink-500/30"
+            title="Sponsor Melody on GitHub or Binance USDT (BEP20)"
+          >
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400 fill-pink-400" />
+            <span className="hidden sm:inline">Sponsor</span>
           </button>
 
           {/* 24/7 Customer Support Button */}
@@ -883,6 +895,7 @@ export const App: React.FC = () => {
           onOpenProfile={() => setIsProfileModalOpen(true)}
           onOpenDownload={() => setIsDownloadModalOpen(true)}
           onOpenSupport={() => setIsSupportModalOpen(true)}
+          onOpenSponsor={() => setIsSponsorModalOpen(true)}
           userProfile={userProfile}
         />
 
@@ -1677,7 +1690,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Help, Discord & FAQ Support Modal */}
+      {/* Help & FAQ Support Modal */}
       <HelpModal
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
@@ -1724,6 +1737,12 @@ export const App: React.FC = () => {
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
         onResync={() => loadCatalog()}
+      />
+
+      {/* Sponsor Melody Modal (GitHub Sponsors & Binance USDT BEP20) */}
+      <SponsorModal
+        isOpen={isSponsorModalOpen}
+        onClose={() => setIsSponsorModalOpen(false)}
       />
     </div>
   );

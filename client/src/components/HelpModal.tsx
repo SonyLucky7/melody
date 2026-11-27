@@ -58,23 +58,22 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
 
         {/* Support Channels Grid */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          {/* Discord Community */}
-          <div
-            onClick={() => {
-              navigator.clipboard.writeText('karmaa_07');
-              alert('Copied Discord username "karmaa_07" to clipboard! Send a friend request on Discord.');
-            }}
-            className="p-3.5 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/30 hover:bg-[#5865F2]/20 transition-all flex flex-col justify-between group cursor-pointer"
+          {/* GitHub Sponsors */}
+          <a
+            href="https://github.com/sponsors/SonyLucky7"
+            target="_blank"
+            rel="noreferrer"
+            className="p-3.5 rounded-xl bg-pink-500/10 border border-pink-500/30 hover:bg-pink-500/20 transition-all flex flex-col justify-between group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2">
-              <MessageSquare className="w-5 h-5 text-[#5865F2]" />
-              <span className="text-[10px] text-[#5865F2] font-bold uppercase">Click to Copy</span>
+              <MessageSquare className="w-5 h-5 text-pink-400" />
+              <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
             </div>
             <div>
-              <div className="font-bold text-white text-xs">Discord: karmaa_07</div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">Direct chat & VIP delivery</div>
+              <div className="font-bold text-white text-xs">GitHub Sponsors</div>
+              <div className="text-[10px] text-neutral-400 mt-0.5">Support @SonyLucky7</div>
             </div>
-          </div>
+          </a>
 
           {/* Telegram Channel */}
           <a

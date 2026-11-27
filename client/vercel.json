@@ -17,7 +17,7 @@
       "destination": "https://melody-mzsm.onrender.com/health"
     },
     {
-      "source": "/((?!api|covers|stream|health|assets|favicon).*)",
+      "source": "/((?!api|covers|stream|health|assets|favicon|privacy\\.html|terms\\.html|app-ads\\.txt|ads\\.txt).*)",
       "destination": "/index.html"
     }
   ],

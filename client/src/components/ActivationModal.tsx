@@ -42,15 +42,8 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [copiedDiscord, setCopiedDiscord] = useState(false);
 
   if (!isOpen) return null;
-
-  const handleCopyDiscord = () => {
-    navigator.clipboard.writeText('karmaa_07');
-    setCopiedDiscord(true);
-    setTimeout(() => setCopiedDiscord(false), 2000);
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,13 +194,12 @@ export const ActivationModal: React.FC<ActivationModalProps> = ({
         {/* Support & Key Retrieval */}
         <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
           <span>Need your key or support?</span>
-          <button
-            type="button"
-            onClick={handleCopyDiscord}
+          <a
+            href="mailto:sonylucky46hac@gmail.com?subject=Melody%20Account%20Support"
             className="text-purple-400 hover:text-purple-300 font-semibold"
           >
-            {copiedDiscord ? 'Copied Discord Handle!' : 'Discord: karmaa_07'}
-          </button>
+            sonylucky46hac@gmail.com
+          </a>
         </div>
       </div>
     </div>

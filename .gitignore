@@ -18,6 +18,11 @@ Udyam_Registration_Certificate.*
 *.key
 *.jks
 *.keystore
+*.aab
+keystore.properties
+android/keystore/
+indus-store-release/*.apk
+indus-store-release/*.aab
 local.properties
 .gradle/
 .idea/

@@ -1,9 +1,9 @@
 # 🎵 Melody — Production-Grade Music Streaming Ecosystem
 
 [![Web Player](https://img.shields.io/badge/Web_Player-Live_on_Vercel-success?style=for-the-badge&logo=vercel)](https://melody-chi-nine.vercel.app)
-[![Android APK](https://img.shields.io/badge/Android_App-v1.2.0_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk)
-[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.2.0-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases/tag/v1.2.0)
+[![Android APK](https://img.shields.io/badge/Android_App-v1.2.3_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.2.3.apk)
+[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.2.3.apk)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.2.3-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases)
 [![Sponsor SonyLucky7](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/SonyLucky7)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material_3-4285F4?style=for-the-badge&logo=android)](https://developer.android.com/jetpack/compose)
@@ -221,9 +221,18 @@ npm run dev
 
 ---
 
-## 💖 Sponsor
+## 💖 Sponsor & Support Melody
 
-If you find this project useful, consider [sponsoring me on GitHub](https://github.com/sponsors/SonyLucky7) — your support helps me keep building open-source tools.
+If you enjoy Melody and want to help keep the servers fast, ad-light, and free for everyone:
+
+- **GitHub Sponsors**: [Sponsor `@SonyLucky7` on GitHub](https://github.com/sponsors/SonyLucky7)
+- **Binance USDT (`BSC` — BNB Smart Chain `BEP20`)**:
+  - **Address**: `0x992de9de5b80e98272e64a6f4cc3a49f4ec80198`
+  - **Network**: `BSC (BNB Smart Chain / BEP20)` *(Do not send NFTs to this address)*
+
+<p align="left">
+  <img src="client/public/binance-usdt-qr-compact.png" alt="Binance USDT BEP20 QR Code" width="180" />
+</p>
 
 ## 📄 License & Attribution
 

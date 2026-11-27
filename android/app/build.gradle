@@ -1,7 +1,22 @@
+import java.util.Properties
+
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
+
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+def releaseStoreFilePath = System.getenv("MELODY_KEYSTORE_PATH") ?: keystoreProps.getProperty("storeFile")
+def releaseStorePassword = System.getenv("MELODY_KEYSTORE_PASSWORD") ?: keystoreProps.getProperty("storePassword")
+def releaseKeyAlias = System.getenv("MELODY_KEY_ALIAS") ?: keystoreProps.getProperty("keyAlias")
+def releaseKeyPassword = System.getenv("MELODY_KEY_PASSWORD") ?: keystoreProps.getProperty("keyPassword")
+def hasReleaseSigning = releaseStoreFilePath != null && rootProject.file(releaseStoreFilePath).exists() &&
+        releaseStorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null
 
 android {
     namespace 'com.melody.music'
@@ -11,8 +26,8 @@ android {
         applicationId "com.melody.music"
         minSdk 24
         targetSdk 34
-        versionCode 14
-        versionName "1.2.2"
+        versionCode 15
+        versionName "1.2.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -20,10 +35,43 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile rootProject.file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
+        density {
+            enableSplit = true
+        }
+        abi {
+            enableSplit = true
         }
     }
     compileOptions {
@@ -35,6 +83,7 @@ android {
     }
     buildFeatures {
         compose true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.8'

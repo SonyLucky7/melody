@@ -1,4 +1,4 @@
-name: Build Melody Android APK
+name: Build Melody Android Release & Debug APK
 
 on:
   push:
@@ -26,44 +26,55 @@ jobs:
         with:
           gradle-version: '8.4'
 
-      - name: Build Android Debug APK
+      - name: Decode Release Keystore (if configured in GitHub Secrets)
+        id: keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.MELODY_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p android/keystore
+            echo "$KEYSTORE_B64" | base64 --decode > android/keystore/melody-release.jks
+            echo "signed=true" >> $GITHUB_OUTPUT
+          else
+            echo "signed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Signed Release AAB & APK (Indus Appstore Ready)
+        if: steps.keystore.outputs.signed == 'true'
+        working-directory: android
+        env:
+          MELODY_KEYSTORE_PATH: keystore/melody-release.jks
+          MELODY_KEYSTORE_PASSWORD: ${{ secrets.MELODY_KEYSTORE_PASSWORD }}
+          MELODY_KEY_ALIAS: ${{ secrets.MELODY_KEY_ALIAS }}
+          MELODY_KEY_PASSWORD: ${{ secrets.MELODY_KEY_PASSWORD }}
+        run: |
+          gradle assembleRelease bundleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk ../Melody-v1.2.3.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../Melody-v1.2.3.aab
+
+      - name: Build Debug Fallback APK (when release secrets are not configured in CI)
+        if: steps.keystore.outputs.signed != 'true'
         working-directory: android
         run: |
           gradle assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../Melody-v1.2.3-debug.apk
 
-      - name: Rename APK
-        working-directory: android/app/build/outputs/apk/debug
-        run: |
-          cp app-debug.apk Melody-v1.2.2.apk
-
-      - name: Upload APK to GitHub Artifacts
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.2.2
-          path: android/app/build/outputs/apk/debug/Melody-v1.2.2.apk
+          name: Melody-Android-v1.2.3
+          path: |
+            Melody-v1.2.3*.apk
+            Melody-v1.2.3.aab
           retention-days: 30
 
-      - name: Release APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.2.2
-          name: Melody Android App v1.2.2 (Full Audit, TV & Mobile Stability Edition)
-          body: |
-            ### 🎵 Melody Android v1.2.2 (Full Audit, TV & Mobile Stability Edition)
-            - 📺 Android TV Fixes: Fixed left nav rail getting stuck on Artist pages, added live-synced public playlists 4-column grid, Adithi Telugu Melodies shelf & TV Search filters, and disabled interstitial ads on TV
-            - 🎛️ Mobile App Fixes: Rebuilt Equalizer sliders to full-width precision controls, added live album artwork loading to the Home Screen Widget, fixed instant reactive Login/Logout state, and fixed dark-on-dark text in Activation Dialog
-            - 🔒 Spotify Lock Screen & Notification Media Card + Zero-Cut OkHttp ExoPlayer streaming (30s–120s buffer, 6x retry, position-preserving recovery)
-            - 💜 All 859 songs audited (0 broken streams, 0 oversized tracks, guest Recently Played fixed)
-          files: android/app/build/outputs/apk/debug/Melody-v1.2.2.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy APK to client/public
+      - name: Release Signed APK to GitHub & Web (only when signed release built)
+        if: steps.keystore.outputs.signed == 'true'
         run: |
-          cp android/app/build/outputs/apk/debug/Melody-v1.2.2.apk client/public/Melody-v1.2.2.apk
-          cp android/app/build/outputs/apk/debug/Melody-v1.2.2.apk client/public/Melody-latest.apk
+          cp Melody-v1.2.3.apk client/public/Melody-v1.2.3.apk
+          cp Melody-v1.2.3.apk client/public/Melody-latest.apk
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add client/public/Melody-v1.2.2.apk client/public/Melody-latest.apk
-          git diff --staged --quiet || git commit -m "Auto-deploy Melody-v1.2.2.apk [skip ci]"
+          git add client/public/Melody-v1.2.3.apk client/public/Melody-latest.apk
+          git diff --staged --quiet || git commit -m "Auto-deploy signed Melody-v1.2.3.apk [skip ci]"
           git push

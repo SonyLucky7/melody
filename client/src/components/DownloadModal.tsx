@@ -28,7 +28,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
-  const apkUrl = '/Melody-v1.2.2.apk';
+  const apkUrl = '/Melody-v1.2.3.apk';
 
   const copyUrl = () => {
     const fullUrl = `${window.location.origin}${apkUrl}`;
@@ -55,7 +55,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
               <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
                 Download Melody
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                  v1.2.2
+                  v1.2.3
                 </span>
               </h2>
               <p className="text-xs text-neutral-400">
@@ -150,17 +150,17 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
                     </span>
                   </div>
                   <p className="text-xs text-neutral-300">
-                    Android 8.0 to Android 16 • 22 MB • Lock Screen Controls & Offline Mode
+                    Android 7.0 to Android 16 • Signed Release APK • Lock Screen Controls & Offline Mode
                   </p>
                 </div>
 
                 <a
                   href={apkUrl}
-                  download="Melody-v1.2.2.apk"
+                  download="Melody-v1.2.3.apk"
                   className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download APK (v1.2.2)</span>
+                  <span>Download APK (v1.2.3)</span>
                 </a>
               </div>
 
@@ -256,7 +256,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
 
                 <a
                   href={apkUrl}
-                  download="Melody-v1.2.2.apk"
+                  download="Melody-v1.2.3.apk"
                   className="w-full sm:w-auto px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:brightness-110 active:scale-95 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
@@ -355,7 +355,7 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
                   <p>1. Open this page in Safari</p>
                   <p>2. Click <strong className="text-white">File</strong> in the top menu bar</p>
                   <p>3. Select <strong className="text-purple-300">"Add to Dock..."</strong></p>
-                  <p>4. Launch Melody directly from your Mac Dock like Spotify!</p>
+                  <p>4. Launch Melody directly from your Mac Dock as a standalone app!</p>
                 </div>
               </div>
             </div>
@@ -424,7 +424,14 @@ export const DownloadModal: React.FC<DownloadModalProps> = ({ isOpen, onClose })
             <ShieldCheck className="w-4 h-4 text-purple-400" />
             <span>100% Verified Safe & Virus-Free</span>
           </div>
-          <span>Melody Free Studio Audio</span>
+          <div className="flex items-center gap-3">
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+              Privacy Policy
+            </a>
+            <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-white underline">
+              Terms
+            </a>
+          </div>
         </div>
       </div>
     </div>

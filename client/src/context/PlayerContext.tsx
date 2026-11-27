@@ -66,8 +66,8 @@ interface PlayerContextType {
   // Now Playing Theme View
   isNowPlayingOpen: boolean;
   setIsNowPlayingOpen: (open: boolean) => void;
-  nowPlayingTheme: 'vinyl' | 'radial';
-  setNowPlayingTheme: (theme: 'vinyl' | 'radial') => void;
+  nowPlayingTheme: 'cover' | 'vinyl' | 'radial';
+  setNowPlayingTheme: (theme: 'cover' | 'vinyl' | 'radial') => void;
   getAudioFrequencyData: () => Uint8Array | null;
   // Playback Controls
   playSong: (song: Song, queueList?: Song[]) => Promise<void>;
@@ -164,15 +164,17 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Now Playing Fullscreen Animated Theme View State
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState<boolean>(false);
-  const [nowPlayingTheme, setNowPlayingTheme] = useState<'vinyl' | 'radial'>(() => {
+  const [nowPlayingTheme, setNowPlayingTheme] = useState<'cover' | 'vinyl' | 'radial'>(() => {
     try {
-      return (localStorage.getItem('melody_now_playing_theme') as any) || 'vinyl';
+      const saved = localStorage.getItem('melody_now_playing_theme');
+      if (saved === 'cover' || saved === 'vinyl' || saved === 'radial') return saved;
+      return 'vinyl';
     } catch {
       return 'vinyl';
     }
   });
 
-  const updateNowPlayingTheme = (theme: 'vinyl' | 'radial') => {
+  const updateNowPlayingTheme = (theme: 'cover' | 'vinyl' | 'radial') => {
     setNowPlayingTheme(theme);
     try {
       localStorage.setItem('melody_now_playing_theme', theme);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude sensitive auth tokens & local offline tracks from Android cloud backup (cache is excluded automatically by Android) -->
+    <exclude domain="sharedpref" path="melody_auth_prefs.xml" />
+    <exclude domain="file" path="offline_tracks" />
+</full-backup-content>

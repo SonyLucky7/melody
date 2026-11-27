@@ -15,6 +15,7 @@ interface SidebarProps {
   onOpenProfile?: () => void;
   onOpenDownload?: () => void;
   onOpenSupport?: () => void;
+  onOpenSponsor?: () => void;
   userProfile?: UserProfile | null;
 }
 
@@ -30,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenProfile,
   onOpenDownload,
   onOpenSupport,
+  onOpenSponsor,
   userProfile,
 }) => {
   return (
@@ -295,25 +297,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         ) : (
           <a
-            href="/Melody-v1.2.2.apk"
+            href="/Melody-v1.2.3.apk"
             download
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white transition-all border border-purple-500/30"
-            title="Download Melody Android APK (v1.2.2)"
+            title="Download Melody Android APK (v1.2.3)"
           >
             <ArrowDownCircle className="w-3.5 h-3.5 text-purple-400" />
             <span>Download Android App</span>
           </a>
         )}
 
-        {/* 24/7 Customer Support & Help */}
-        <button
-          onClick={onOpenSupport ? onOpenSupport : onOpenHelp}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all cursor-pointer"
-          title="24/7 Customer Support & FAQ"
-        >
-          <Headphones className="w-3.5 h-3.5 text-purple-400" />
-          <span>Support & Help Desk</span>
-        </button>
+        {/* Sponsor & Support Row (compact 2-column row so Playlists drawer stays spacious!) */}
+        <div className="flex gap-1.5">
+          {onOpenSponsor && (
+            <button
+              onClick={onOpenSponsor}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 hover:text-white transition-all border border-pink-500/25 cursor-pointer"
+              title="Sponsor Melody on GitHub or Binance USDT (BEP20)"
+            >
+              <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-400" />
+              <span>Sponsor</span>
+            </button>
+          )}
+
+          <button
+            onClick={onOpenSupport ? onOpenSupport : onOpenHelp}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-all cursor-pointer"
+            title="24/7 Customer Support & FAQ"
+          >
+            <Headphones className="w-3.5 h-3.5 text-purple-400" />
+            <span>Support</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

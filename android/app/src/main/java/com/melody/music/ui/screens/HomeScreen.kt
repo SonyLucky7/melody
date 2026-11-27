@@ -170,7 +170,7 @@ fun HomeScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (onSwitchToTvMode != null) {
                         IconButton(onClick = onSwitchToTvMode) {
-                            Icon(Icons.Default.Tv, contentDescription = "Spotify TV Mode", tint = MelodyPrimary)
+                            Icon(Icons.Default.Tv, contentDescription = "Melody TV Mode", tint = MelodyPrimary)
                         }
                     }
                     if (onRefresh != null) {
