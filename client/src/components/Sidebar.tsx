@@ -55,10 +55,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Main Nav Links (Spotify Style) */}
-      <nav className="mt-4 space-y-1">
+      <nav className="mt-2 space-y-0.5 flex-shrink-0">
         <button
           onClick={() => onSelectView('home')}
-          className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-md text-sm font-bold transition-all ${
+          className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-md text-sm font-bold transition-all ${
             currentView === 'home'
               ? 'text-white bg-white/10'
               : 'hover:text-white hover:bg-white/5'
@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => onSelectView('search')}
-          className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-md text-sm font-bold transition-all ${
+          className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-md text-sm font-bold transition-all ${
             currentView === 'search'
               ? 'text-white bg-white/10'
               : 'hover:text-white hover:bg-white/5'
@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => onSelectView('library')}
-          className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-md text-sm font-bold transition-all ${
+          className={`w-full flex items-center gap-3.5 px-3 py-2 rounded-md text-sm font-bold transition-all ${
             currentView === 'library'
               ? 'text-white bg-white/10'
               : 'hover:text-white hover:bg-white/5'
@@ -93,11 +93,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </nav>
 
-      {/* Playlists & Artists Section */}
-      <div className="mt-5 pt-4 border-t border-[#282828] space-y-1.5">
+      {/* Quick Library Shortcuts */}
+      <div className="mt-3 pt-2.5 border-t border-[#282828] space-y-1 flex-shrink-0">
         <button
           onClick={onCreatePlaylist}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium hover:text-white hover:bg-white/5 transition-all text-[#b3b3b3]"
+          className="w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium hover:text-white hover:bg-white/5 transition-all text-[#b3b3b3]"
         >
           <div className="w-6 h-6 rounded bg-[#282828] flex items-center justify-center text-white">
             <PlusSquare className="w-4 h-4" />
@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => onSelectView('favourites')}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
             currentView === 'favourites' ? 'text-white bg-white/10' : 'hover:text-white hover:bg-white/5 text-[#b3b3b3]'
           }`}
         >
@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => onSelectView('history')}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
             currentView === 'history' ? 'text-white bg-white/10' : 'hover:text-white hover:bg-white/5 text-[#b3b3b3]'
           }`}
         >
@@ -130,98 +130,104 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </button>
       </div>
 
-      {/* Featured Artists Quick Links */}
-      <div className="mt-5 pt-3 border-t border-[#282828]">
-        <div className="text-[11px] font-bold text-[#b3b3b3] uppercase px-3 py-1 tracking-wider">
-          Artists
+      {/* Unified Scrollable Playlists & Artists Drawer (Always visible on all screen heights!) */}
+      <div className="mt-3 pt-2.5 border-t border-[#282828] flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+        {/* Public & User Playlists FIRST (Spotify pattern — visible to everyone!) */}
+        <div>
+          <div className="text-[11px] font-bold text-[#b3b3b3] uppercase px-3 py-1 tracking-wider">
+            Playlists ({playlists.length})
+          </div>
+          <div className="space-y-0.5 mt-0.5">
+            {playlists.map((pl) => (
+              <button
+                key={pl.id}
+                onClick={() => onSelectView('playlist', pl)}
+                className="w-full text-left px-3 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-white/5 truncate transition-colors block"
+                title={pl.name}
+              >
+                {pl.name}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="space-y-0.5 mt-1 max-h-36 overflow-y-auto pr-1">
-          <button
-            onClick={() => onSelectView('artist', 'Sidhu Moose Wala')}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
-              currentView === 'artist' && selectedArtist === 'Sidhu Moose Wala'
-                ? 'text-[#a855f7] font-bold bg-white/10'
-                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <div className="w-4 h-4 rounded-full bg-red-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
-              S
-            </div>
-            <span className="truncate">Sidhu Moose Wala</span>
-          </button>
 
-          <button
-            onClick={() => onSelectView('artist', 'Yo Yo Honey Singh')}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
-              currentView === 'artist' && selectedArtist === 'Yo Yo Honey Singh'
-                ? 'text-[#a855f7] font-bold bg-white/10'
-                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <div className="w-4 h-4 rounded-full bg-amber-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
-              Y
-            </div>
-            <span className="truncate">Yo Yo Honey Singh</span>
-          </button>
+        {/* Featured Artists Quick Links */}
+        <div className="pt-2 border-t border-[#282828]/70">
+          <div className="text-[11px] font-bold text-[#b3b3b3] uppercase px-3 py-1 tracking-wider">
+            Artists
+          </div>
+          <div className="space-y-0.5 mt-0.5">
+            <button
+              onClick={() => onSelectView('artist', 'Sidhu Moose Wala')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+                currentView === 'artist' && selectedArtist === 'Sidhu Moose Wala'
+                  ? 'text-[#a855f7] font-bold bg-white/10'
+                  : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="w-4 h-4 rounded-full bg-red-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                S
+              </div>
+              <span className="truncate">Sidhu Moose Wala</span>
+            </button>
 
-          <button
-            onClick={() => onSelectView('artist', 'Ariana Grande')}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
-              currentView === 'artist' && selectedArtist === 'Ariana Grande'
-                ? 'text-[#a855f7] font-bold bg-white/10'
-                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <div className="w-4 h-4 rounded-full bg-pink-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
-              A
-            </div>
-            <span className="truncate">Ariana Grande</span>
-          </button>
+            <button
+              onClick={() => onSelectView('artist', 'Yo Yo Honey Singh')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+                currentView === 'artist' && selectedArtist === 'Yo Yo Honey Singh'
+                  ? 'text-[#a855f7] font-bold bg-white/10'
+                  : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="w-4 h-4 rounded-full bg-amber-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                Y
+              </div>
+              <span className="truncate">Yo Yo Honey Singh</span>
+            </button>
 
-          <button
-            onClick={() => onSelectView('artist', 'The Weeknd')}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
-              currentView === 'artist' && selectedArtist === 'The Weeknd'
-                ? 'text-[#a855f7] font-bold bg-white/10'
-                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <div className="w-4 h-4 rounded-full bg-purple-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
-              W
-            </div>
-            <span className="truncate">The Weeknd</span>
-          </button>
+            <button
+              onClick={() => onSelectView('artist', 'Ariana Grande')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+                currentView === 'artist' && selectedArtist === 'Ariana Grande'
+                  ? 'text-[#a855f7] font-bold bg-white/10'
+                  : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="w-4 h-4 rounded-full bg-pink-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                A
+              </div>
+              <span className="truncate">Ariana Grande</span>
+            </button>
 
-          <button
-            onClick={() => onSelectView('artist', 'Lana Del Rey')}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
-              currentView === 'artist' && selectedArtist === 'Lana Del Rey'
-                ? 'text-[#a855f7] font-bold bg-white/10'
-                : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <div className="w-4 h-4 rounded-full bg-blue-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
-              L
-            </div>
-            <span className="truncate">Lana Del Rey</span>
-          </button>
+            <button
+              onClick={() => onSelectView('artist', 'The Weeknd')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+                currentView === 'artist' && selectedArtist === 'The Weeknd'
+                  ? 'text-[#a855f7] font-bold bg-white/10'
+                  : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="w-4 h-4 rounded-full bg-purple-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                W
+              </div>
+              <span className="truncate">The Weeknd</span>
+            </button>
+
+            <button
+              onClick={() => onSelectView('artist', 'Lana Del Rey')}
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm truncate transition-colors text-left ${
+                currentView === 'artist' && selectedArtist === 'Lana Del Rey'
+                  ? 'text-[#a855f7] font-bold bg-white/10'
+                  : 'text-[#b3b3b3] hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <div className="w-4 h-4 rounded-full bg-blue-900/60 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0">
+                L
+              </div>
+              <span className="truncate">Lana Del Rey</span>
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* User Playlists List */}
-      <div className="mt-4 flex-1 overflow-y-auto space-y-1 pr-1">
-        <div className="text-[11px] font-bold text-neutral-500 uppercase px-3 py-1 tracking-wider">
-          Playlists
-        </div>
-        {playlists.map((pl) => (
-          <button
-            key={pl.id}
-            onClick={() => onSelectView('playlist', pl)}
-            className="w-full text-left px-3 py-1.5 rounded text-sm text-[#b3b3b3] hover:text-white hover:bg-white/5 truncate transition-colors block"
-          >
-            {pl.name}
-          </button>
-        ))}
       </div>
 
       {/* Bottom Footer Actions */}
