@@ -1,5 +1,5 @@
 import { Song } from '../types';
-import { API_BASE, STREAM_BASE } from './api';
+import { STREAM_BASE } from './api';
 
 export interface OfflineTrack {
   id: number;
@@ -173,7 +173,7 @@ export async function downloadSongForOffline(
     }
   }
 
-  const audioBlob = new Blob(chunks, { type: 'audio/mpeg' });
+  const audioBlob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
   await saveSongOffline(song, audioBlob);
   if (onProgress) onProgress(100);
 

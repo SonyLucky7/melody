@@ -114,29 +114,25 @@ fun EqualizerSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 6 Vertical Band Sliders
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            // 6 Full-Width Precision Band Sliders (tactile & easy to drag on any phone)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 bands.forEachIndexed { index, gain ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = if (gain > 0) "+$gain dB" else "$gain dB",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (gain != 0) MelodyPrimary else MelodyTextMuted
+                            text = bandLabels.getOrElse(index) { "Band" },
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MelodyTextSecondary,
+                            modifier = Modifier.width(48.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Custom Vertical Slider representation
                         Slider(
                             value = gain.toFloat(),
                             onValueChange = {
@@ -145,22 +141,20 @@ fun EqualizerSheet(
                             },
                             valueRange = -10f..10f,
                             steps = 19,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
+                            modifier = Modifier.weight(1f),
                             colors = SliderDefaults.colors(
-                                thumbColor = MelodyPrimary,
+                                thumbColor = Color.White,
                                 activeTrackColor = MelodyPrimary,
                                 inactiveTrackColor = MelodyCard
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         Text(
-                            text = bandLabels.getOrElse(index) { "Band" },
-                            fontSize = 11.sp,
-                            color = MelodyTextSecondary
+                            text = if (gain > 0) "+${gain}dB" else "${gain}dB",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (gain != 0) MelodyPrimary else MelodyTextMuted,
+                            modifier = Modifier.width(44.dp)
                         )
                     }
                 }

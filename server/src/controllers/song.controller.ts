@@ -214,18 +214,25 @@ export async function prewarmStream(req: AuthenticatedRequest, res: Response): P
 export async function recordSongPlay(req: AuthenticatedRequest, res: Response): Promise<void> {
   const songId = parseInt(req.params.id, 10);
   if (isNaN(songId)) {
-    res.status(400).json({ error: 'INVALID_ID', message: 'Song ID must be an integer.' });
+    res.status(400).json({ error: 'INVALID_ID', message: 'Valid song ID required.' });
     return;
   }
 
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
 
   try {
     if (licenceId > 0) {
       await query(
-        `INSERT INTO recent_plays (licence_id, song_id, played_at)
-         VALUES ($1, $2, NOW())`,
-        [licenceId, songId]
+        `INSERT INTO recent_plays (licence_id, device_id, song_id, played_at)
+         VALUES ($1, $2, $3, NOW())`,
+        [licenceId, deviceId || null, songId]
+      );
+    } else if (deviceId) {
+      await query(
+        `INSERT INTO recent_plays (licence_id, device_id, song_id, played_at)
+         VALUES (NULL, $1, $2, NOW())`,
+        [deviceId, songId]
       );
     }
     res.status(200).json({ success: true, message: 'Playback recorded.' });
@@ -236,10 +243,11 @@ export async function recordSongPlay(req: AuthenticatedRequest, res: Response): 
 }
 
 /**
- * Get Spotify-Style Recently Played Songs
+ * Get Spotify-Style Recently Played Songs (supports both VIP accounts & guest devices)
  */
 export async function getRecentlyPlayed(req: AuthenticatedRequest, res: Response): Promise<void> {
   const licenceId = req.session?.licenceId || 0;
+  const deviceId = req.session?.deviceId || (req.headers['x-device-id'] as string) || '';
 
   try {
     const resHistory = await query(
@@ -247,10 +255,13 @@ export async function getRecentlyPlayed(req: AuthenticatedRequest, res: Response
               s.id, s.title, s.artist, s.album, s.language, s.duration_seconds, s.cover_url, rp.played_at
        FROM recent_plays rp
        JOIN songs s ON s.id = rp.song_id
-       WHERE rp.licence_id = $1
+       WHERE (
+         ($1 > 0 AND rp.licence_id = $1)
+         OR ($1 = 0 AND $2 != '' AND rp.device_id = $2)
+       )
        ORDER BY s.id, rp.played_at DESC
        LIMIT 30`,
-      [licenceId]
+      [licenceId, deviceId]
     );
 
     // Re-sort by played_at descending

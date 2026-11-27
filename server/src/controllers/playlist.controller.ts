@@ -107,16 +107,20 @@ export async function getPlaylists(req: AuthenticatedRequest, res: Response): Pr
 
   try {
     const playlistsRes = await query(
-      `SELECT p.id, p.name, p.created_at, COUNT(ps.song_id)::int as total_songs
+      `SELECT p.id, p.name, p.created_at, p.is_public, p.licence_id, p.device_id, COUNT(ps.song_id)::int as total_songs
        FROM playlists p
        LEFT JOIN playlist_songs ps ON ps.playlist_id = p.id
        WHERE (
          p.is_public = true
-         OR p.licence_id IS NULL
          OR ($1 > 0 AND p.licence_id = $1)
          OR ($1 = 0 AND $2 != '' AND p.device_id = $2)
        )
        GROUP BY p.id
+       HAVING (
+         ($1 > 0 AND p.licence_id = $1)
+         OR ($1 = 0 AND $2 != '' AND p.device_id = $2)
+         OR (p.is_public = true AND COUNT(ps.song_id) > 0)
+       )
        ORDER BY p.id DESC`,
       [licenceId, deviceId]
     );
@@ -131,9 +135,9 @@ export async function getPlaylists(req: AuthenticatedRequest, res: Response): Pr
       created_at: new Date().toISOString(),
     }));
 
-    const userPlaylists = playlistsRes.rows.filter(
-      (r: any) => !CURATED_PLAYLISTS.some((c) => c.id === r.id)
-    );
+    const userPlaylists = playlistsRes.rows
+      .filter((r: any) => !CURATED_PLAYLISTS.some((c) => c.id === r.id))
+      .map(({ licence_id, device_id, ...rest }: any) => rest);
 
     res.status(200).json({
       success: true,
@@ -158,7 +162,7 @@ export async function createPlaylist(req: AuthenticatedRequest, res: Response): 
   try {
     const createRes = await query(
       `INSERT INTO playlists (licence_id, device_id, name, is_public)
-       VALUES ($1, $2, $3, true)
+       VALUES ($1, $2, $3, false)
        RETURNING id, name, created_at`,
       [licenceId > 0 ? licenceId : null, deviceId, name]
     );

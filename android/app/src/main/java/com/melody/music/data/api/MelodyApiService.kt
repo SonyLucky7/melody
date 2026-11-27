@@ -3,6 +3,9 @@ package com.melody.music.data.api
 import android.content.Context
 import com.google.gson.Gson
 import com.melody.music.data.model.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
@@ -87,6 +90,12 @@ object ApiClient {
     var deviceId: String = "android-" + UUID.randomUUID().toString().take(12)
     var currentUser: AndroidUserProfile? = null
 
+    private val _isActivatedFlow = MutableStateFlow(false)
+    val isActivatedFlow: StateFlow<Boolean> = _isActivatedFlow.asStateFlow()
+
+    private val _currentUserFlow = MutableStateFlow<AndroidUserProfile?>(null)
+    val currentUserFlow: StateFlow<AndroidUserProfile?> = _currentUserFlow.asStateFlow()
+
     val isActivated: Boolean
         get() = !deviceToken.isNullOrBlank()
 
@@ -103,12 +112,14 @@ object ApiClient {
 
         // Persistent session token
         deviceToken = prefs.getString("device_token", null)
+        _isActivatedFlow.value = !deviceToken.isNullOrBlank()
 
         // Persistent user profile
         val userJson = prefs.getString("user_profile", null)
         if (!userJson.isNullOrBlank()) {
             try {
                 currentUser = Gson().fromJson(userJson, AndroidUserProfile::class.java)
+                _currentUserFlow.value = currentUser
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -118,6 +129,8 @@ object ApiClient {
     fun saveSession(context: Context, token: String, user: AndroidUserProfile?) {
         deviceToken = token
         currentUser = user
+        _isActivatedFlow.value = token.isNotBlank()
+        _currentUserFlow.value = user
         val prefs = context.getSharedPreferences("melody_prefs", Context.MODE_PRIVATE)
         val editor = prefs.edit().putString("device_token", token)
         if (user != null) {
@@ -129,6 +142,8 @@ object ApiClient {
     fun clearSession(context: Context) {
         deviceToken = null
         currentUser = null
+        _isActivatedFlow.value = false
+        _currentUserFlow.value = null
         val prefs = context.getSharedPreferences("melody_prefs", Context.MODE_PRIVATE)
         prefs.edit().remove("device_token").remove("user_profile").apply()
     }

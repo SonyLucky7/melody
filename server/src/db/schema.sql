@@ -69,8 +69,11 @@ CREATE TABLE IF NOT EXISTS playlists (
   licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
   device_id VARCHAR(100),
   name VARCHAR(100) NOT NULL,
+  is_public BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE playlists ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
 
 -- 6. Playlist Songs Junction Table
 CREATE TABLE IF NOT EXISTS playlist_songs (
@@ -93,11 +96,14 @@ CREATE TABLE IF NOT EXISTS favourites (
 CREATE TABLE IF NOT EXISTS recent_plays (
   id SERIAL PRIMARY KEY,
   licence_id INT REFERENCES licences(id) ON DELETE CASCADE,
+  device_id VARCHAR(100),
   song_id INT REFERENCES songs(id) ON DELETE CASCADE,
   played_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE recent_plays ADD COLUMN IF NOT EXISTS device_id VARCHAR(100);
 CREATE INDEX IF NOT EXISTS idx_recent_plays_history ON recent_plays (licence_id, played_at DESC);
+CREATE INDEX IF NOT EXISTS idx_recent_plays_device ON recent_plays (device_id, played_at DESC);
 
 -- 9. Payments Table (Direct UPI QR Transactions)
 CREATE TABLE IF NOT EXISTS payments (

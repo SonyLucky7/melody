@@ -69,6 +69,39 @@ fun TvMainScreen(
     val isPlaying by MelodyPlayerManager.isPlaying.collectAsState()
     val progressMs by MelodyPlayerManager.progressMs.collectAsState()
     val durationMs by MelodyPlayerManager.durationMs.collectAsState()
+    val isActivated by ApiClient.isActivatedFlow.collectAsState()
+
+    var tvPlaylists by remember { mutableStateOf(PUBLIC_PLAYLISTS) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val res = ApiClient.apiService.getPlaylists()
+            if (res.success && res.data.isNotEmpty()) {
+                val map = LinkedHashMap<Long, Playlist>()
+                PUBLIC_PLAYLISTS.forEach { map[it.id] = it }
+                res.data.forEach { pl ->
+                    val existing = map[pl.id]
+                    if (existing != null) {
+                        map[pl.id] = pl.copy(
+                            coverUrl = pl.coverUrl ?: existing.coverUrl,
+                            description = pl.description ?: existing.description,
+                            totalSongs = if ((pl.totalSongs ?: 0) > 0) pl.totalSongs else existing.totalSongs
+                        )
+                    } else if ((pl.totalSongs ?: 0) > 0) {
+                        map[pl.id] = pl
+                    }
+                }
+                tvPlaylists = map.values.toList()
+            }
+        } catch (_: Exception) {}
+    }
+
+    val adithiSongs = remember(songs) {
+        songs.filter {
+            it.album?.equals("Adithi", ignoreCase = true) == true ||
+            it.language?.equals("telugu", ignoreCase = true) == true
+        }
+    }
 
     // Categorized track lists
     val phonkSongs = remember(songs) {
@@ -172,13 +205,14 @@ fun TvMainScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Nav Menu Items with Remote OK Support
+                    // Nav Menu Items with Remote OK Support (always clears both Playlist & Artist drilldown!)
                     TvNavRailItem(
                         icon = Icons.Default.Home,
                         label = "Home",
-                        isSelected = selectedTab == 0 && selectedPlaylistInTv == null,
+                        isSelected = selectedTab == 0 && selectedPlaylistInTv == null && selectedArtistInTv == null,
                         onClick = {
                             selectedPlaylistInTv = null
+                            selectedArtistInTv = null
                             selectedTab = 0
                         }
                     )
@@ -186,9 +220,10 @@ fun TvMainScreen(
                     TvNavRailItem(
                         icon = Icons.Default.Search,
                         label = "Search",
-                        isSelected = selectedTab == 1 && selectedPlaylistInTv == null,
+                        isSelected = selectedTab == 1 && selectedPlaylistInTv == null && selectedArtistInTv == null,
                         onClick = {
                             selectedPlaylistInTv = null
+                            selectedArtistInTv = null
                             selectedTab = 1
                         }
                     )
@@ -196,9 +231,10 @@ fun TvMainScreen(
                     TvNavRailItem(
                         icon = Icons.Default.QueueMusic,
                         label = "Playlists",
-                        isSelected = selectedTab == 2 || selectedPlaylistInTv != null,
+                        isSelected = (selectedTab == 2 && selectedArtistInTv == null) || selectedPlaylistInTv != null,
                         onClick = {
                             selectedPlaylistInTv = null
+                            selectedArtistInTv = null
                             selectedTab = 2
                         }
                     )
@@ -206,19 +242,21 @@ fun TvMainScreen(
                     TvNavRailItem(
                         icon = Icons.Default.LibraryMusic,
                         label = "Your Library",
-                        isSelected = selectedTab == 3 && selectedPlaylistInTv == null,
+                        isSelected = selectedTab == 3 && selectedPlaylistInTv == null && selectedArtistInTv == null,
                         onClick = {
                             selectedPlaylistInTv = null
+                            selectedArtistInTv = null
                             selectedTab = 3
                         }
                     )
 
                     TvNavRailItem(
-                        icon = if (ApiClient.isActivated) Icons.Default.Person else Icons.Default.Key,
-                        label = if (ApiClient.isActivated) "VIP Account" else "Activate VIP",
-                        isSelected = selectedTab == 4 && selectedPlaylistInTv == null,
+                        icon = if (isActivated) Icons.Default.Person else Icons.Default.Key,
+                        label = if (isActivated) "VIP Account" else "Activate VIP",
+                        isSelected = selectedTab == 4 && selectedPlaylistInTv == null && selectedArtistInTv == null,
                         onClick = {
                             selectedPlaylistInTv = null
+                            selectedArtistInTv = null
                             selectedTab = 4
                         }
                     )
@@ -389,20 +427,39 @@ fun TvMainScreen(
                                     }
                                 }
 
-                                // Shelf 2: Curated Playlists
+                                // Shelf 2: Curated & Public Playlists (Live Synced!)
                                 item {
                                     TvShelfSection(
-                                        title = "🎧 Curated Studio Playlists",
+                                        title = "🎧 Curated Studio Playlists (${tvPlaylists.size})",
                                         subtitle = "Lossless collections curated for home audio systems"
                                     ) {
                                         LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                                            items(PUBLIC_PLAYLISTS) { pl ->
+                                            items(tvPlaylists) { pl ->
                                                 TvPlaylistCard(
                                                     playlist = pl,
                                                     onClick = {
                                                         selectedPlaylistInTv = pl
                                                     }
                                                 )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Shelf 2B: Adithi — Telugu Melodies
+                                if (adithiSongs.isNotEmpty()) {
+                                    item {
+                                        TvShelfSection(
+                                            title = "💜 Adithi — Telugu Melodies (${adithiSongs.size})",
+                                            subtitle = "Maate Vinadhuga, Vennelave Vennelave, Inthandham, Emai Poyave & hits"
+                                        ) {
+                                            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                                items(adithiSongs) { song ->
+                                                    TvSongCard(
+                                                        song = song,
+                                                        onClick = { playSongAndOpenPlayer(song, adithiSongs) }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -504,14 +561,14 @@ fun TvMainScreen(
                         }
 
                         2 -> {
-                            // PLAYLISTS VIEW
+                            // PLAYLISTS VIEW (Multi-row 4-column TV grid showing ALL public playlists!)
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(20.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 item {
                                     Text(
-                                        text = "All Playlists & Collections",
+                                        text = "All Playlists & Collections (${tvPlaylists.size})",
                                         color = Color.White,
                                         fontSize = 26.sp,
                                         fontWeight = FontWeight.Black,
@@ -523,9 +580,12 @@ fun TvMainScreen(
                                         fontSize = 13.sp
                                     )
                                 }
-                                item {
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                                        items(PUBLIC_PLAYLISTS) { pl ->
+                                items(tvPlaylists.chunked(4)) { rowPlaylists ->
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        rowPlaylists.forEach { pl ->
                                             TvPlaylistCard(
                                                 playlist = pl,
                                                 onClick = {
@@ -534,6 +594,9 @@ fun TvMainScreen(
                                             )
                                         }
                                     }
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(80.dp))
                                 }
                             }
                         }
@@ -668,8 +731,8 @@ fun TvMainScreen(
                                                 softWrap = false
                                             )
                                             Text(
-                                                text = if (ApiClient.isActivated) "Active • Studio Lossless FLAC Tier" else "Standard Tier • VIP Activation Available",
-                                                color = if (ApiClient.isActivated) Color(0xFF34D399) else Color(0xFFD8B4FE),
+                                                text = if (isActivated) "Active • Studio Lossless FLAC Tier" else "Standard Tier • VIP Activation Available",
+                                                color = if (isActivated) Color(0xFF34D399) else Color(0xFFD8B4FE),
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -731,7 +794,7 @@ fun TvMainScreen(
                                                 modifier = Modifier.size(18.dp)
                                             )
                                             Text(
-                                                text = if (ApiClient.isActivated) "Update VIP Key / Re-activate" else "Enter VIP License Key",
+                                                text = if (isActivated) "Update VIP Key / Re-activate" else "Enter VIP License Key",
                                                 color = if (isFocused) Color.Black else Color.White,
                                                 fontWeight = FontWeight.Black,
                                                 fontSize = 13.sp,
@@ -1435,7 +1498,7 @@ fun TvSearchView(
     onQueryChange: (String) -> Unit,
     onSongClick: (Song, List<Song>) -> Unit
 ) {
-    val quickFilters = listOf("All", "Brazil Phonk", "The Weeknd", "Sidhu Moose Wala", "Honey Singh", "Slowed", "Motivation")
+    val quickFilters = listOf("All", "Adithi", "Telugu", "Brazil Phonk", "The Weeknd", "Sidhu Moose Wala", "Honey Singh", "Slowed", "Motivation")
     var selectedFilter by remember { mutableStateOf("All") }
 
     val filtered = remember(songs, searchQuery, selectedFilter) {
@@ -1446,6 +1509,8 @@ fun TvSearchView(
                 (song.album?.contains(searchQuery, ignoreCase = true) == true)
 
             val matchFilter = when (selectedFilter) {
+                "Adithi" -> song.album?.equals("Adithi", true) == true
+                "Telugu" -> song.language?.equals("telugu", true) == true || song.album?.equals("Adithi", true) == true
                 "Brazil Phonk" -> song.album?.contains("phonk", true) == true || song.album?.contains("brazil", true) == true || song.title.contains("montagem", true)
                 "The Weeknd" -> isArtistMatch(song.artist, "The Weeknd")
                 "Sidhu Moose Wala" -> isArtistMatch(song.artist, "Sidhu Moose Wala")
@@ -1475,7 +1540,7 @@ fun TvSearchView(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onQueryChange,
-            placeholder = { Text("Search 825+ songs, artists, playlists...", color = MelodyTextSecondary, fontSize = 14.sp) },
+            placeholder = { Text("Search ${songs.size}+ songs, artists, playlists...", color = MelodyTextSecondary, fontSize = 14.sp) },
             singleLine = true,
             leadingIcon = {
                 Icon(

@@ -35,8 +35,9 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    val isActivated = ApiClient.isActivated
-    var liveUser by remember { mutableStateOf(ApiClient.currentUser) }
+    val isActivated by ApiClient.isActivatedFlow.collectAsState()
+    val storedUser by ApiClient.currentUserFlow.collectAsState()
+    var liveUser by remember(storedUser) { mutableStateOf(storedUser) }
     var activeDevicesCount by remember { mutableStateOf(1) }
 
     LaunchedEffect(isActivated) {

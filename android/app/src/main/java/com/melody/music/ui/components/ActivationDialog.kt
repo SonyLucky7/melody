@@ -154,10 +154,20 @@ fun ActivationDialog(
                         Text(if (isLoading) "Activating..." else "Activate Device")
                     }
                 } else {
+                    val fieldColors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MelodyPrimary,
+                        unfocusedBorderColor = Color(0xFF2A2A3E),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedLabelColor = MelodyPrimary,
+                        unfocusedLabelColor = Color(0xFFA0A0B0)
+                    )
                     OutlinedTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
                         label = { Text("First Name (e.g. Rahul)") },
+                        singleLine = true,
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -165,6 +175,8 @@ fun ActivationDialog(
                         value = surname,
                         onValueChange = { surname = it },
                         label = { Text("Surname (e.g. Sharma)") },
+                        singleLine = true,
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -172,6 +184,8 @@ fun ActivationDialog(
                         value = mobile,
                         onValueChange = { mobile = it },
                         label = { Text("Mobile (e.g. 9876543210)") },
+                        singleLine = true,
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 

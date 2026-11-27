@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode, useCallback } from 'react';
 import { Song } from '../types';
-import { API_BASE, STREAM_BASE, requestPlayUrl, recordPlayback, fetchFavourites, addFavourite, removeFavourite, getUserProfile } from '../services/api';
+import { STREAM_BASE, recordPlayback, fetchFavourites, addFavourite, removeFavourite } from '../services/api';
 import {
   OfflineTrack,
   getOfflineSong,
@@ -66,8 +66,8 @@ interface PlayerContextType {
   // Now Playing Theme View
   isNowPlayingOpen: boolean;
   setIsNowPlayingOpen: (open: boolean) => void;
-  nowPlayingTheme: 'vinyl' | 'radial' | 'ambient';
-  setNowPlayingTheme: (theme: 'vinyl' | 'radial' | 'ambient') => void;
+  nowPlayingTheme: 'vinyl' | 'radial';
+  setNowPlayingTheme: (theme: 'vinyl' | 'radial') => void;
   getAudioFrequencyData: () => Uint8Array | null;
   // Playback Controls
   playSong: (song: Song, queueList?: Song[]) => Promise<void>;

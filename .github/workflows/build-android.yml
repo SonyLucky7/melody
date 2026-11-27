@@ -34,36 +34,36 @@ jobs:
       - name: Rename APK
         working-directory: android/app/build/outputs/apk/debug
         run: |
-          cp app-debug.apk Melody-v1.2.1.apk
+          cp app-debug.apk Melody-v1.2.2.apk
 
       - name: Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.2.1
-          path: android/app/build/outputs/apk/debug/Melody-v1.2.1.apk
+          name: Melody-Android-v1.2.2
+          path: android/app/build/outputs/apk/debug/Melody-v1.2.2.apk
           retention-days: 30
 
       - name: Release APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2.1
-          name: Melody Android App v1.2.1 (Spotify Lock Screen & Zero-Cut Engine)
+          tag_name: v1.2.2
+          name: Melody Android App v1.2.2 (Full Audit, TV & Mobile Stability Edition)
           body: |
-            ### 🎵 Melody Android v1.2.1 (Spotify Lock Screen & Zero-Cut Engine)
-            - 🔒 Full Spotify-Grade Lock Screen & Notification Media Card on every Android phone (high-res artwork, live progress scrubber, Like/Saved toggle, Prev/Play-Pause/Next, Shuffle toggle, Bluetooth & audio output switcher)
-            - 🎧 Eliminated mid-song cutting & pausing: OkHttp ExoPlayer streaming, 30s–120s adaptive buffer, 6x automatic retry, position-preserving mid-song recovery, and full native background queue playback
-            - 💜 Added "Adithi" Telugu Melodies public curated playlist (25 tracks) visible to everyone
-            - 📥 Android-exclusive Offline Storage for 100% internet-free playback
-          files: android/app/build/outputs/apk/debug/Melody-v1.2.1.apk
+            ### 🎵 Melody Android v1.2.2 (Full Audit, TV & Mobile Stability Edition)
+            - 📺 Android TV Fixes: Fixed left nav rail getting stuck on Artist pages, added live-synced public playlists 4-column grid, Adithi Telugu Melodies shelf & TV Search filters, and disabled interstitial ads on TV
+            - 🎛️ Mobile App Fixes: Rebuilt Equalizer sliders to full-width precision controls, added live album artwork loading to the Home Screen Widget, fixed instant reactive Login/Logout state, and fixed dark-on-dark text in Activation Dialog
+            - 🔒 Spotify Lock Screen & Notification Media Card + Zero-Cut OkHttp ExoPlayer streaming (30s–120s buffer, 6x retry, position-preserving recovery)
+            - 💜 All 859 songs audited (0 broken streams, 0 oversized tracks, guest Recently Played fixed)
+          files: android/app/build/outputs/apk/debug/Melody-v1.2.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy APK to client/public
         run: |
-          cp android/app/build/outputs/apk/debug/Melody-v1.2.1.apk client/public/Melody-v1.2.1.apk
-          cp android/app/build/outputs/apk/debug/Melody-v1.2.1.apk client/public/Melody-latest.apk
+          cp android/app/build/outputs/apk/debug/Melody-v1.2.2.apk client/public/Melody-v1.2.2.apk
+          cp android/app/build/outputs/apk/debug/Melody-v1.2.2.apk client/public/Melody-latest.apk
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add client/public/Melody-v1.2.1.apk client/public/Melody-latest.apk
-          git diff --staged --quiet || git commit -m "Auto-deploy Melody-v1.2.1.apk [skip ci]"
+          git add client/public/Melody-v1.2.2.apk client/public/Melody-latest.apk
+          git diff --staged --quiet || git commit -m "Auto-deploy Melody-v1.2.2.apk [skip ci]"
           git push

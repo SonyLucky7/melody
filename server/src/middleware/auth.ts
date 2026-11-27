@@ -49,6 +49,16 @@ export async function verifyDeviceSession(
     );
 
     if (deviceRes.rows.length === 0) {
+      if (config.freeMode && !req.originalUrl.startsWith('/devices')) {
+        req.session = {
+          licenceId: 0,
+          userId: 0,
+          deviceId: (req.headers['x-device-id'] as string) || 'guest-device',
+          deviceName: 'Guest Listener',
+          isGuest: true,
+        };
+        return next();
+      }
       res.status(401).json({
         error: 'SESSION_REVOKED',
         message: 'This device has been logged out. Please re-activate.',
@@ -73,6 +83,16 @@ export async function verifyDeviceSession(
     req.session = decoded;
     next();
   } catch (err: any) {
+    if (config.freeMode && !req.originalUrl.startsWith('/devices')) {
+      req.session = {
+        licenceId: 0,
+        userId: 0,
+        deviceId: (req.headers['x-device-id'] as string) || 'guest-device',
+        deviceName: 'Guest Listener',
+        isGuest: true,
+      };
+      return next();
+    }
     res.status(401).json({
       error: 'INVALID_TOKEN',
       message: 'Session token has expired or is invalid. Please re-activate.',

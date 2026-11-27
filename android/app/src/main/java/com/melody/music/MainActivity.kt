@@ -63,9 +63,11 @@ class MainActivity : ComponentActivity() {
         com.melody.music.data.download.MelodyDownloadManager.init(applicationContext)
         MelodyPlayerManager.refreshFavourites()
 
-        // 1 Full Ad on Application Launch/Open Only
-        MelodyLaunchAdManager.init(applicationContext)
-        MelodyLaunchAdManager.showLaunchAdIfFirstOpen(this)
+        // 1 Full Ad on Application Launch/Open Only (mobile only — never disrupt Android TV D-Pad focus!)
+        if (!isTvDevice(this)) {
+            MelodyLaunchAdManager.init(applicationContext)
+            MelodyLaunchAdManager.showLaunchAdIfFirstOpen(this)
+        }
 
         // Start & bind playback foreground service
         val serviceIntent = Intent(this, MelodyPlaybackService::class.java)
@@ -146,6 +148,7 @@ fun MelodyApp() {
     val isPlaying by MelodyPlayerManager.isPlaying.collectAsState()
     val progressMs by MelodyPlayerManager.progressMs.collectAsState()
     val durationMs by MelodyPlayerManager.durationMs.collectAsState()
+    val isActivated by ApiClient.isActivatedFlow.collectAsState()
 
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -344,11 +347,11 @@ fun MelodyApp() {
                         },
                         icon = {
                             Icon(
-                                if (ApiClient.isActivated) Icons.Default.Person else Icons.Default.Key,
+                                if (isActivated) Icons.Default.Person else Icons.Default.Key,
                                 contentDescription = "Profile"
                             )
                         },
-                        label = { Text(if (ApiClient.isActivated) "Profile" else "VIP") },
+                        label = { Text(if (isActivated) "Profile" else "VIP") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MelodyPrimary,
                             selectedTextColor = MelodyPrimary,

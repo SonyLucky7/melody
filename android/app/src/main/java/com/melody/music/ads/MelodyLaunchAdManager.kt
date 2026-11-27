@@ -28,8 +28,12 @@ object MelodyLaunchAdManager {
     private var hasShownLaunchAdThisOpen = false
 
     fun init(context: Context) {
-        MobileAds.initialize(context) {
-            preloadAd(context)
+        try {
+            MobileAds.initialize(context) {
+                preloadAd(context)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "MobileAds init skipped: ${e.message}")
         }
     }
 
@@ -65,6 +69,7 @@ object MelodyLaunchAdManager {
         if (hasShownLaunchAdThisOpen) return
 
         Handler(Looper.getMainLooper()).postDelayed({
+            if (activity.isFinishing || activity.isDestroyed) return@postDelayed
             val ad = interstitialAd
             if (ad != null) {
                 ad.fullScreenContentCallback = object : FullScreenContentCallback() {
@@ -79,7 +84,11 @@ object MelodyLaunchAdManager {
                         hasShownLaunchAdThisOpen = true
                     }
                 }
-                ad.show(activity)
+                try {
+                    ad.show(activity)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Launch Ad show skipped: ${e.message}")
+                }
             } else {
                 // If not preloaded yet, mark shown and preload for next app open
                 hasShownLaunchAdThisOpen = true
