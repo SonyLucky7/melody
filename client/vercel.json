@@ -3,21 +3,39 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://melody-mzsm.onrender.com/api/:path*"
+      "destination": "/api/index"
     },
     {
       "source": "/stream/:path*",
-      "destination": "https://melody-mzsm.onrender.com/stream/:path*"
+      "destination": "/api/index"
     },
     {
       "source": "/health",
-      "destination": "https://melody-mzsm.onrender.com/health"
+      "destination": "/api/index"
     },
     {
-      "source": "/((?!api|covers|stream|health|assets|favicon|privacy\\.html|terms\\.html|app-ads\\.txt|ads\\.txt).*)",
+      "source": "/activate",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/devices",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/devices/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api|covers|stream|health|activate|devices|assets|favicon|privacy|terms|app-ads\\.txt|ads\\.txt).*)",
       "destination": "/index.html"
     }
   ],
