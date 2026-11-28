@@ -1,19 +1,29 @@
 {
   "name": "melody",
-  "version": "1.0.0",
-  "description": "Melody - Spotify-grade Music Platform with Telegram Cloud Storage & Native Android App",
+  "version": "1.2.6",
+  "description": "Melody - Spotify-grade Music Platform with Serverless Edge Cloud & Native Android/TV App",
   "scripts": {
     "build": "npm --prefix server install && npm --prefix server run build",
-    "build:all": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run build",
+    "build:all": "npm --prefix server install && npm --prefix server run build && npm --prefix client install && npm --prefix client run build",
     "start": "npm --prefix server start",
     "test": "npm --prefix server test"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1"
   },
   "keywords": [
     "melody",
     "music",
-    "spotify",
     "streaming",
-    "telegram",
     "exoplayer",
     "android"
   ],

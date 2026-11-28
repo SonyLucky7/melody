@@ -516,15 +516,18 @@ export const PlayerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (savedPos > 1) lastRecoveredTimeRef.current = savedPos;
 
         const attempt = midSongRetryCountRef.current++;
-        if (attempt === 0 && targetSrc.includes('onrender.com')) {
+        if (attempt === 0) {
           console.warn(`[Melody Stream] Recovering track #${song.id} at ${savedPos.toFixed(1)}s (retry 1)...`);
           setTimeout(() => reloadAtSavedTime(`${streamUrl}?r=${Date.now()}`, savedPos), 350);
           return;
         }
 
         if (attempt === 1 && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-          console.warn(`[Melody Stream] Switching to Vercel Edge proxy for track #${song.id} at ${savedPos.toFixed(1)}s...`);
-          setTimeout(() => reloadAtSavedTime(`/api/stream/${song.id}?r=${Date.now()}`, savedPos), 450);
+          const altUrl = targetSrc.includes('onrender.com')
+            ? `/api/stream/${song.id}?r=${Date.now()}`
+            : `https://melody-mzsm.onrender.com/api/stream/${song.id}?r=${Date.now()}`;
+          console.warn(`[Melody Stream] Failing over for track #${song.id} at ${savedPos.toFixed(1)}s...`);
+          setTimeout(() => reloadAtSavedTime(altUrl, savedPos), 450);
           return;
         }
 

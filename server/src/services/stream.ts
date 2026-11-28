@@ -94,15 +94,16 @@ const songMetadataCache = new Map<number, {
 const activeBackgroundDownloads = new Set<string>();
 
 // Max chunk size (1.5 MB ≈ ~50s of 256kbps audio) served directly from Telegram while background spool completes.
-// Prevents Telegram CDN or Render reverse-proxy from ever dropping long slow-read connections mid-song!
+// Prevents Telegram CDN, Render proxy, or Vercel's 4.5 MB serverless limit from ever cutting audio mid-song!
 const DIRECT_UNSPOOLED_CHUNK_BYTES = 1536 * 1024;
+const isServerlessRuntime = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
 /**
  * Trigger a deduplicated, full-speed background download of the complete audio file
- * directly from Telegram to Render's local NVMe spool (takes ~0.5–1.5s at datacenter speed).
- * Once spooled, every subsequent Range chunk & seek is served from local disk in 1ms with ZERO mid-song cuts!
+ * directly from Telegram to local NVMe spool (dedicated Node server only; skipped on serverless).
  */
 export function ensureBackgroundSpool(songId: number, fileId: string, expectedTotalBytes: number): void {
+  if (isServerlessRuntime) return;
   const key = `song-${songId}`;
   const spoolPath = path.join(config.tempDir, `${key}.mp3`);
   if (activeBackgroundDownloads.has(key)) return;
@@ -222,18 +223,23 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
     let effectiveRangeHeader = req.headers.range;
     const protocol = downloadUrl.startsWith('https') ? https : http;
 
-    // For open-ended Range requests on unspooled large tracks, cap the direct upstream slice to 1.5 MB.
-    // The client automatically follows up with the next Range request, which hits our 1ms local NVMe disk spool!
-    if (effectiveRangeHeader && !isHead && expectedTotalBytes > DIRECT_UNSPOOLED_CHUNK_BYTES) {
-      const match = /^bytes=(\d+)-(\d*)$/.exec(effectiveRangeHeader.trim());
-      if (match) {
-        const start = Math.max(0, parseInt(match[1], 10) || 0);
-        const requestedEnd = match[2] ? parseInt(match[2], 10) : expectedTotalBytes - 1;
-        const clampedEnd = Math.min(requestedEnd, expectedTotalBytes - 1);
-        const cappedEnd = Math.min(clampedEnd, start + DIRECT_UNSPOOLED_CHUNK_BYTES - 1);
-        if (start < expectedTotalBytes && cappedEnd >= start) {
-          effectiveRangeHeader = `bytes=${start}-${cappedEnd}`;
+    // For Range requests on unspooled large tracks (and ALL requests on Vercel Serverless),
+    // cap the direct upstream slice to 1.5 MB so responses stay well below Vercel's 4.5 MB limit
+    // and never stall on slow mobile reads. Players automatically follow up with the next Range chunk!
+    if (!isHead && expectedTotalBytes > DIRECT_UNSPOOLED_CHUNK_BYTES) {
+      if (effectiveRangeHeader) {
+        const match = /^bytes=(\d+)-(\d*)$/.exec(effectiveRangeHeader.trim());
+        if (match) {
+          const start = Math.max(0, parseInt(match[1], 10) || 0);
+          const requestedEnd = match[2] ? parseInt(match[2], 10) : expectedTotalBytes - 1;
+          const clampedEnd = Math.min(requestedEnd, expectedTotalBytes - 1);
+          const cappedEnd = Math.min(clampedEnd, start + DIRECT_UNSPOOLED_CHUNK_BYTES - 1);
+          if (start < expectedTotalBytes && cappedEnd >= start) {
+            effectiveRangeHeader = `bytes=${start}-${cappedEnd}`;
+          }
         }
+      } else if (isServerlessRuntime) {
+        effectiveRangeHeader = `bytes=0-${DIRECT_UNSPOOLED_CHUNK_BYTES - 1}`;
       }
     }
 
@@ -278,7 +284,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
         const responseHeaders: Record<string, any> = {
           'Content-Type': 'audio/mpeg',
           'Accept-Ranges': 'bytes',
-          'Cache-Control': 'public, max-age=604800, immutable',
+          'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
           'X-Accel-Buffering': 'no',
         };
 

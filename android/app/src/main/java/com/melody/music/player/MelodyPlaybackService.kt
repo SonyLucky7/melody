@@ -140,7 +140,7 @@ class MelodyPlaybackService : MediaSessionService() {
             .build()
 
         val httpDataSourceFactory = OkHttpDataSource.Factory(streamingOkHttp)
-            .setUserAgent("MelodyAndroid/1.2.5")
+            .setUserAgent("MelodyAndroid/1.2.6")
 
         // Cached HTTP DataSource for remote streams + direct FileDataSource for offline file:// downloads
         val cachedHttpFactory = CacheDataSource.Factory()

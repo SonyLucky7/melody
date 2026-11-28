@@ -84,9 +84,9 @@ interface MelodyApiService {
 }
 
 object ApiClient {
-    // Primary Render Backend + Automatic Vercel Edge Failover (for carrier/ISP resilience!)
-    const val PRIMARY_BASE_URL = "https://melody-mzsm.onrender.com/"
-    const val FALLBACK_BASE_URL = "https://melody-chi-nine.vercel.app/"
+    // Primary Vercel Serverless Edge Backend (24/7 never suspends!) + Automatic Render Failover
+    const val PRIMARY_BASE_URL = "https://melody-chi-nine.vercel.app/"
+    const val FALLBACK_BASE_URL = "https://melody-mzsm.onrender.com/"
 
     @Volatile
     var baseUrl = PRIMARY_BASE_URL

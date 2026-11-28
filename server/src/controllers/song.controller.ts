@@ -50,14 +50,19 @@ export async function getSongs(req: AuthenticatedRequest, res: Response): Promis
       query(countSql, params.slice(0, pIdx - 1)),
     ]);
 
-    // Gently pre-warm only the very top 3 trending tracks on initial home load (never on pagination/search)
+    // Gently pre-warm only on dedicated Node server (never spawn background timers on serverless)
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
     const fileIds = dataRes.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
-    if (offset === 0 && !search && fileIds.length > 0) {
+    if (!isServerless && offset === 0 && !search && fileIds.length > 0) {
       telegramService.warmupFiles(fileIds.slice(0, 3));
     }
 
     // Strip telegram_file_id before sending to client
     const clientData = dataRes.rows.map(({ telegram_file_id, ...rest }: any) => rest);
+
+    if (!search) {
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=300');
+    }
 
     res.status(200).json({
       success: true,

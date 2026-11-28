@@ -231,7 +231,12 @@ object MelodyPlayerManager {
         val mediaUri: Uri = if (isOfflineLocal) {
             Uri.fromFile(localFile)
         } else if (useFallbackEdge) {
-            Uri.parse("https://melody-chi-nine.vercel.app/api/stream/${song.id}$suffix")
+            val altBase = if (ApiClient.baseUrl == ApiClient.PRIMARY_BASE_URL) {
+                ApiClient.FALLBACK_BASE_URL.trimEnd('/')
+            } else {
+                ApiClient.PRIMARY_BASE_URL.trimEnd('/')
+            }
+            Uri.parse("$altBase/api/stream/${song.id}$suffix")
         } else {
             val base = ApiClient.baseUrl.trimEnd('/')
             Uri.parse("$base/api/stream/${song.id}$suffix")

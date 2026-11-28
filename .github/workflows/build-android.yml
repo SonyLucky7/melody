@@ -49,32 +49,32 @@ jobs:
           MELODY_KEY_PASSWORD: ${{ secrets.MELODY_KEY_PASSWORD }}
         run: |
           gradle assembleRelease bundleRelease --no-daemon --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk ../Melody-v1.2.5.apk
-          cp app/build/outputs/bundle/release/app-release.aab ../Melody-v1.2.5.aab
+          cp app/build/outputs/apk/release/app-release.apk ../Melody-v1.2.6.apk
+          cp app/build/outputs/bundle/release/app-release.aab ../Melody-v1.2.6.aab
 
       - name: Build Debug Fallback APK (when release secrets are not configured in CI)
         if: steps.keystore.outputs.signed != 'true'
         working-directory: android
         run: |
           gradle assembleDebug --no-daemon --stacktrace
-          cp app/build/outputs/apk/debug/app-debug.apk ../Melody-v1.2.5-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../Melody-v1.2.6-debug.apk
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Melody-Android-v1.2.5
+          name: Melody-Android-v1.2.6
           path: |
-            Melody-v1.2.5*.apk
-            Melody-v1.2.5.aab
+            Melody-v1.2.6*.apk
+            Melody-v1.2.6.aab
           retention-days: 30
 
       - name: Release Signed APK to GitHub & Web (only when signed release built)
         if: steps.keystore.outputs.signed == 'true'
         run: |
-          cp Melody-v1.2.5.apk client/public/Melody-v1.2.5.apk
-          cp Melody-v1.2.5.apk client/public/Melody-latest.apk
+          cp Melody-v1.2.6.apk client/public/Melody-v1.2.6.apk
+          cp Melody-v1.2.6.apk client/public/Melody-latest.apk
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add client/public/Melody-v1.2.5.apk client/public/Melody-latest.apk
-          git diff --staged --quiet || git commit -m "Auto-deploy signed Melody-v1.2.5.apk [skip ci]"
+          git add client/public/Melody-v1.2.6.apk client/public/Melody-latest.apk
+          git diff --staged --quiet || git commit -m "Auto-deploy signed Melody-v1.2.6.apk [skip ci]"
           git push

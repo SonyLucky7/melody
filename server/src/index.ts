@@ -66,12 +66,15 @@ const activateLimiter = rateLimit({
 app.use('/api', globalLimiter);
 app.use('/activate', activateLimiter);
 
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
 // --- Healthcheck Endpoint ---
-app.get('/health', async (req, res) => {
+app.get(['/health', '/api/health'], async (req, res) => {
   const dbConnected = await checkDatabaseConnection();
   res.status(dbConnected ? 200 : 503).json({
     status: dbConnected ? 'healthy' : 'degraded',
-    version: '1.2.2-full-audit-polish',
+    version: '1.2.6-vercel-serverless-spotify',
+    runtime: isServerless ? 'vercel-serverless' : 'node-server',
     database: dbConnected ? 'connected' : 'disconnected',
     freeMode: config.freeMode,
     activeStreams: spoolManager.getActiveCount(),
@@ -89,9 +92,10 @@ app.get(['/ads.txt', '/app-ads.txt'], (_req, res) => {
 });
 
 // --- Register Routes ---
-app.use(deviceRoutes);      // /activate, /devices
-app.use('/api', apiRoutes);  // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history
-app.use('/api', adminRoutes);// /api/admin/upload, /api/admin/licences, /api/checkout/free
+app.use(deviceRoutes);         // /activate, /devices
+app.use('/api', deviceRoutes); // /api/activate, /api/devices (for Vercel serverless routing)
+app.use('/api', apiRoutes);    // /api/songs, /api/stream, /api/playlists, /api/favourites, /api/history
+app.use('/api', adminRoutes);  // /api/admin/upload, /api/admin/licences, /api/checkout/free
 
 // --- Static Audio Cover Artwork & Public Assets ---
 app.use('/covers', express.static(path.join(__dirname, '../public/covers')));
@@ -158,71 +162,82 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-// --- Server Startup & Auto-Cleanup Init ---
-export const server = app.listen(config.port, async () => {
-  // Prevent Node.js 18+/20+ or Render reverse-proxy keep-alive timeouts from dropping active audio streams mid-song!
-  server.requestTimeout = 0;
-  server.keepAliveTimeout = 65000;
-  server.headersTimeout = 66000;
+// --- Server Startup & Auto-Cleanup Init (Dedicated Node Server Only — skipped on Vercel Serverless) ---
+export const server = isServerless
+  ? null
+  : app.listen(config.port, async () => {
+      // Prevent Node.js 18+/20+ or Render reverse-proxy keep-alive timeouts from dropping active audio streams mid-song!
+      if (server) {
+        server.requestTimeout = 0;
+        server.keepAliveTimeout = 65000;
+        server.headersTimeout = 66000;
+      }
 
-  console.log(`====================================================`);
-  console.log(`  🎵 Melody Shared Backend running on port ${config.port}`);
-  console.log(`  💎 Free Mode: ${config.freeMode ? 'ACTIVE (All features 100% Free)' : 'PAID'}`);
-  console.log(`  🤖 Telegram Bots configured: ${config.telegramBotTokens.length}`);
-  console.log(`  📁 Ephemeral Spool Dir: ${config.tempDir}`);
-  console.log(`====================================================`);
+      console.log(`====================================================`);
+      console.log(`  🎵 Melody Shared Backend running on port ${config.port}`);
+      console.log(`  💎 Free Mode: ${config.freeMode ? 'ACTIVE (All features 100% Free)' : 'PAID'}`);
+      console.log(`  🤖 Telegram Bots configured: ${config.telegramBotTokens.length}`);
+      console.log(`  📁 Ephemeral Spool Dir: ${config.tempDir}`);
+      console.log(`====================================================`);
 
-  // Start 5-minute orphan cleanup cron
-  startPeriodicCleanupCron();
+      // Start 5-minute orphan cleanup cron
+      startPeriodicCleanupCron();
 
-  // Start Telegram Bot Admin direct upload listener
-  botAdminListener.start();
+      // Start Telegram Bot Admin direct upload listener
+      botAdminListener.start();
 
-  // Start built-in 24/7 Keep-Alive Robot for Render
-  startKeepAliveRobot();
+      // Only run 24/7 Keep-Alive Robot if explicitly enabled (prevents exhausting Render's 750 free hours/month!)
+      if (process.env.ENABLE_KEEP_ALIVE === 'true') {
+        startKeepAliveRobot();
+      }
 
-  // Validate configured Telegram bots in background so dead tokens never stall uploads/streams
-  telegramService.validateBots().catch(() => {});
+      // Validate configured Telegram bots in background so dead tokens never stall uploads/streams
+      telegramService.validateBots().catch(() => {});
 
-  // Run database migrations if DB is accessible
-  try {
-    const isAlive = await checkDatabaseConnection();
-    if (isAlive) {
-      console.log('[PostgreSQL] Database online. Running migrations...');
-      await runMigrations();
-      // Auto-warm high-speed NVMe audio spool cache
-      warmSpoolCache().catch(() => {});
+      // Run database migrations if DB is accessible
+      try {
+        const isAlive = await checkDatabaseConnection();
+        if (isAlive) {
+          console.log('[PostgreSQL] Database online. Running migrations...');
+          await runMigrations();
+          warmSpoolCache().catch(() => {});
 
-      // Auto-warm Telegram download URLs for top 40 tracks on boot for sub-second start
-      query('SELECT telegram_file_id FROM songs ORDER BY id DESC LIMIT 40')
-        .then((res) => {
-          const ids = res.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
-          telegramService.warmupFiles(ids);
-          console.log(`[Startup Warmup] Pre-warming ${ids.length} top tracks for sub-second streaming.`);
-        })
-        .catch(() => {});
-    } else {
-      console.warn('[PostgreSQL] Database unreachable at startup. Will reconnect on demand.');
-    }
-  } catch (err: any) {
-    console.warn('[PostgreSQL Startup Check]:', err.message);
-  }
-});
+          query('SELECT telegram_file_id FROM songs ORDER BY id DESC LIMIT 40')
+            .then((res) => {
+              const ids = res.rows.map((r: any) => r.telegram_file_id).filter(Boolean);
+              telegramService.warmupFiles(ids);
+              console.log(`[Startup Warmup] Pre-warming ${ids.length} top tracks for sub-second streaming.`);
+            })
+            .catch(() => {});
+        } else {
+          console.warn('[PostgreSQL] Database unreachable at startup. Will reconnect on demand.');
+        }
+      } catch (err: any) {
+        console.warn('[PostgreSQL Startup Check]:', err.message);
+      }
+    });
 
 // Graceful Shutdown
 const shutdown = async () => {
   console.log('\n[Melody Backend] Gracefully shutting down...');
   botAdminListener.stop();
-  server.close(async () => {
-    try {
-      await pool.end();
-      console.log('[Melody Backend] PostgreSQL pool closed.');
-    } catch {}
+  if (server) {
+    server.close(async () => {
+      try {
+        await pool.end();
+        console.log('[Melody Backend] PostgreSQL pool closed.');
+      } catch {}
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+if (!isServerless) {
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+}
 
+export { app };
 export default app;

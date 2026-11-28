@@ -1,7 +1,8 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config';
 
-// Constrained connection pool for PostgreSQL 18 Free tier (1 CPU, 1 GB RAM)
+// Constrained connection pool (3 max per Vercel serverless instance, 10 max on dedicated Node server)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 const sanitizedUrl = config.databaseUrl.split('?')[0];
 
 export const pool = new Pool({
@@ -9,9 +10,10 @@ export const pool = new Pool({
   ssl: {
     rejectUnauthorized: false,
   },
-  max: 10, // Hard limit to prevent RAM exhaustion on 1 GB DB
-  idleTimeoutMillis: 30000,
+  max: isServerless ? 3 : 10,
+  idleTimeoutMillis: isServerless ? 15000 : 30000,
   connectionTimeoutMillis: 8000,
+  allowExitOnIdle: isServerless,
 });
 
 pool.on('error', (err) => {

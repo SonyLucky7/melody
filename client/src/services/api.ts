@@ -6,11 +6,10 @@ export const API_BASE =
   (typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? (window.location.port === '3000' ? `http://${window.location.hostname}:5000` : '')
-    : 'https://melody-mzsm.onrender.com');
+    : '');
 
-// High-speed direct streaming: Render primary + Vercel Edge fallback
-export const STREAM_BASE =
-  import.meta.env.VITE_STREAM_URL || 'https://melody-mzsm.onrender.com';
+// Primary streaming via same-origin Vercel Edge Serverless (never suspends, 20ms CDN hits)
+export const STREAM_BASE = import.meta.env.VITE_STREAM_URL || '';
 
 export function getFullCoverUrl(coverUrl?: string | null): string {
   if (!coverUrl) return '/Melody-Logo-512.png';

@@ -1,9 +1,9 @@
 # 🎵 Melody — Production-Grade Music Streaming Ecosystem
 
 [![Web Player](https://img.shields.io/badge/Web_Player-Live_on_Vercel-success?style=for-the-badge&logo=vercel)](https://melody-chi-nine.vercel.app)
-[![Android APK](https://img.shields.io/badge/Android_App-v1.2.5_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.2.5.apk)
-[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.2.5.apk)
-[![GitHub Release](https://img.shields.io/badge/Release-v1.2.5-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases)
+[![Android APK](https://img.shields.io/badge/Android_App-v1.2.6_APK-blueviolet?style=for-the-badge&logo=android)](https://melody-chi-nine.vercel.app/Melody-v1.2.6.apk)
+[![Android TV](https://img.shields.io/badge/Android_TV-Google_TV_Leanback-orange?style=for-the-badge&logo=androidtv)](https://melody-chi-nine.vercel.app/Melody-v1.2.6.apk)
+[![GitHub Release](https://img.shields.io/badge/Release-v1.2.6-blue?style=for-the-badge&logo=github)](https://github.com/SonyLucky7/melody/releases)
 [![Sponsor SonyLucky7](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/SonyLucky7)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-purple?style=for-the-badge&logo=kotlin)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Compose-Material_3-4285F4?style=for-the-badge&logo=android)](https://developer.android.com/jetpack/compose)

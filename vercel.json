@@ -1,23 +1,42 @@
 {
   "framework": "vite",
-  "buildCommand": "cd client && npm install && npm run build",
+  "buildCommand": "npm --prefix server install && npm --prefix server run build && npm --prefix client install && npm --prefix client run build",
   "outputDirectory": "client/dist",
   "cleanUrls": true,
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "includeFiles": "server/dist/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://melody-mzsm.onrender.com/api/:path*"
+      "destination": "/api/index"
     },
     {
       "source": "/stream/:path*",
-      "destination": "https://melody-mzsm.onrender.com/stream/:path*"
+      "destination": "/api/index"
     },
     {
       "source": "/health",
-      "destination": "https://melody-mzsm.onrender.com/health"
+      "destination": "/api/index"
     },
     {
-      "source": "/((?!api|covers|stream|health|assets|favicon).*)",
+      "source": "/activate",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/devices",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/devices/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api|covers|stream|health|activate|devices|assets|favicon|privacy|terms|app-ads\\.txt|ads\\.txt).*)",
       "destination": "/index.html"
     }
   ],

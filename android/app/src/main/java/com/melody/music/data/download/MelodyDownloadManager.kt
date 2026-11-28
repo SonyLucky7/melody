@@ -185,85 +185,125 @@ object MelodyDownloadManager {
         var success = false
 
         try {
-            val base = ApiClient.baseUrl.trimEnd('/')
+            val primaryBase = ApiClient.baseUrl.trimEnd('/')
+            val fallbackBase = if (primaryBase.contains("vercel.app")) {
+                ApiClient.FALLBACK_BASE_URL.trimEnd('/')
+            } else {
+                ApiClient.PRIMARY_BASE_URL.trimEnd('/')
+            }
             val urlsToTry = listOf(
-                "$base/api/stream/${song.id}",
-                "https://melody-chi-nine.vercel.app/api/stream/${song.id}"
-            )
+                "$primaryBase/api/stream/${song.id}",
+                "$fallbackBase/api/stream/${song.id}"
+            ).distinct()
+
+            val chunkSizeBytes = 1536L * 1024L // 1.5 MB slices — 100% Vercel Serverless & Render compatible!
 
             for (url in urlsToTry) {
                 try {
                     if (tmpFile.exists()) tmpFile.delete()
 
-                    val request = Request.Builder()
-                        .url(url)
-                        .addHeader("x-device-id", ApiClient.deviceId)
-                        .build()
+                    var offset = 0L
+                    var totalLength = -1L
+                    var lastPct = 1
+                    var streamFailed = false
 
-                    val response = client.newCall(request).execute()
-                    response.use { resp ->
-                        val contentType = resp.header("Content-Type") ?: ""
-                        if (resp.isSuccessful && resp.body != null && !contentType.contains("application/json")) {
-                            val totalLength = resp.body!!.contentLength()
-                            val inputStream: InputStream = resp.body!!.byteStream()
-                            val outputStream = FileOutputStream(tmpFile)
-                            val buffer = ByteArray(16 * 1024)
-                            var downloadedBytes = 0L
-                            var lastPct = 1
-                            var read: Int
+                    FileOutputStream(tmpFile).use { out ->
+                        while (true) {
+                            val endRange = offset + chunkSizeBytes - 1L
+                            val request = Request.Builder()
+                                .url(url)
+                                .addHeader("x-device-id", ApiClient.deviceId)
+                                .addHeader("Range", "bytes=$offset-$endRange")
+                                .build()
 
-                            outputStream.use { out ->
-                                inputStream.use { inp ->
-                                    while (inp.read(buffer).also { read = it } != -1) {
-                                        out.write(buffer, 0, read)
-                                        downloadedBytes += read
-                                        if (totalLength > 0L) {
-                                            val pct = ((downloadedBytes * 100L) / totalLength).toInt().coerceIn(1, 99)
-                                            if (pct >= lastPct + 3) {
-                                                lastPct = pct
-                                                withContext(Dispatchers.Main) {
-                                                    _downloadProgress.value = _downloadProgress.value + (song.id to pct)
+                            val response = client.newCall(request).execute()
+                            var chunkRead = 0L
+                            var serverStatus = 0
+                            var contentRange: String? = null
+                            var contentType = ""
+
+                            response.use { resp ->
+                                serverStatus = resp.code
+                                contentType = resp.header("Content-Type") ?: ""
+                                contentRange = resp.header("Content-Range")
+
+                                if (!resp.isSuccessful || resp.body == null || contentType.contains("application/json") || contentType.contains("text/html")) {
+                                    streamFailed = true
+                                } else {
+                                    if (!contentRange.isNullOrBlank()) {
+                                        val slashIdx = contentRange!!.lastIndexOf('/')
+                                        if (slashIdx != -1) {
+                                            val parsedTotal = contentRange!!.substring(slashIdx + 1).trim().toLongOrNull()
+                                            if (parsedTotal != null && parsedTotal > 0L) {
+                                                totalLength = parsedTotal
+                                            }
+                                        }
+                                    } else if (serverStatus == 200) {
+                                        val cl = resp.body!!.contentLength()
+                                        if (cl > 0L) totalLength = cl
+                                    }
+
+                                    val buffer = ByteArray(16 * 1024)
+                                    val inp: InputStream = resp.body!!.byteStream()
+                                    inp.use { stream ->
+                                        var read: Int
+                                        while (stream.read(buffer).also { read = it } != -1) {
+                                            out.write(buffer, 0, read)
+                                            chunkRead += read
+                                            offset += read
+                                            if (totalLength > 0L) {
+                                                val pct = ((offset * 100L) / totalLength).toInt().coerceIn(1, 99)
+                                                if (pct >= lastPct + 3) {
+                                                    lastPct = pct
+                                                    withContext(Dispatchers.Main) {
+                                                        _downloadProgress.value = _downloadProgress.value + (song.id to pct)
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                    out.flush()
                                 }
                             }
 
-                            if (downloadedBytes > 10_000L && (totalLength <= 0L || downloadedBytes >= totalLength - 4096)) {
-                                if (targetFile.exists()) targetFile.delete()
-                                if (!tmpFile.renameTo(targetFile)) {
-                                    tmpFile.copyTo(targetFile, overwrite = true)
-                                    tmpFile.delete()
-                                }
-
-                                // Also cache album cover locally so offline mode displays artwork without internet!
-                                val localCoverPath = downloadCoverSilently(musicDir, song)
-
-                                val downloaded = DownloadedSong(
-                                    songId = song.id,
-                                    title = song.title,
-                                    artist = song.artist,
-                                    album = song.album,
-                                    durationSeconds = song.durationSeconds,
-                                    coverUrl = song.coverUrl,
-                                    localAudioPath = targetFile.absolutePath,
-                                    localCoverPath = localCoverPath,
-                                    fileSizeBytes = targetFile.length(),
-                                    downloadedAt = System.currentTimeMillis()
-                                )
-
-                                withContext(Dispatchers.Main) {
-                                    val currentList = _downloadedSongs.value.filter { it.songId != song.id } + downloaded
-                                    saveIndex(context, currentList)
-                                    _downloadProgress.value = _downloadProgress.value + (song.id to 100)
-                                }
-                                success = true
-                            } else {
-                                tmpFile.delete()
+                            if (streamFailed || chunkRead <= 0L) break
+                            if (serverStatus == 200 || (totalLength > 0L && offset >= totalLength)) {
+                                break
                             }
                         }
+                        out.flush()
+                    }
+
+                    if (!streamFailed && offset > 10_000L && (totalLength <= 0L || offset >= totalLength - 4096)) {
+                        if (targetFile.exists()) targetFile.delete()
+                        if (!tmpFile.renameTo(targetFile)) {
+                            tmpFile.copyTo(targetFile, overwrite = true)
+                            tmpFile.delete()
+                        }
+
+                        // Also cache album cover locally so offline mode displays artwork without internet!
+                        val localCoverPath = downloadCoverSilently(musicDir, song)
+
+                        val downloaded = DownloadedSong(
+                            songId = song.id,
+                            title = song.title,
+                            artist = song.artist,
+                            album = song.album,
+                            durationSeconds = song.durationSeconds,
+                            coverUrl = song.coverUrl,
+                            localAudioPath = targetFile.absolutePath,
+                            localCoverPath = localCoverPath,
+                            fileSizeBytes = targetFile.length(),
+                            downloadedAt = System.currentTimeMillis()
+                        )
+
+                        withContext(Dispatchers.Main) {
+                            val currentList = _downloadedSongs.value.filter { it.songId != song.id } + downloaded
+                            saveIndex(context, currentList)
+                            _downloadProgress.value = _downloadProgress.value + (song.id to 100)
+                        }
+                        success = true
+                    } else {
+                        tmpFile.delete()
                     }
                     if (success) break
                 } catch (e: Exception) {
