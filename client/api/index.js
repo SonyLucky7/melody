@@ -245,18 +245,38 @@ async function resolveTelegramUrl(fileId) {
   return await Promise.any(tokens.map((_, idx) => tryBot(idx)));
 }
 
-async function handleStream(req, res, songId) {
+async function handleStream(req, res, songId, forceTelegram = false) {
   const db = getPool();
   const isHead = req.method === 'HEAD';
   let song = songMetaCache.get(songId);
   if (!song || song.expiresAt <= Date.now()) {
     const r = await db.query(
-      'SELECT id, title, artist, file_size_bytes, telegram_file_id FROM songs WHERE id = $1',
+      'SELECT id, title, artist, file_size_bytes, telegram_file_id, r2_url, r2_key FROM songs WHERE id = $1',
       [songId]
     );
     if (r.rows.length === 0) return sendJson(res, 404, { error: 'SONG_NOT_FOUND', message: 'Song not found.' });
     song = { ...r.rows[0], expiresAt: Date.now() + 5 * 60 * 1000 };
     songMetaCache.set(songId, song);
+  }
+
+  // Hybrid Fast Path: Cloudflare R2 Global Edge (₹0 unlimited egress, 0ms seek, zero Vercel payload cap!)
+  const r2PublicBase = (process.env.R2_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+  const effectiveR2Url =
+    song.r2_url && /^https?:\/\//i.test(song.r2_url)
+      ? song.r2_url.trim()
+      : song.r2_key && r2PublicBase
+        ? `${r2PublicBase}/${String(song.r2_key).replace(/^\/+/, '')}`
+        : '';
+
+  if (effectiveR2Url && !forceTelegram) {
+    setCors(res);
+    res.writeHead(302, {
+      Location: effectiveR2Url,
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      'X-Melody-Storage': 'cloudflare-r2',
+    });
+    res.end();
+    return;
   }
 
   const totalBytes = parseInt(song.file_size_bytes || '0', 10);
@@ -274,6 +294,7 @@ async function handleStream(req, res, songId) {
         'Content-Range': `bytes ${start}-${end}/${totalBytes}`,
         'Content-Length': Math.max(0, end - start + 1),
         'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
+        'X-Melody-Storage': 'telegram-pool',
       });
     } else {
       res.writeHead(200, {
@@ -281,6 +302,7 @@ async function handleStream(req, res, songId) {
         'Accept-Ranges': 'bytes',
         'Content-Length': totalBytes,
         'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
+        'X-Melody-Storage': 'telegram-pool',
       });
     }
     res.end();
@@ -334,6 +356,7 @@ async function handleStream(req, res, songId) {
           'Accept-Ranges': 'bytes',
           'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
           'X-Accel-Buffering': 'no',
+          'X-Melody-Storage': 'telegram-pool',
         };
         if (tgRes.headers['content-range']) outHeaders['Content-Range'] = tgRes.headers['content-range'];
         if (tgRes.headers['content-length']) outHeaders['Content-Length'] = tgRes.headers['content-length'];
@@ -423,15 +446,30 @@ export default async function handler(req, res) {
   try {
     // 1. Health check
     if (pathname === '/health' || pathname === '/api/health') {
-      const check = await db.query('SELECT COUNT(*)::int AS total FROM songs');
+      const check = await db.query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(CASE WHEN r2_url IS NOT NULL AND r2_url != '' THEN 1 END)::int AS r2_count,
+                COALESCE(SUM(file_size_bytes::bigint), 0)::bigint AS total_bytes
+         FROM songs`
+      );
+      const total = check.rows[0]?.total || 0;
+      const r2Tracks = check.rows[0]?.r2_count || 0;
+      const totalGb = Number((Number(check.rows[0]?.total_bytes || 0) / 1073741824).toFixed(2));
       return sendJson(res, 200, {
         status: 'healthy',
-        version: '1.2.6-vercel-serverless-spotify',
+        version: '1.2.7-hybrid-r2-telegram',
         runtime: 'vercel-serverless',
         database: 'connected',
-        songsCount: check.rows[0]?.total || 0,
+        songsCount: total,
         freeMode: true,
         telegramBotsConfigured: getBotTokens().length,
+        storage: {
+          mode: 'hybrid-r2-telegram',
+          r2Tracks,
+          telegramFallbackTracks: Math.max(0, total - r2Tracks),
+          totalLibraryGb: totalGb,
+          r2PublicUrlConfigured: Boolean((process.env.R2_PUBLIC_URL || '').trim()),
+        },
         timestamp: new Date().toISOString(),
       });
     }
@@ -440,16 +478,20 @@ export default async function handler(req, res) {
     let m = pathname.match(/^\/(?:api\/)?stream\/(\d+)\/prewarm$/);
     if (m && method === 'GET') {
       const id = parseInt(m[1], 10);
-      const r = await db.query('SELECT telegram_file_id FROM songs WHERE id = $1', [id]);
+      const r = await db.query('SELECT telegram_file_id, r2_url FROM songs WHERE id = $1', [id]);
+      if (r.rows[0]?.r2_url) {
+        return sendJson(res, 200, { success: true, songId: id, storage: 'cloudflare-r2' });
+      }
       if (r.rows[0]?.telegram_file_id) {
         resolveTelegramUrl(r.rows[0].telegram_file_id).catch(() => {});
       }
-      return sendJson(res, 200, { success: true, songId: id });
+      return sendJson(res, 200, { success: true, songId: id, storage: 'telegram-pool' });
     }
 
     m = pathname.match(/^\/(?:api\/)?stream\/(\d+)$/);
     if (m && (method === 'GET' || method === 'HEAD')) {
-      return await handleStream(req, res, parseInt(m[1], 10));
+      const forceTelegram = urlObj.searchParams.get('source') === 'telegram';
+      return await handleStream(req, res, parseInt(m[1], 10), forceTelegram);
     }
 
     // 3. Songs Catalog & Details

@@ -86,7 +86,7 @@ export function verifySignedStreamToken(token: string, expectedSongId: number): 
 
 // In-memory song metadata cache (5-minute TTL so DB updates propagate automatically)
 const songMetadataCache = new Map<number, {
-  song: { id: number; title: string; artist: string; file_size_bytes: string; telegram_file_id: string };
+  song: { id: number; title: string; artist: string; file_size_bytes: string; telegram_file_id: string; r2_url?: string | null; r2_key?: string | null };
   expiresAt: number;
 }>();
 
@@ -138,7 +138,7 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
   let song = cachedEntry && cachedEntry.expiresAt > Date.now() ? cachedEntry.song : undefined;
   if (!song) {
     const songRes = await query(
-      `SELECT id, title, artist, file_size_bytes, telegram_file_id 
+      `SELECT id, title, artist, file_size_bytes, telegram_file_id, r2_url, r2_key 
        FROM songs 
        WHERE id = $1`,
       [songId]
@@ -157,6 +157,23 @@ export async function handleAudioStream(req: Request, res: Response, songId: num
 
   if (!song) {
     res.status(404).json({ error: 'SONG_NOT_FOUND', message: 'Song not found.' });
+    return;
+  }
+
+  // Hybrid Fast Path: Cloudflare R2 Global Edge (₹0 unlimited egress, instant native Range seeking)
+  const forceTelegram = String(req.query.source || '').toLowerCase() === 'telegram';
+  const r2PublicBase = (process.env.R2_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+  const effectiveR2Url =
+    song.r2_url && /^https?:\/\//i.test(song.r2_url)
+      ? song.r2_url.trim()
+      : song.r2_key && r2PublicBase
+        ? `${r2PublicBase}/${String(song.r2_key).replace(/^\/+/, '')}`
+        : '';
+
+  if (effectiveR2Url && !forceTelegram) {
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
+    res.setHeader('X-Melody-Storage', 'cloudflare-r2');
+    res.redirect(302, effectiveR2Url);
     return;
   }
 

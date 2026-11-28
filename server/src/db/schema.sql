@@ -23,8 +23,13 @@ CREATE TABLE IF NOT EXISTS songs (
   telegram_file_id VARCHAR(255) NOT NULL,
   telegram_message_id BIGINT NOT NULL,
   cover_url VARCHAR(500),
+  r2_url TEXT,
+  r2_key TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS r2_url TEXT;
+ALTER TABLE songs ADD COLUMN IF NOT EXISTS r2_key TEXT;
 
 -- Search Index on lower-cased title, artist, and language
 CREATE INDEX IF NOT EXISTS idx_songs_search ON songs (LOWER(title), LOWER(artist), LOWER(language));

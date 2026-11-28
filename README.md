@@ -18,8 +18,8 @@
 | Platform | Link | Description |
 | :--- | :--- | :--- |
 | 🌍 **Web Player** | [melody-chi-nine.vercel.app](https://melody-chi-nine.vercel.app) | Responsive Spotify-grade Web Application (Mobile + Desktop). |
-| 📱 **Android App (APK)** | [Download Melody v1.2.0 APK](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk) | Direct production APK with Android-exclusive offline storage, background audio, and lock-screen widget. |
-| 📺 **Android TV / Google TV** | [Download Melody TV APK](https://melody-chi-nine.vercel.app/Melody-v1.2.0.apk) | 10-foot Leanback living room interface with D-Pad TV remote navigation. |
+| 📱 **Android App (APK)** | [Download Melody v1.2.6 APK](https://melody-chi-nine.vercel.app/Melody-v1.2.6.apk) | Direct production APK with Android-exclusive offline storage, background audio, and lock-screen widget. |
+| 📺 **Android TV / Google TV** | [Download Melody TV APK](https://melody-chi-nine.vercel.app/Melody-v1.2.6.apk) | 10-foot Leanback living room interface with D-Pad TV remote navigation. |
 | 🏷️ **GitHub Releases** | [Releases & Changelog](https://github.com/SonyLucky7/melody/releases) | Versioned release tags, compilation artifacts, and changelog history. |
 
 ---

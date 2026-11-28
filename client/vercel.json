@@ -9,6 +9,23 @@
       "memory": 1024
     }
   },
+  "redirects": [
+    {
+      "source": "/Melody-latest.apk",
+      "destination": "/Melody-v1.2.6.apk",
+      "permanent": false
+    },
+    {
+      "source": "/Melody-v1.:minor(0|1).:patch.apk",
+      "destination": "/Melody-v1.2.6.apk",
+      "permanent": false
+    },
+    {
+      "source": "/Melody-v1.2.:patch(0|1|2|3|4|5).apk",
+      "destination": "/Melody-v1.2.6.apk",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -35,7 +52,7 @@
       "destination": "/api/index"
     },
     {
-      "source": "/((?!api|covers|stream|health|activate|devices|assets|favicon|privacy|terms|app-ads\\.txt|ads\\.txt).*)",
+      "source": "/((?!api|covers|stream|health|activate|devices|assets|favicon|privacy|terms|app-ads\\.txt|ads\\.txt|Melody-).*)",
       "destination": "/index.html"
     }
   ],
