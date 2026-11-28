@@ -62,30 +62,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, onR
 
         {/* Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar flex-1">
-          {/* Option 1: Telegram Official Support */}
-          <a
-            href="https://t.me/MelodySongPlayerBot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all group"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-[#229ED9]/20 text-[#229ED9] flex items-center justify-center flex-shrink-0">
-                <Send className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">
-                  Telegram Instant Support
-                </h3>
-                <p className="text-xs text-neutral-400">
-                  Chat directly with our automated bot & support channel
-                </p>
-              </div>
-            </div>
-            <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-white flex-shrink-0 transition-colors" />
-          </a>
-
-          {/* Option 2: GitHub Support Portal */}
+          {/* Option 1: GitHub Support Portal */}
           <a
             href="https://github.com/SonyLucky7/melody/issues"
             target="_blank"
@@ -117,7 +94,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose, onR
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 mt-0.5 flex-shrink-0" />
                 <span>
-                  <strong>Songs taking 2-3s to start?</strong> We run 5 load-balanced high-speed Telegram streaming bots. Once pre-buffered, subsequent tracks play in 0ms!
+                  <strong>Songs taking 2-3s to start?</strong> We run load-balanced high-speed cloud streaming servers. Once pre-buffered, subsequent tracks play instantly!
                 </span>
               </div>
               <div className="flex items-start gap-2">

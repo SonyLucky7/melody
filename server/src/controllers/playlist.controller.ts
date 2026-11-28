@@ -5,7 +5,7 @@ import { query } from '../db/client';
 export const CURATED_PLAYLISTS = [
   {
     id: 14,
-    name: 'Adithi',
+    name: 'A Telugu',
     description: 'Vennelave Vennelave, Maate Vinadhuga, Inthandham, Emai Poyave, Hoyna Hoyna & Telugu melodies.',
     total_songs: 25,
     cover_url: 'https://mosaic.scdn.co/640/ab67616d00001e02455b426149833ff977f81656ab67616d00001e027e23cd1ca5abcf039d176f08ab67616d00001e027fe12eefb56610912fa8f9b4ab67616d00001e0284351604b643064b97982db5',

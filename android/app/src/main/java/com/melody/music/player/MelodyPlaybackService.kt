@@ -12,6 +12,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.BitmapLoader
 import androidx.media3.common.util.UnstableApi
@@ -27,6 +28,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
+import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
@@ -67,7 +69,7 @@ object MelodyCache {
 }
 
 /**
- * Reliable Coil-backed BitmapLoader for Android 13/14/15/16 Notification & Lock Screen Media Card artwork.
+ * Reliable Coil-backed BitmapLoader for Android 8–16 / HyperOS / OneUI Lock Screen & Control Center artwork.
  * Handles HTTPS, WebP, JPEG, PNG, and local offline file:// cover URIs seamlessly!
  */
 @OptIn(UnstableApi::class)
@@ -97,7 +99,8 @@ private class CoilBitmapLoader(private val context: Context) : BitmapLoader {
                     if (bmp != null) return@Callable bmp
                 }
             } catch (_: Exception) {}
-            BitmapFactory.decodeResource(context.resources, R.drawable.ic_melody_logo)
+            BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+                ?: BitmapFactory.decodeResource(context.resources, R.drawable.ic_melody_logo)
         })
     }
 }
@@ -137,7 +140,7 @@ class MelodyPlaybackService : MediaSessionService() {
             .build()
 
         val httpDataSourceFactory = OkHttpDataSource.Factory(streamingOkHttp)
-            .setUserAgent("MelodyAndroid/1.2.1")
+            .setUserAgent("MelodyAndroid/1.2.5")
 
         // Cached HTTP DataSource for remote streams + direct FileDataSource for offline file:// downloads
         val cachedHttpFactory = CacheDataSource.Factory()
@@ -149,8 +152,7 @@ class MelodyPlaybackService : MediaSessionService() {
         val defaultDataSourceFactory = DefaultDataSource.Factory(this, cachedHttpFactory)
         val smartDataSourceFactory = DataSource.Factory { defaultDataSourceFactory.createDataSource() }
 
-        // 3. Spotify-Grade Anti-Cut LoadControl:
-        //    Buffers 30s–120s ahead with 1.5s start & 2.5s rebuffer so network dips NEVER cut audio mid-song!
+        // 3. Anti-Cut LoadControl: 30s–120s ahead buffer so network dips never cut audio mid-song
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ 30_000,
@@ -161,7 +163,6 @@ class MelodyPlaybackService : MediaSessionService() {
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
-        // Up to 6 automatic upstream retries before raising a player error
         val mediaSourceFactory = DefaultMediaSourceFactory(smartDataSourceFactory)
             .setLoadErrorHandlingPolicy(DefaultLoadErrorHandlingPolicy(6))
 
@@ -174,7 +175,7 @@ class MelodyPlaybackService : MediaSessionService() {
             .setLoadControl(loadControl)
             .build()
 
-        // 5. System Media Notification Provider (Spotify-grade Lock Screen & Notification Card on Android 8–16)
+        // 5. System Media Notification Provider (Lock Screen & Control Center Media Card on Android 8–16 / HyperOS)
         try {
             val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
                 .setChannelId(MelodyApplication.PLAYBACK_CHANNEL_ID)
@@ -186,7 +187,7 @@ class MelodyPlaybackService : MediaSessionService() {
             e.printStackTrace()
         }
 
-        // 6. PendingIntent to open Melody when tapping the Lock Screen or Notification card
+        // 6. PendingIntent to open Melody when tapping the Lock Screen or Control Center card
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -197,7 +198,7 @@ class MelodyPlaybackService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // 7. MediaSession Callback supporting Spotify-style Like & Shuffle buttons directly on Lock Screen!
+        // 7. MediaSession Callback supporting Like & Shuffle buttons directly on Lock Screen & Control Center
         val sessionCallback = object : MediaSession.Callback {
             override fun onConnect(
                 session: MediaSession,
@@ -209,7 +210,18 @@ class MelodyPlaybackService : MediaSessionService() {
                     .build()
                 return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                     .setAvailableSessionCommands(sessionCommands)
+                    .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
                     .build()
+            }
+
+            override fun onPostConnect(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo
+            ) {
+                super.onPostConnect(session, controller)
+                try {
+                    session.setCustomLayout(controller, buildCustomButtons())
+                } catch (_: Exception) {}
             }
 
             override fun onCustomCommand(
@@ -234,17 +246,23 @@ class MelodyPlaybackService : MediaSessionService() {
             }
         }
 
-        // 8. Create MediaSession with Coil BitmapLoader + Custom Lock Screen Buttons
-        mediaSession = MediaSession.Builder(this, player)
+        // 8. Create MediaSession with cached Coil BitmapLoader + Custom Lock Screen Buttons
+        val session = MediaSession.Builder(this, player)
             .setSessionActivity(pendingIntent)
             .setCallback(sessionCallback)
-            .setBitmapLoader(CoilBitmapLoader(this))
+            .setBitmapLoader(CacheBitmapLoader(CoilBitmapLoader(this)))
             .setCustomLayout(buildCustomButtons())
             .build()
+        mediaSession = session
 
-        // 9. Keep Home Screen Widget & Lock Screen Buttons synchronized
+        // CRITICAL: Register session with MediaSessionService's MediaNotificationManager immediately!
+        // Without addSession() (or a MediaController bind), Android never posts the Lock Screen / Control Center media card.
+        addSession(session)
+
+        // 9. Keep SystemUI Lock Screen, Control Center & Home Screen Widget synchronized
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
+                refreshNotification(startForeground = playing)
                 MelodyAppWidgetProvider.updateAllWidgets(
                     this@MelodyPlaybackService,
                     MelodyPlayerManager.currentSong.value,
@@ -252,17 +270,40 @@ class MelodyPlaybackService : MediaSessionService() {
                 )
             }
 
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING) {
+                    refreshNotification(startForeground = player.playWhenReady)
+                }
+            }
+
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 updateCustomLayout()
+                refreshNotification(startForeground = player.playWhenReady)
                 MelodyAppWidgetProvider.updateAllWidgets(
                     this@MelodyPlaybackService,
                     MelodyPlayerManager.currentSong.value,
                     player.isPlaying
                 )
             }
+
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                refreshNotification(startForeground = player.playWhenReady)
+            }
         })
 
         MelodyPlayerManager.bindService(this)
+    }
+
+    @OptIn(UnstableApi::class)
+    fun refreshNotification(startForeground: Boolean = player.playWhenReady) {
+        val session = mediaSession ?: return
+        try {
+            if (player.mediaItemCount > 0) {
+                onUpdateNotification(session, startForeground)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun buildCustomButtons(): List<CommandButton> {
@@ -271,23 +312,27 @@ class MelodyPlaybackService : MediaSessionService() {
         val isShuffle = MelodyPlayerManager.isShuffle.value
 
         val likeButton = CommandButton.Builder()
-            .setDisplayName(if (isLiked) "Saved to Liked Songs" else "Like Song")
+            .setDisplayName(if (isLiked) "Saved" else "Save")
             .setIconResId(if (isLiked) R.drawable.ic_notif_check_circle else R.drawable.ic_notif_heart_outline)
             .setSessionCommand(likeCommand)
+            .setEnabled(true)
             .build()
 
         val shuffleButton = CommandButton.Builder()
             .setDisplayName(if (isShuffle) "Shuffle On" else "Shuffle Off")
             .setIconResId(if (isShuffle) R.drawable.ic_notif_shuffle_active else R.drawable.ic_notif_shuffle)
             .setSessionCommand(shuffleCommand)
+            .setEnabled(true)
             .build()
 
         return listOf(likeButton, shuffleButton)
     }
 
     fun updateCustomLayout() {
+        val session = mediaSession ?: return
         try {
-            mediaSession?.setCustomLayout(buildCustomButtons())
+            session.setCustomLayout(buildCustomButtons())
+            refreshNotification(startForeground = player.playWhenReady)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -297,7 +342,7 @@ class MelodyPlaybackService : MediaSessionService() {
         return mediaSession
     }
 
-    // Keep music playing smoothly in background if user swipes Melody from Recents while playing (Spotify behavior!)
+    // Keep music playing smoothly in background if user swipes Melody from Recents while playing
     override fun onTaskRemoved(rootIntent: Intent?) {
         val p = mediaSession?.player
         if (p == null || !p.playWhenReady || p.mediaItemCount == 0 || p.playbackState == Player.STATE_ENDED) {

@@ -96,8 +96,9 @@ fun TvMainScreen(
         } catch (_: Exception) {}
     }
 
-    val adithiSongs = remember(songs) {
+    val aTeluguSongs = remember(songs) {
         songs.filter {
+            it.album?.equals("A Telugu", ignoreCase = true) == true ||
             it.album?.equals("Adithi", ignoreCase = true) == true ||
             it.language?.equals("telugu", ignoreCase = true) == true
         }
@@ -446,18 +447,18 @@ fun TvMainScreen(
                                     }
                                 }
 
-                                // Shelf 2B: Adithi — Telugu Melodies
-                                if (adithiSongs.isNotEmpty()) {
+                                // Shelf 2B: A Telugu — Telugu Melodies
+                                if (aTeluguSongs.isNotEmpty()) {
                                     item {
                                         TvShelfSection(
-                                            title = "💜 Adithi — Telugu Melodies (${adithiSongs.size})",
+                                            title = "💜 A Telugu — Telugu Melodies (${aTeluguSongs.size})",
                                             subtitle = "Maate Vinadhuga, Vennelave Vennelave, Inthandham, Emai Poyave & hits"
                                         ) {
                                             LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                                items(adithiSongs) { song ->
+                                                items(aTeluguSongs) { song ->
                                                     TvSongCard(
                                                         song = song,
-                                                        onClick = { playSongAndOpenPlayer(song, adithiSongs) }
+                                                        onClick = { playSongAndOpenPlayer(song, aTeluguSongs) }
                                                     )
                                                 }
                                             }
@@ -1498,7 +1499,7 @@ fun TvSearchView(
     onQueryChange: (String) -> Unit,
     onSongClick: (Song, List<Song>) -> Unit
 ) {
-    val quickFilters = listOf("All", "Adithi", "Telugu", "Brazil Phonk", "The Weeknd", "Sidhu Moose Wala", "Honey Singh", "Slowed", "Motivation")
+    val quickFilters = listOf("All", "A Telugu", "Telugu", "Brazil Phonk", "The Weeknd", "Sidhu Moose Wala", "Honey Singh", "Slowed", "Motivation")
     var selectedFilter by remember { mutableStateOf("All") }
 
     val filtered = remember(songs, searchQuery, selectedFilter) {
@@ -1509,8 +1510,8 @@ fun TvSearchView(
                 (song.album?.contains(searchQuery, ignoreCase = true) == true)
 
             val matchFilter = when (selectedFilter) {
-                "Adithi" -> song.album?.equals("Adithi", true) == true
-                "Telugu" -> song.language?.equals("telugu", true) == true || song.album?.equals("Adithi", true) == true
+                "A Telugu" -> song.album?.equals("A Telugu", true) == true || song.album?.equals("Adithi", true) == true
+                "Telugu" -> song.language?.equals("telugu", true) == true || song.album?.equals("A Telugu", true) == true || song.album?.equals("Adithi", true) == true
                 "Brazil Phonk" -> song.album?.contains("phonk", true) == true || song.album?.contains("brazil", true) == true || song.title.contains("montagem", true)
                 "The Weeknd" -> isArtistMatch(song.artist, "The Weeknd")
                 "Sidhu Moose Wala" -> isArtistMatch(song.artist, "Sidhu Moose Wala")

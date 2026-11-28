@@ -707,12 +707,38 @@ fun ProfileScreen(
                     Divider(color = Color.White.copy(alpha = 0.05f))
 
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                try {
+                                    val notifIntent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                        putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                    }
+                                    context.startActivity(notifIntent)
+                                } catch (_: Exception) {
+                                    Toast.makeText(context, "Open Settings -> Apps -> Melody -> Notifications", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Lock Screen & Notification Controls", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Ensure Show on Lock screen is enabled in phone settings", color = MelodyTextSecondary, fontSize = 11.sp)
+                        }
+                        Icon(Icons.Default.NotificationsActive, contentDescription = "Notification Settings", tint = MelodyPrimary, modifier = Modifier.size(18.dp))
+                    }
+
+                    Divider(color = Color.White.copy(alpha = 0.05f))
+
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("App Version", color = MelodyTextSecondary, fontSize = 12.sp)
-                        Text("Melody v1.2.4 (Build 16)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Melody v1.2.5 (Build 17)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

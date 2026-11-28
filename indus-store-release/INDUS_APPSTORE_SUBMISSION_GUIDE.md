@@ -54,7 +54,7 @@ Melody is a fast, modern music streaming and offline audio player built for Andr
 KEY FEATURES:
 • High-Fidelity 320kbps Streaming — Smooth, anti-cut playback engine engineered with smart pre-buffering for uninterrupted listening even on mobile data.
 • True Offline Listening Mode — Save your favorite songs directly inside the app's private local storage and play anytime in Airplane Mode with zero internet.
-• Curated Public Playlists — Instant access to Telugu melodies (Adithi), Punjabi classics, Phonk & Workout mixes, Slowed + Reverb, and global pop hits.
+• Curated Public Playlists — Instant access to Telugu melodies (A Telugu), Punjabi classics, Phonk & Workout mixes, Slowed + Reverb, and global pop hits.
 • Native Lock Screen & Notification Controls — Full album artwork, interactive progress scrubber, Previous / Play-Pause / Next, Save/Like, and Shuffle right from your lock screen, notification shade, and Bluetooth / car stereo.
 • 6-Band Studio Equalizer — Fine-tune Sub-Bass, Punch, Warmth, Vocals, Presence, and Air with built-in audio presets.
 • Home Screen Music Widget — Control playback with live album artwork straight from your launcher.
@@ -70,7 +70,7 @@ Melody uses encrypted HTTPS-only networking and requests only the minimal permis
 • Production release optimized for Indus Appstore with full R8 shrinking and HTTPS-only security hardening.
 • Added native Lock Screen & Notification media controls with interactive progress scrubber, Save, and Shuffle.
 • Upgraded anti-cut OkHttp + ExoPlayer streaming engine with 30s–120s smart buffering and offline local downloads.
-• Added public curated Telugu ("Adithi") and global playlists across Phone & Android TV.
+• Added public curated Telugu ("A Telugu") and global playlists across Phone & Android TV.
 • Upgraded 6-band Equalizer precision sliders, Home Screen Widget artwork, and Android TV navigation.
 ```
 

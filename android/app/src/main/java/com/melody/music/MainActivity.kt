@@ -3,9 +3,7 @@ package com.melody.music
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.os.Bundle
-import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -22,6 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import com.melody.music.ads.MelodyLaunchAdManager
 import com.melody.music.data.api.ApiClient
 import com.melody.music.data.model.Song
@@ -49,10 +51,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {}
-        override fun onServiceDisconnected(name: ComponentName?) {}
-    }
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,22 +62,41 @@ class MainActivity : ComponentActivity() {
         com.melody.music.data.download.MelodyDownloadManager.init(applicationContext)
         MelodyPlayerManager.refreshFavourites()
 
-        // 1 Full Ad on Application Launch/Open Only (mobile only — never disrupt Android TV D-Pad focus!)
+        // 1 Launch Ad on App Open (capped to 1 per 2-4 hours, mobile only — never on Android TV)
         if (!isTvDevice(this)) {
             MelodyLaunchAdManager.init(applicationContext)
             MelodyLaunchAdManager.showLaunchAdIfFirstOpen(this)
         }
-
-        // Start & bind playback foreground service
-        val serviceIntent = Intent(this, MelodyPlaybackService::class.java)
-        startService(serviceIntent)
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
 
         setContent {
             MaterialTheme(colorScheme = MelodyColorScheme) {
                 MelodyApp()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Official Media3 MediaController connection — triggers MediaSessionService.onGetSession()
+        // and keeps Lock Screen & Control Center media controls alive seamlessly!
+        try {
+            val sessionToken = SessionToken(this, ComponentName(this, MelodyPlaybackService::class.java))
+            val future = MediaController.Builder(this, sessionToken).buildAsync()
+            future.addListener({
+                try {
+                    future.get()
+                } catch (_: Exception) {}
+            }, MoreExecutors.directExecutor())
+            controllerFuture = future
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onStop() {
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        super.onStop()
     }
 
     override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
@@ -120,7 +138,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        unbindService(serviceConnection)
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
         super.onDestroy()
     }
 }

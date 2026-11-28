@@ -246,7 +246,10 @@ object MelodyPlayerManager {
 
         val mediaMetadata = MediaMetadata.Builder()
             .setTitle(song.title)
+            .setDisplayTitle(song.title)
             .setArtist(song.artist)
+            .setSubtitle(song.artist)
+            .setAlbumArtist(song.artist)
             .setAlbumTitle(song.album ?: "Melody")
             .setArtworkUri(artworkUri)
             .setIsBrowsable(false)
@@ -456,6 +459,7 @@ object MelodyPlayerManager {
                     play()
                 }
                 service?.updateCustomLayout()
+                service?.refreshNotification(startForeground = true)
 
                 onTrackActiveSideEffects(song)
             } catch (e: CancellationException) {

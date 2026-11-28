@@ -75,20 +75,20 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, onOpenAct
             </div>
           </a>
 
-          {/* Telegram Channel */}
+          {/* GitHub Support Portal */}
           <a
-            href="https://t.me/xO_HaC"
+            href="https://github.com/SonyLucky7/melody/issues"
             target="_blank"
             rel="noreferrer"
-            className="p-3.5 rounded-xl bg-[#229ED9]/10 border border-[#229ED9]/30 hover:bg-[#229ED9]/20 transition-all flex flex-col justify-between group cursor-pointer"
+            className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 transition-all flex flex-col justify-between group cursor-pointer"
           >
             <div className="flex items-center justify-between mb-2">
-              <Send className="w-5 h-5 text-[#229ED9]" />
+              <Send className="w-5 h-5 text-purple-400" />
               <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-colors" />
             </div>
             <div>
-              <div className="font-bold text-white text-xs">Telegram: @xO_HaC</div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">Instant 1-min response</div>
+              <div className="font-bold text-white text-xs">Support &amp; Bug Reports</div>
+              <div className="text-[10px] text-neutral-400 mt-0.5">GitHub Issues Portal</div>
             </div>
           </a>
         </div>
