@@ -84,8 +84,12 @@ interface MelodyApiService {
 }
 
 object ApiClient {
-    // Production Render URL with 24/7 keep-alive
-    var baseUrl = "https://melody-mzsm.onrender.com/"
+    // Primary Render Backend + Automatic Vercel Edge Failover (for carrier/ISP resilience!)
+    const val PRIMARY_BASE_URL = "https://melody-mzsm.onrender.com/"
+    const val FALLBACK_BASE_URL = "https://melody-chi-nine.vercel.app/"
+
+    @Volatile
+    var baseUrl = PRIMARY_BASE_URL
     var deviceToken: String? = null
     var deviceId: String = "android-" + UUID.randomUUID().toString().take(12)
     var currentUser: AndroidUserProfile? = null
@@ -161,20 +165,63 @@ object ApiClient {
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             })
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(20, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
             .build()
     }
 
-    val service: MelodyApiService by lazy {
+    val primaryService: MelodyApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(PRIMARY_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(MelodyApiService::class.java)
     }
 
+    val fallbackService: MelodyApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(FALLBACK_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(MelodyApiService::class.java)
+    }
+
+    val service: MelodyApiService
+        get() = if (baseUrl == FALLBACK_BASE_URL) fallbackService else primaryService
+
     val apiService: MelodyApiService
         get() = service
+
+    /**
+     * Fetches songs with automatic Render -> Vercel Edge failover so Indian mobile carriers
+     * or cold starts never stall the app on "Connecting to Melody Cloud...".
+     */
+    suspend fun getSongsResilient(limit: Int = 100, offset: Int = 0): SongResponse? {
+        // 1. Try current active backend first
+        val first = try {
+            service.getSongs(limit = limit, offset = offset)
+        } catch (e: Exception) {
+            android.util.Log.w("MelodyApi", "Primary getSongs(offset=$offset) failed: ${e.message}")
+            null
+        }
+        if (first != null && first.success) return first
+
+        // 2. Automatically fail over to the alternate backend (Vercel Edge <-> Render)
+        val altUrl = if (baseUrl == PRIMARY_BASE_URL) FALLBACK_BASE_URL else PRIMARY_BASE_URL
+        val altSvc = if (altUrl == FALLBACK_BASE_URL) fallbackService else primaryService
+        val second = try {
+            altSvc.getSongs(limit = limit, offset = offset)
+        } catch (e: Exception) {
+            android.util.Log.w("MelodyApi", "Fallback getSongs(offset=$offset) failed: ${e.message}")
+            null
+        }
+        if (second != null && second.success) {
+            baseUrl = altUrl
+            return second
+        }
+        return null
+    }
 }

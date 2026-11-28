@@ -141,6 +141,8 @@ fun MelodyApp() {
     var selectedArtist by remember { mutableStateOf<String?>(null) }
     var selectedPlaylist by remember { mutableStateOf<Playlist?>(null) }
     var songs by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var isLoadingCatalog by remember { mutableStateOf(true) }
+    var catalogError by remember { mutableStateOf<String?>(null) }
     var isFullPlayerVisible by remember { mutableStateOf(false) }
     var isActivationDialogOpen by remember { mutableStateOf(false) }
 
@@ -161,6 +163,9 @@ fun MelodyApp() {
 
     fun loadCatalog() {
         scope.launch {
+            isLoadingCatalog = true
+            catalogError = null
+
             // 1. Immediate restore from persistent cache (or local offline downloads if zero internet!)
             val prefs = context.getSharedPreferences("melody_catalog_cache", Context.MODE_PRIVATE)
             val cachedJson = prefs.getString("songs_json", null)
@@ -182,31 +187,53 @@ fun MelodyApp() {
                 }
             }
 
-            // 2. Parallel pagination across all offsets (0..1100) to fetch all 850+ songs
-            val offsets = listOf(0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100)
+            // 2. Fast Stage 1: Load first 100 tracks immediately (with Render -> Vercel Edge failover + 1 retry)
             try {
-                val deferredList = offsets.map { offset ->
-                    async(Dispatchers.IO) {
-                        try {
-                            ApiClient.service.getSongs(limit = 100, offset = offset)
-                        } catch (e: Exception) {
-                            null
-                        }
+                var firstPage = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    ApiClient.getSongsResilient(limit = 100, offset = 0)
+                }
+                if (firstPage == null) {
+                    kotlinx.coroutines.delay(1500)
+                    firstPage = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                        ApiClient.getSongsResilient(limit = 100, offset = 0)
                     }
                 }
-                val responses = deferredList.awaitAll()
-                val allFetched = mutableListOf<Song>()
-                val seenIds = mutableSetOf<Long>()
-                for (resp in responses) {
-                    if (resp != null && resp.success) {
-                        for (song in resp.data) {
-                            if (seenIds.add(song.id)) {
-                                allFetched.add(song)
+
+                if (firstPage != null && firstPage.success && firstPage.data.isNotEmpty()) {
+                    val seenIds = mutableSetOf<Long>()
+                    val initial = mutableListOf<Song>()
+                    for (song in firstPage.data) {
+                        if (seenIds.add(song.id)) initial.add(song)
+                    }
+                    // Immediately show first 100 songs so UI never waits on all pages!
+                    if (songs.size < initial.size) {
+                        songs = initial
+                    }
+                    isLoadingCatalog = false
+
+                    // 3. Stage 2: Parallel pagination for remaining pages (100..total)
+                    val targetTotal = firstPage.total.coerceAtLeast(initial.size).coerceAtMost(2000)
+                    val remainingOffsets = (100 until targetTotal step 100).toList()
+                    val allFetched = initial.toMutableList()
+
+                    if (remainingOffsets.isNotEmpty()) {
+                        val deferredList = remainingOffsets.map { offset ->
+                            async(Dispatchers.IO) {
+                                ApiClient.getSongsResilient(limit = 100, offset = offset)
+                            }
+                        }
+                        val responses = deferredList.awaitAll()
+                        for (resp in responses) {
+                            if (resp != null && resp.success) {
+                                for (song in resp.data) {
+                                    if (seenIds.add(song.id)) {
+                                        allFetched.add(song)
+                                    }
+                                }
                             }
                         }
                     }
-                }
-                if (allFetched.isNotEmpty()) {
+
                     songs = allFetched
                     try {
                         val json = com.google.gson.Gson().toJson(allFetched)
@@ -214,9 +241,18 @@ fun MelodyApp() {
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
+                } else {
+                    if (songs.isEmpty()) {
+                        catalogError = "Couldn't reach Melody Cloud. Check your internet and tap Retry."
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                if (songs.isEmpty()) {
+                    catalogError = "Network error (${e.javaClass.simpleName}). Tap Retry."
+                }
+            } finally {
+                isLoadingCatalog = false
             }
         }
     }
@@ -402,6 +438,8 @@ fun MelodyApp() {
                             selectedPlaylist = playlist
                         },
                         onRefresh = { loadCatalog() },
+                        isLoading = isLoadingCatalog,
+                        errorMessage = catalogError,
                         onSwitchToTvMode = {
                             isTvMode = true
                             tvPrefs.edit().putBoolean("tv_mode_active", true).apply()

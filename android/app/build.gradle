@@ -26,8 +26,8 @@ android {
         applicationId "com.melody.music"
         minSdk 24
         targetSdk 34
-        versionCode 15
-        versionName "1.2.3"
+        versionCode 16
+        versionName "1.2.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -51,8 +51,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            // Keep full reflection metadata for Retrofit suspend APIs, Gson TypeTokens & Media3
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release

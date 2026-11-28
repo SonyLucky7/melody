@@ -620,7 +620,7 @@ export const App: React.FC = () => {
             <div className="flex flex-col truncate">
               <span className="text-[11px] font-bold text-white truncate flex items-center gap-1">
                 Melody Android App
-                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.3</span>
+                <span className="px-1 py-0.2 text-[8px] rounded-full bg-purple-600/40 text-purple-300 font-mono">v1.2.4</span>
               </span>
               <span className="text-[9px] text-purple-200/80 truncate">Free lossless 320k streaming & offline mode</span>
             </div>

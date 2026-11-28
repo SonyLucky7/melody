@@ -42,6 +42,8 @@ fun HomeScreen(
     onArtistClick: (String) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     onRefresh: (() -> Unit)? = null,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onSwitchToTvMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -383,10 +385,40 @@ fun HomeScreen(
                         .padding(vertical = 40.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MelodyPrimary, modifier = Modifier.size(36.dp))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Connecting to Melody Cloud...", color = MelodyTextSecondary, fontSize = 13.sp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (songs.isNotEmpty()) {
+                            Text(
+                                "No tracks matched \"$selectedLanguage\".",
+                                color = MelodyTextSecondary,
+                                fontSize = 13.sp
+                            )
+                            TextButton(onClick = { selectedLanguage = "" }) {
+                                Text("Show All Songs", color = MelodyPrimary, fontWeight = FontWeight.Bold)
+                            }
+                        } else if (!errorMessage.isNullOrBlank() && !isLoading) {
+                            Text(
+                                text = errorMessage,
+                                color = Color(0xFFFCA5A5),
+                                fontSize = 13.sp
+                            )
+                            if (onRefresh != null) {
+                                Button(
+                                    onClick = onRefresh,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MelodyPrimary),
+                                    shape = RoundedCornerShape(24.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Retry Connection", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        } else {
+                            CircularProgressIndicator(color = MelodyPrimary, modifier = Modifier.size(36.dp))
+                            Text("Connecting to Melody Cloud...", color = MelodyTextSecondary, fontSize = 13.sp)
+                        }
                     }
                 }
             }

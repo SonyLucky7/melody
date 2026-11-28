@@ -712,7 +712,7 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("App Version", color = MelodyTextSecondary, fontSize = 12.sp)
-                        Text("Melody v1.2.3 (Build 15)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Melody v1.2.4 (Build 16)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
